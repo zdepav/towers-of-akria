@@ -31,17 +31,17 @@ class RenderablePath {
 }
 class RenderablePathSet {
     constructor(paths = null) {
-        this._paths = paths == null ? [] : paths;
+        this.paths = paths == null ? [] : paths;
     }
     push(path) {
-        this._paths.push(path);
+        this.paths.push(path);
     }
     pushNew(path, fill) {
-        this._paths.push(new RenderablePath(path, fill));
+        this.paths.push(new RenderablePath(path, fill));
     }
     render(ctx) {
-        for (let i = 0; i < this._paths.length; ++i) {
-            this._paths[i].render(ctx);
+        for (let i = 0; i < this.paths.length; ++i) {
+            this.paths[i].render(ctx);
         }
     }
 }
@@ -54,26 +54,27 @@ class DijkstraNode {
 }
 class PerformanceMeter {
     constructor() {
-        this._queue = [];
-        this._sum = 0;
+        this.queue = [];
+        this.sum = 0;
     }
     add(fps) {
-        this._queue.push(fps);
-        this._sum += fps;
-        if (this._queue.length > 100) {
-            this._sum -= this._queue.shift();
+        this.queue.push(fps);
+        this.sum += fps;
+        if (this.queue.length > 100) {
+            this.sum -= this.queue.shift();
         }
     }
     getFps() {
-        return this._queue.length > 0 ? this._sum / this._queue.length : NaN;
+        return this.queue.length > 0 ? this.sum / this.queue.length : NaN;
     }
 }
 class PreRenderedImage {
     constructor(width, height) {
-        this.canvas = document.createElement("canvas");
-        this.canvas.width = width;
-        this.canvas.height = height;
-        this.ctx = this.canvas.getContext("2d");
+        let canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        this.ctx = canvas.getContext("2d");
+        this.image = canvas;
     }
 }
 class Angles {
@@ -96,4 +97,5 @@ class Angles {
         Angles.deg360 = Math.PI * 2;
     }
 }
+Angles.init();
 //# sourceMappingURL=utils.js.map

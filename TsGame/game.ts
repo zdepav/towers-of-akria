@@ -143,63 +143,65 @@ class Tile extends GameItem {
 
 class Game {
 
-    _canvas: HTMLCanvasElement
-    _preRendered: ImageData
-    _ctx: CanvasRenderingContext2D
-    _mapWidth: number
-    _mapHeight: number
-    _guiPanel: Rect
-    _map: Tile[][]
-    _enemies: GameItem[]
-    _castle: RenderablePathSet
-    _turrets: Turret[]
-    _prevTime: number
-    _time: number
-    _performanceMeter: PerformanceMeter
+    canvas: HTMLCanvasElement
+    preRendered: CanvasImageSource
+    ctx: CanvasRenderingContext2D
+    mapWidth: number
+    mapHeight: number
+    guiPanel: Rect
+    map: Tile[][]
+    enemies: GameItem[]
+    castle: RenderablePathSet
+    turrets: Turret[]
+    prevTime: number
+    time: number
+    performanceMeter: PerformanceMeter
 
     width: number
     height: number
 
     constructor(canvas: HTMLCanvasElement) {
-        this._canvas = canvas
-        this._ctx = canvas.getContext("2d")
-        this._turrets = []
-        this._prevTime = new Date().getTime()
-        this._time = 0
-        this._performanceMeter = new PerformanceMeter()
+        this.canvas = canvas
+        this.ctx = canvas.getContext("2d")
+        this.turrets = []
+        this.prevTime = new Date().getTime()
+        this.time = 0
+        this.performanceMeter = new PerformanceMeter()
 
         let canvasWidth = canvas.width
         let mapWidth = Math.floor(canvasWidth / 64) - 3
         mapWidth = mapWidth % 2 == 0 ? mapWidth - 1 : mapWidth
-        this._mapWidth = mapWidth < 3 ? 3 : mapWidth
+        this.mapWidth = mapWidth < 3 ? 3 : mapWidth
         this.width = (mapWidth + 3) * 64
 
         let canvasHeight = canvas.height
         let mapHeight = Math.floor(canvasHeight / 64)
         mapHeight = mapHeight % 2 == 0 ? mapHeight - 1 : mapHeight
-        this._mapHeight = mapHeight < 3 ? 3 : mapHeight
+        this.mapHeight = mapHeight < 3 ? 3 : mapHeight
         this.height = mapHeight * 64
 
-        this._guiPanel = new Rect(this.width - 192, 0, 192, this.height - 192)
+        this.guiPanel = new Rect(this.width - 192, 0, 192, this.height - 192)
     }
 
     init() {
+        EarthTurret.init()
+        AirTurret.init()
         this.generateMap()
         this.generateCastle()
-        this.render(true);
+        this.preRender()
     }
 
     generateMap() {
         let mapGen: TileType[][] = []
-        this._map = []
+        this.map = []
         let dijkstraMap: DijkstraNode[][] = []
         let wallGens: Set<Coords> = new Set<Coords>()
-        for (let x = 0; x < this._mapWidth; ++x) {
+        for (let x = 0; x < this.mapWidth; ++x) {
             var columnDijkstra: DijkstraNode[] = []
             var columnGen: TileType[] = []
             var column: Tile[] = []
-            for (let y = 0; y < this._mapHeight; ++y) {
-                if (x == 0 || x == this._mapWidth - 1 || y == 0 || y == this._mapHeight - 1) {
+            for (let y = 0; y < this.mapHeight; ++y) {
+                if (x == 0 || x == this.mapWidth - 1 || y == 0 || y == this.mapHeight - 1) {
                     columnGen.push(TileType.Empty)
                 } else if (x % 2 == 0 && y % 2 == 0) {
                     columnGen.push(TileType.WallGen)
@@ -212,7 +214,7 @@ class Game {
             }
             mapGen.push(columnGen)
             dijkstraMap.push(columnDijkstra)
-            this._map.push(column)
+            this.map.push(column)
         }
         while (wallGens.size > 0) {
             let wg: Coords
@@ -233,12 +235,12 @@ class Game {
             let y = wg.y
             switch (Math.floor(Math.random() * 4)) {
                 case 0:
-                    for (; x < this._mapWidth && mapGen[x][y] != TileType.Empty; ++x) {
+                    for (; x < this.mapWidth && mapGen[x][y] != TileType.Empty; ++x) {
                         mapGen[x][y] = TileType.Empty
                     }
                     break
                 case 1:
-                    for (; y < this._mapHeight && mapGen[x][y] != TileType.Empty; ++y) {
+                    for (; y < this.mapHeight && mapGen[x][y] != TileType.Empty; ++y) {
                         mapGen[x][y] = TileType.Empty
                     }
                     break
@@ -254,8 +256,8 @@ class Game {
                     break
             }
         }
-        let startY = 1 + 2 * Math.floor((this._mapHeight - 1) / 2 * Math.random())
-        let endY = this._mapHeight - 2
+        let startY = 1 + 2 * Math.floor((this.mapHeight - 1) / 2 * Math.random())
+        let endY = this.mapHeight - 2
         let startNode = new DijkstraNode(1, startY, null)
         dijkstraMap[1][0] = startNode
         let queue = [dijkstraMap[1][0]]
@@ -263,7 +265,7 @@ class Game {
             let dn = queue.shift()
             let x = dn.pos.x
             let y = dn.pos.y
-            if (x == this._mapWidth - 2 && y == endY) {
+            if (x == this.mapWidth - 2 && y == endY) {
                 do {
                     mapGen[dn.pos.x][dn.pos.y] = TileType.Path
                     dn = dn.previous
@@ -280,60 +282,60 @@ class Game {
                 dijkstraMap[x][y - 1] = node
                 queue.push(node)
             }
-            if (x < this._mapWidth - 2 && dijkstraMap[x + 1][y] == null && mapGen[x + 1][y] == TileType.Unknown) {
+            if (x < this.mapWidth - 2 && dijkstraMap[x + 1][y] == null && mapGen[x + 1][y] == TileType.Unknown) {
                 let node = new DijkstraNode(x + 1, y, dn)
                 dijkstraMap[x + 1][y] = node
                 queue.push(node)
             }
-            if (y < this._mapHeight - 1 && dijkstraMap[x][y + 1] == null && mapGen[x][y + 1] == TileType.Unknown) {
+            if (y < this.mapHeight - 1 && dijkstraMap[x][y + 1] == null && mapGen[x][y + 1] == TileType.Unknown) {
                 let node = new DijkstraNode(x, y + 1, dn)
                 dijkstraMap[x][y + 1] = node
                 queue.push(node)
             }
         }
         mapGen[0][startY] = TileType.Spawn
-        mapGen[this._mapWidth - 1][endY] = TileType.HQ
-        for (let x = 0; x < this._mapWidth; ++x) {
-            for (let y = 0; y < this._mapHeight; ++y) {
+        mapGen[this.mapWidth - 1][endY] = TileType.HQ
+        for (let x = 0; x < this.mapWidth; ++x) {
+            for (let y = 0; y < this.mapHeight; ++y) {
                 if (mapGen[x][y] == TileType.Spawn) {
-                    this._map[x][y] = new Tile(this, x * 64, y * 64, TileType.Spawn, this._ctx)
+                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Spawn, this.ctx)
                 } else if (mapGen[x][y] == TileType.HQ) {
-                    this._map[x][y] = new Tile(this, x * 64, y * 64, TileType.HQ, this._ctx)
+                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.HQ, this.ctx)
                 } else if (mapGen[x][y] == TileType.Path) {
-                    this._map[x][y] = new Tile(this, x * 64, y * 64, TileType.Path, this._ctx)
+                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Path, this.ctx)
                 } else if (
                     (x > 0 && mapGen[x - 1][y] == TileType.Path) ||
                     (y > 0 && mapGen[x][y - 1] == TileType.Path) ||
-                    (x < this._mapWidth - 1 && mapGen[x + 1][y] == TileType.Path) ||
-                    (y < this._mapHeight - 1 && mapGen[x][y + 1] == TileType.Path) ||
+                    (x < this.mapWidth - 1 && mapGen[x + 1][y] == TileType.Path) ||
+                    (y < this.mapHeight - 1 && mapGen[x][y + 1] == TileType.Path) ||
                     (x > 0 && y > 0 && mapGen[x - 1][y - 1] == TileType.Path) ||
-                    (x < this._mapWidth - 1 && y > 0 && mapGen[x + 1][y - 1] == TileType.Path) ||
-                    (x > 0 && y < this._mapHeight - 1 && mapGen[x - 1][y + 1] == TileType.Path) ||
-                    (x < this._mapWidth - 1 && y < this._mapHeight - 1 && mapGen[x + 1][y + 1] == TileType.Path)
+                    (x < this.mapWidth - 1 && y > 0 && mapGen[x + 1][y - 1] == TileType.Path) ||
+                    (x > 0 && y < this.mapHeight - 1 && mapGen[x - 1][y + 1] == TileType.Path) ||
+                    (x < this.mapWidth - 1 && y < this.mapHeight - 1 && mapGen[x + 1][y + 1] == TileType.Path)
                 ) {
-                    this._map[x][y] = new Tile(this, x * 64, y * 64, TileType.Tower, this._ctx)
+                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Tower, this.ctx)
                     let r = Math.random()
                     if (r < 0.25) {
-                        this._map[x][y].turret = new AirTurret(this._map[x][y])
+                        this.map[x][y].turret = new EarthTurret(this.map[x][y])
                     } else {
-                        this._map[x][y].turret = new EarthTurret(this._map[x][y])
+                        this.map[x][y].turret = new AirTurret(this.map[x][y])
                     }
-                    this._map[x][y].turret.upgraded = Math.random() < 0.5
-                    this._turrets.push(this._map[x][y].turret)
+                    this.map[x][y].turret.upgraded = Math.random() < 0.5
+                    this.turrets.push(this.map[x][y].turret)
                 } else {
-                    this._map[x][y] = new Tile(this, x * 64, y * 64, TileType.Empty, this._ctx)
+                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Empty, this.ctx)
                 }
             }
         }
     }
 
     generateCastle() {
-        this._castle = new RenderablePathSet()
-        let x = this._guiPanel.x
+        this.castle = new RenderablePathSet()
+        let x = this.guiPanel.x
         let y = this.height - 192
         let path1 = new Path2D()
         path1.rect(x + 36, y + 36, 120, 120)
-        this._castle.pushNew(path1, "#82614F")
+        this.castle.pushNew(path1, "#82614F")
         let path2 = new Path2D()
         path2.rect(x + 6, y + 6, 60, 60)
         path2.rect(x + 126, y + 6, 60, 60)
@@ -343,13 +345,13 @@ class Game {
         path2.rect(x + 66, y + 30, 60, 12)
         path2.rect(x + 150, y + 66, 12, 60)
         path2.rect(x + 66, y + 150, 60, 12)
-        this._castle.pushNew(path2, "#505050")
+        this.castle.pushNew(path2, "#505050")
         let path3 = new Path2D()
         path3.rect(x + 18, y + 18, 36, 36)
         path3.rect(x + 138, y + 18, 36, 36)
         path3.rect(x + 18, y + 138, 36, 36)
         path3.rect(x + 138, y + 138, 36, 36)
-        this._castle.pushNew(path3, "#404040")
+        this.castle.pushNew(path3, "#404040")
         let path4 = new Path2D()
         path4.rect(x + 6, y + 6, 12, 12)
         path4.rect(x + 30, y + 6, 12, 12)
@@ -391,58 +393,59 @@ class Game {
         path4.rect(x + 126, y + 174, 12, 12)
         path4.rect(x + 150, y + 174, 12, 12)
         path4.rect(x + 174, y + 174, 12, 12)
-        this._castle.pushNew(path4, "#606060")
+        this.castle.pushNew(path4, "#606060")
     }
 
     run() {
         this.step()
-        this.render(false)
+        this.render()
     }
 
     step() {
         let time = new Date().getTime()
-        let timeDiff = (time - this._prevTime) / 1000
-        this._performanceMeter.add(1 / timeDiff)
-        for (let x = 0; x < this._mapWidth; ++x) {
-            for (let y = 0; y < this._mapHeight; ++y) {
-                this._map[x][y].step(timeDiff)
+        let timeDiff = (time - this.prevTime) / 1000
+        this.performanceMeter.add(1 / timeDiff)
+        for (let x = 0; x < this.mapWidth; ++x) {
+            for (let y = 0; y < this.mapHeight; ++y) {
+                this.map[x][y].step(timeDiff)
             }
         }
-        this._prevTime = time
-        this._time += timeDiff
+        this.prevTime = time
+        this.time += timeDiff
     }
 
-    render(preRender: boolean) {
-        if (preRender) {
-            this._ctx.fillStyle = "#C0C0C0"
-            this._ctx.fillRect(0, 0, this.width, this.height)
-            for (let x = 0; x < this._mapWidth; ++x) {
-                for (let y = 0; y < this._mapHeight; ++y) {
-                    this._map[x][y].render(this._ctx, true)
-                }
+    preRender() {
+        let c = new PreRenderedImage(this.width, this.height)
+        c.ctx.fillStyle = "#C0C0C0"
+        c.ctx.fillRect(0, 0, this.width, this.height)
+        for (let x = 0; x < this.mapWidth; ++x) {
+            for (let y = 0; y < this.mapHeight; ++y) {
+                this.map[x][y].render(this.ctx, true)
             }
-            this._ctx.fillStyle = "#B5947E"
-            this._ctx.fillRect(this._guiPanel.x, this.height - 192, 192, 192)
-            this._ctx.fillStyle = "#606060"
-            this._ctx.fillRect(this._guiPanel.x, this._guiPanel.y, 2, this._guiPanel.h)
-            this._ctx.fillRect(this._guiPanel.x, this._guiPanel.y + this._guiPanel.h - 2, this._guiPanel.w, 2)
-            this._castle.render(this._ctx)
-            this._preRendered = this._ctx.getImageData(0, 0, this.width, this.height)
-        } else {
-            this._ctx.putImageData(this._preRendered, 0, 0)
-            for (let x = 0; x < this._mapWidth; ++x) {
-                for (let y = 0; y < this._mapHeight; ++y) {
-                    this._map[x][y].render(this._ctx, false)
-                }
+        }
+        c.ctx.fillStyle = "#B5947E"
+        c.ctx.fillRect(this.guiPanel.x, this.height - 192, 192, 192)
+        c.ctx.fillStyle = "#606060"
+        c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h)
+        c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2)
+        this.castle.render(c.ctx)
+        this.preRendered = c.image
+    }
+
+    render() {
+        this.ctx.drawImage(this.preRendered, 0, 0)
+        for (let x = 0; x < this.mapWidth; ++x) {
+            for (let y = 0; y < this.mapHeight; ++y) {
+                this.map[x][y].render(this.ctx, false)
             }
-            let fps = this._performanceMeter.getFps()
-            if (!isNaN(fps)) {
-                this._ctx.fillStyle = "#000000"
-                this._ctx.textAlign = "right"
-                this._ctx.textBaseline = "top"
-                this._ctx.font = "bold 16px serif"
-                this._ctx.fillText(Math.floor(fps).toString(), this._guiPanel.x + this._guiPanel.w - 16, this._guiPanel.y + 16)
-            }
+        }
+        let fps = this.performanceMeter.getFps()
+        if (!isNaN(fps)) {
+            this.ctx.fillStyle = "#000000"
+            this.ctx.textAlign = "right"
+            this.ctx.textBaseline = "top"
+            this.ctx.font = "bold 16px serif"
+            this.ctx.fillText(Math.floor(fps).toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 16)
         }
     }
 

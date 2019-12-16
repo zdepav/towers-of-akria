@@ -10,9 +10,6 @@ function gameLoop() {
 }
 
 window.onload = () => {
-    EarthTurret.init()
-    AirTurret.init()
-    Angles.init()
     game = new Game(<HTMLCanvasElement>$("#game-canvas").get(0))
     game.init()
     gameLoop()
