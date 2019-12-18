@@ -85,11 +85,24 @@
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
-    <TypeScriptCompile Include="game.ts" />
+    <AdditionalFiles Include="game\EarthTurret.ts" />
+    <AdditionalFiles Include="game\AirTurret.ts" />
+    <AdditionalFiles Include="game\DijkstraNode.ts" />
+    <AdditionalFiles Include="game\Coords.ts" />
+    <TypeScriptCompile Include="game\FireTurret.ts" />
+    <TypeScriptCompile Include="game\Game.ts" />
+    <AdditionalFiles Include="game\TileType.ts" />
+    <AdditionalFiles Include="game\Tile.ts" />
+    <AdditionalFiles Include="game\RenderablePath.ts" />
+    <AdditionalFiles Include="game\Rect.ts" />
+    <AdditionalFiles Include="game\GameItem.ts" />
+    <AdditionalFiles Include="game\RenderablePathSet.ts" />
+    <AdditionalFiles Include="game\PerformanceMeter.ts" />
+    <AdditionalFiles Include="game\PreRenderedImage.ts" />
     <TypeScriptCompile Include="main.ts" />
     <TypeScriptCompile Include="Scripts\typings\jquery\jquery.d.ts" />
-    <TypeScriptCompile Include="utils.ts" />
-    <TypeScriptCompile Include="turrets.ts" />
+    <TypeScriptCompile Include="game\Angles.ts" />
+    <TypeScriptCompile Include="game\Turret.ts" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{4A0DDDB5-7A95-4FBF-97CC-616D07737A77}" />

@@ -22,8 +22,9 @@ class EarthTurret extends Turret {
     }
     render(ctx, preRender) {
         super.render(ctx, preRender);
-        if (preRender)
+        if (preRender) {
             return;
+        }
         if (this.upgraded) {
             ctx.drawImage(EarthTurret.image1, this.tile.pos.x, this.tile.pos.y);
         }
@@ -142,7 +143,7 @@ class AirTurret extends Turret {
         renderable.pushNew(path, grad);
         for (let rp of renderable.paths) {
             rp.path.closePath();
-            let gr = rp.fill;
+            const gr = rp.fill;
             gr.addColorStop(0, "#B2A5FF");
             gr.addColorStop(1, "#A0A0A0");
         }
@@ -155,8 +156,9 @@ class AirTurret extends Turret {
     }
     render(ctx, preRender) {
         super.render(ctx, preRender);
-        if (preRender)
+        if (preRender) {
             return;
+        }
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
         ctx.drawImage(AirTurret.image, -32, -32);

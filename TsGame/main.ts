@@ -1,6 +1,4 @@
-﻿/// <reference path='utils.ts'/>
-/// <reference path='turrets.ts'/>
-/// <reference path='game.ts'/>
+/// <reference path='game/Game.ts'/>
 
 let game: Game = null
 
@@ -10,7 +8,7 @@ function gameLoop() {
 }
 
 window.onload = () => {
-    game = new Game(<HTMLCanvasElement>$("#game-canvas").get(0))
+    game = new Game($("#game-canvas").get(0) as HTMLCanvasElement)
     game.init()
     gameLoop()
 }

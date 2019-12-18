@@ -1,6 +1,4 @@
-/// <reference path='utils.ts'/>
-/// <reference path='turrets.ts'/>
-/// <reference path='game.ts'/>
+/// <reference path='game/Game.ts'/>
 let game = null;
 function gameLoop() {
     window.requestAnimationFrame(gameLoop);
