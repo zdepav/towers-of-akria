@@ -34,11 +34,11 @@
     <WarningLevel>4</WarningLevel>
     <TypeScriptTarget>ES2015</TypeScriptTarget>
     <TypeScriptJSXEmit>React</TypeScriptJSXEmit>
-    <TypeScriptModuleKind>ES6</TypeScriptModuleKind>
+    <TypeScriptModuleKind>System</TypeScriptModuleKind>
     <TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
-    <TypeScriptNoImplicitAny>False</TypeScriptNoImplicitAny>
+    <TypeScriptNoImplicitAny>True</TypeScriptNoImplicitAny>
     <TypeScriptRemoveComments>False</TypeScriptRemoveComments>
-    <TypeScriptOutFile />
+    <TypeScriptOutFile>game.js</TypeScriptOutFile>
     <TypeScriptOutDir />
     <TypeScriptGeneratesDeclarations>False</TypeScriptGeneratesDeclarations>
     <TypeScriptNoEmitOnError>True</TypeScriptNoEmitOnError>
@@ -85,13 +85,11 @@
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
-    <AdditionalFiles Include="game\EarthTurret.ts" />
-    <AdditionalFiles Include="game\AirTurret.ts" />
     <AdditionalFiles Include="game\DijkstraNode.ts" />
     <AdditionalFiles Include="game\Coords.ts" />
-    <TypeScriptCompile Include="game\FireTurret.ts" />
+    <TypeScriptCompile Include="game\CellularTexture.ts" />
+    <TypeScriptCompile Include="game\ColorRgb.ts" />
     <TypeScriptCompile Include="game\Game.ts" />
-    <AdditionalFiles Include="game\TileType.ts" />
     <AdditionalFiles Include="game\Tile.ts" />
     <AdditionalFiles Include="game\RenderablePath.ts" />
     <AdditionalFiles Include="game\Rect.ts" />
@@ -99,10 +97,10 @@
     <AdditionalFiles Include="game\RenderablePathSet.ts" />
     <AdditionalFiles Include="game\PerformanceMeter.ts" />
     <AdditionalFiles Include="game\PreRenderedImage.ts" />
-    <TypeScriptCompile Include="main.ts" />
+    <TypeScriptCompile Include="game\main.ts" />
     <TypeScriptCompile Include="Scripts\typings\jquery\jquery.d.ts" />
     <TypeScriptCompile Include="game\Angles.ts" />
-    <TypeScriptCompile Include="game\Turret.ts" />
+    <TypeScriptCompile Include="game\turrets.ts" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{4A0DDDB5-7A95-4FBF-97CC-616D07737A77}" />

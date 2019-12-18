@@ -1,6 +1,5 @@
 /// <reference path='Tile.ts'/>
-/// <reference path='AirTurret.ts'/>
-/// <reference path='EarthTurret.ts'/>
+/// <reference path='turrets.ts'/>
 /// <reference path='Rect.ts'/>
 /// <reference path='GameItem.ts'/>
 /// <reference path='RenderablePathSet.ts'/>
@@ -51,8 +50,6 @@ class Game {
     }
 
     init() {
-        EarthTurret.init()
-        AirTurret.init()
         this.generateMap()
         this.generateCastle()
         this.preRender()
@@ -86,7 +83,7 @@ class Game {
         while (wallGens.size > 0) {
             let wg: Coords
             let i = Math.random() * wallGens.size
-            for (let _wg of wallGens.values()) {
+            for (const _wg of wallGens.values()) {
                 if (i < 1) {
                     wg = _wg
                     break
@@ -184,6 +181,8 @@ class Game {
                     let r = Math.random()
                     if (r < 0.25) {
                         this.map[x][y].turret = new EarthTurret(this.map[x][y])
+                    } else if (r < 0.5) {
+                        this.map[x][y].turret = new FireTurret(this.map[x][y])
                     } else {
                         this.map[x][y].turret = new AirTurret(this.map[x][y])
                     }
@@ -301,7 +300,7 @@ class Game {
 
     render() {
         this.ctx.drawImage(this.preRendered, 0, 0)
-        for (let t of this.turrets) {
+        for (const t of this.turrets) {
             t.render(this.ctx, false)
         }
         let fps = this.performanceMeter.getFps()

@@ -1,5 +1,15 @@
-/// <reference path='Turret.ts'/>
-/// <reference path='TileType.ts'/>
+/// <reference path='turrets.ts'/>
+/// <reference path='GameItem.ts'/>
+
+enum TileType {
+    Unknown,
+    Empty,
+    WallGen,
+    Tower,
+    Path,
+    Spawn,
+    HQ
+}
 
 class Tile extends GameItem {
 
