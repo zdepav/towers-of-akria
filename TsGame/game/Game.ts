@@ -6,6 +6,7 @@
 /// <reference path='PerformanceMeter.ts'/>
 /// <reference path='DijkstraNode.ts'/>
 /// <reference path='PreRenderedImage.ts'/>
+/// <reference path="ParticleSystem.ts"/>
 
 class Game {
 
@@ -22,6 +23,7 @@ class Game {
     prevTime: number
     time: number
     performanceMeter: PerformanceMeter
+    particles: ParticleSystem
 
     width: number
     height: number
@@ -33,6 +35,7 @@ class Game {
         this.prevTime = new Date().getTime()
         this.time = 0
         this.performanceMeter = new PerformanceMeter()
+        this.particles = new ParticleSystem(this)
 
         let canvasWidth = canvas.width
         let mapWidth = Math.floor(canvasWidth / 64) - 3
@@ -179,15 +182,21 @@ class Game {
                 ) {
                     this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Tower, this.ctx)
                     let r = Math.random()
-                    if (r < 0.25) {
-                        this.map[x][y].turret = new EarthTurret(this.map[x][y])
+                    let t: Turret = null
+                    if (r < 0.2) {
+                        t = new EarthTurret(this.map[x][y])
+                    } else if (r < 0.4) {
+                        t = new FireTurret(this.map[x][y])
                     } else if (r < 0.5) {
-                        this.map[x][y].turret = new FireTurret(this.map[x][y])
-                    } else {
-                        this.map[x][y].turret = new AirTurret(this.map[x][y])
+                        t = new IceTurret(this.map[x][y])
+                    } else if (r < 0.7) {
+                        t = new AirTurret(this.map[x][y])
                     }
-                    this.map[x][y].turret.upgraded = Math.random() < 0.5
-                    this.turrets.push(this.map[x][y].turret)
+                    if (t !== null) {
+                        this.map[x][y].turret = t
+                        t.upgraded = Math.random() < 0.5
+                        this.turrets.push(t)
+                    }
                 } else {
                     this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Empty, this.ctx)
                 }
@@ -276,6 +285,7 @@ class Game {
                 this.map[x][y].step(timeDiff)
             }
         }
+        this.particles.step(timeDiff)
         this.prevTime = time
         this.time += timeDiff
     }
@@ -303,6 +313,7 @@ class Game {
         for (const t of this.turrets) {
             t.render(this.ctx, false)
         }
+        this.particles.render(this.ctx, false)
         let fps = this.performanceMeter.getFps()
         if (!isNaN(fps)) {
             this.ctx.fillStyle = "#000000"

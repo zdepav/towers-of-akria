@@ -12,6 +12,7 @@ window.onload = () => {
     AirTurret.init()
     EarthTurret.init()
     FireTurret.init()
+    IceTurret.init()
     game = new Game($("#game-canvas").get(0) as HTMLCanvasElement)
     game.init()
     gameLoop()

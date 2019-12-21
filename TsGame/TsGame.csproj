@@ -98,6 +98,7 @@
     <AdditionalFiles Include="game\PerformanceMeter.ts" />
     <AdditionalFiles Include="game\PreRenderedImage.ts" />
     <TypeScriptCompile Include="game\main.ts" />
+    <TypeScriptCompile Include="game\ParticleSystem.ts" />
     <TypeScriptCompile Include="Scripts\typings\jquery\jquery.d.ts" />
     <TypeScriptCompile Include="game\Angles.ts" />
     <TypeScriptCompile Include="game\turrets.ts" />

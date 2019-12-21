@@ -5,6 +5,14 @@
 /// <reference path='GameItem.ts'/>
 /// <reference path='ColorRgb.ts'/>
 /// <reference path="CellularTexture.ts"/>
+/// <reference path="ParticleSystem.ts"/>
+
+enum TurretType {
+    Air,
+    Earth,
+    Fire,
+    Water
+}
 
 class Turret extends GameItem {
 
@@ -29,19 +37,25 @@ class Turret extends GameItem {
 
     render(ctx: CanvasRenderingContext2D, preRender: boolean) { }
 
+    isUpgraded() { return this.upgraded }
+
+    getType(): TurretType[] { return [] }
+
 }
 
-class FireTurret extends Turret {
+class IceTurret extends Turret {
 
     static image: CanvasImageSource
 
+    angle: number
+
     constructor(tile: Tile) {
         super(tile)
+        this.angle = Math.random() * Angles.deg360
     }
 
     step(time: number) {
         super.step(time)
-
     }
 
     render(ctx: CanvasRenderingContext2D, preRender: boolean) {
@@ -50,16 +64,158 @@ class FireTurret extends Turret {
             return
         }
         if (this.upgraded) {
-            ctx.drawImage(FireTurret.image, this.tile.pos.x, this.tile.pos.y)
+            ctx.translate(this.center.x, this.center.y)
+            ctx.rotate(this.angle)
+            ctx.drawImage(IceTurret.image, -32, -32)
+            ctx.resetTransform()
             ctx.fillStyle = "#404040"
             ctx.textAlign = "left"
             ctx.textBaseline = "top"
             ctx.font = "bold 10px serif"
             ctx.fillText('*', this.tile.pos.x + 2, this.tile.pos.y + 2)
         } else {
-            ctx.drawImage(FireTurret.image, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48)
+            ctx.translate(this.center.x, this.center.y)
+            ctx.rotate(this.angle)
+            ctx.drawImage(IceTurret.image, -24, -24, 48, 48)
+            ctx.resetTransform()
         }
     }
+
+    getType(): TurretType[] { return [ TurretType.Air, TurretType.Water ] }
+
+    static init() {
+        let c = new PreRenderedImage(64, 64)
+        let tex = new CellularTexture(
+            64, 64, 64,
+            new ColorRgb(209, 239, 255),
+            new ColorRgb(112, 190, 204),
+            CellularTextureType.Lava
+        )
+        let renderable = new RenderablePathSet()
+        let fill = c.ctx.createPattern(tex.generate(), "no-repeat")
+        let mkBranch = (x: number, y: number, angle: number, size: number) => {
+            if (size >= 2.5) {
+                c.ctx.beginPath()
+                c.ctx.moveTo(x, y)
+                let x2 = x + 8 * Math.cos(angle)
+                let y2 = y - 8 * Math.sin(angle)
+                c.ctx.lineTo(x2, y2)
+                c.ctx.lineWidth = 3
+                c.ctx.stroke()
+                mkBranch((x + x2) / 2, (y + y2) / 2, angle - Angles.deg60, 2)
+                mkBranch((x + x2) / 2, (y + y2) / 2, angle + Angles.deg60, 2)
+                mkBranch(x2, y2, angle, 2)
+            } else if (size >= 1.5) {
+                c.ctx.beginPath()
+                c.ctx.moveTo(x, y)
+                let x2 = x + 6 * Math.cos(angle)
+                let y2 = y - 6 * Math.sin(angle)
+                c.ctx.lineTo(x2, y2)
+                c.ctx.lineWidth = 2
+                c.ctx.stroke()
+                mkBranch((x + x2) / 2, (y + y2) / 2, angle - Angles.deg45, 1)
+                mkBranch((x + x2) / 2, (y + y2) / 2, angle + Angles.deg45, 1)
+                mkBranch(x2, y2, angle, 1)
+            } else if (size >= 0.5) {
+                c.ctx.beginPath()
+                c.ctx.moveTo(x, y)
+                let x2 = x + 4 * Math.cos(angle)
+                let y2 = y - 4 * Math.sin(angle)
+                c.ctx.lineTo(x2, y2)
+                c.ctx.lineWidth = 1
+                c.ctx.stroke()
+            }
+        }
+        c.ctx.save()
+        c.ctx.strokeStyle = fill
+        c.ctx.lineCap = "round"
+        let centerPath = new Path2D()
+        for (let k = 0; k < 6; ++k) {
+            let a = k * Angles.deg60
+            if (k === 0) {
+                centerPath.moveTo(32 + 8 * Math.cos(a), 32 - 8 * Math.sin(a))
+            } else {
+                centerPath.lineTo(32 + 8 * Math.cos(a), 32 - 8 * Math.sin(a))
+            }
+            mkBranch(32 + 8 * Math.cos(a), 32 - 8 * Math.sin(a), a, 3)
+        }
+        centerPath.closePath()
+        c.ctx.restore()
+        renderable.pushNew(centerPath, fill)
+        let grad = c.ctx.createRadialGradient(32, 32, 0, 32, 32, 6)
+        grad.addColorStop(0, "#ffffffff")
+        grad.addColorStop(1, "#d1efff00")
+        renderable.pushNew(centerPath, grad)
+        renderable.render(c.ctx)
+        IceTurret.image = c.image
+    }
+
+}
+
+class FireTurret extends Turret {
+
+    static image: CanvasImageSource
+
+    angle: number
+    smokeTimer: number
+
+    constructor(tile: Tile) {
+        super(tile)
+        this.angle = Math.random() * Angles.deg360
+        this.smokeTimer = Math.random() * 3.5 + 0.5
+    }
+
+    spawnSmoke() {
+        let x: number
+        let y: number
+        if (this.upgraded) {
+            do {
+                x = Math.random() * 18 - 9
+                y = Math.random() * 18 - 9
+            } while (x * x + y * y > 100)
+            this.smokeTimer = Math.random() * 2.5 + 0.5
+        } else {
+            do {
+                x = Math.random() * 14 - 7
+                y = Math.random() * 14 - 7
+            } while (x * x + y * y > 100)
+            this.smokeTimer = Math.random() * 4.5 + 0.5
+        }
+        this.game.particles.add(new SmokeParticle(this.center.x + x, this.center.y + y, 0))
+    }
+
+    step(time: number) {
+        super.step(time)
+        this.smokeTimer -= time
+        if (this.smokeTimer <= 0) {
+            this.spawnSmoke()
+        }
+    }
+
+    render(ctx: CanvasRenderingContext2D, preRender: boolean) {
+        super.render(ctx, preRender)
+        if (preRender) {
+            return
+        }
+        if (this.upgraded) {
+            ctx.translate(this.center.x, this.center.y)
+            ctx.rotate(this.angle)
+            ctx.drawImage(FireTurret.image, -32, -32)
+            ctx.resetTransform()
+            ctx.fillStyle = "#404040"
+            ctx.textAlign = "left"
+            ctx.textBaseline = "top"
+            ctx.font = "bold 10px serif"
+            ctx.fillText('*', this.tile.pos.x + 2, this.tile.pos.y + 2)
+        } else {
+            ctx.translate(this.center.x, this.center.y)
+            ctx.rotate(this.angle)
+            ctx.drawImage(FireTurret.image, -24, -24, 48, 48)
+            ctx.resetTransform()
+        }
+    }
+
+    getType(): TurretType[] { return [TurretType.Fire] }
 
     static init() {
         let c = new PreRenderedImage(64, 64)
@@ -67,7 +223,7 @@ class FireTurret extends Turret {
             64, 64, 36,
             new ColorRgb(255, 80, 32),
             new ColorRgb(192, 0, 0),
-            CellularTextureType.Lava
+            CellularTextureType.Balls
         )
         let texRock = new CellularTexture(
             64, 64, 144,
@@ -140,6 +296,8 @@ class EarthTurret extends Turret {
             ctx.drawImage(EarthTurret.image1, this.tile.pos.x, this.tile.pos.y)
         }
     }
+
+    getType(): TurretType[] { return [TurretType.Earth] }
 
     static init() {
         EarthTurret.preRender1()
@@ -300,5 +458,7 @@ class AirTurret extends Turret {
             ctx.fillText('*', this.tile.pos.x + 2, this.tile.pos.y + 2)
         }
     }
+
+    getType(): TurretType[] { return [TurretType.Air] }
 
 }
