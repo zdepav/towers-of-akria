@@ -6,18 +6,16 @@ class Particle {
 
     render(ctx: CanvasRenderingContext2D) { }
 
-    isDead(): boolean {
-        return true
-    }
+    isDead(): boolean { return true }
 }
 
 class SmokeParticle extends Particle {
 
-    x: number
-    y: number
-    life: number
-    rgb: string
-    startSize: number
+    private x: number
+    private y: number
+    private life: number
+    private rgb: string
+    private startSize: number
 
     constructor(x: number, y: number, startSize: number) {
         super()
@@ -52,8 +50,8 @@ class SmokeParticle extends Particle {
 
 class ParticleSystem extends GameItem {
 
-    parts: Particle[]
-    count: number
+    private parts: Particle[]
+    private count: number
 
     constructor(game: Game) {
         super(game)

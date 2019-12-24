@@ -2,10 +2,13 @@ class Angles {
     
     static deg10: number
     static deg15: number
+    static deg18: number
     static deg20: number
     static deg30: number
+    static deg36: number
     static deg45: number
     static deg60: number
+    static deg72: number
     static deg90: number
     static deg120: number
     static deg135: number
@@ -23,10 +26,13 @@ class Angles {
     static init() {
         Angles.deg10 = Math.PI / 18
         Angles.deg15 = Math.PI / 12
+        Angles.deg18 = Math.PI / 10
         Angles.deg20 = Math.PI / 9
         Angles.deg30 = Math.PI / 6
+        Angles.deg36 = Math.PI / 5
         Angles.deg45 = Math.PI / 4
         Angles.deg60 = Math.PI / 3
+        Angles.deg72 = Math.PI / 2.5
         Angles.deg90 = Math.PI / 2
         Angles.deg120 = Math.PI * 2 / 3
         Angles.deg135 = Math.PI * 0.75

@@ -1,7 +1,7 @@
 class PerformanceMeter {
 
-    queue: number[]
-    sum: number
+    private queue: number[]
+    private sum: number
 
     constructor() {
         this.queue = []

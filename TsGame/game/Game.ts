@@ -6,32 +6,29 @@
 /// <reference path='PerformanceMeter.ts'/>
 /// <reference path='DijkstraNode.ts'/>
 /// <reference path='PreRenderedImage.ts'/>
+/// <reference path="TurretType.ts"/>
 /// <reference path="ParticleSystem.ts"/>
 
 class Game {
 
-    canvas: HTMLCanvasElement
-    preRendered: CanvasImageSource
-    ctx: CanvasRenderingContext2D
+    private preRendered: CanvasImageSource
+    private ctx: CanvasRenderingContext2D
+    private guiPanel: Rect
+    private map: Tile[][]
+    private enemies: GameItem[]
+    private castle: RenderablePathSet
+    private prevTime: number
+    private time: number
+    private performanceMeter: PerformanceMeter
+
     mapWidth: number
     mapHeight: number
-    guiPanel: Rect
-    map: Tile[][]
-    enemies: GameItem[]
-    castle: RenderablePathSet
-    turrets: Turret[]
-    prevTime: number
-    time: number
-    performanceMeter: PerformanceMeter
-    particles: ParticleSystem
-
     width: number
     height: number
+    particles: ParticleSystem
 
     constructor(canvas: HTMLCanvasElement) {
-        this.canvas = canvas
         this.ctx = canvas.getContext("2d")
-        this.turrets = []
         this.prevTime = new Date().getTime()
         this.time = 0
         this.performanceMeter = new PerformanceMeter()
@@ -58,7 +55,7 @@ class Game {
         this.preRender()
     }
 
-    generateMap() {
+    private generateMap() {
         let mapGen: TileType[][] = []
         this.map = []
         let dijkstraMap: DijkstraNode[][] = []
@@ -182,20 +179,60 @@ class Game {
                 ) {
                     this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Tower, this.ctx)
                     let r = Math.random()
-                    let t: Turret = null
-                    if (r < 0.2) {
-                        t = new EarthTurret(this.map[x][y])
-                    } else if (r < 0.4) {
-                        t = new FireTurret(this.map[x][y])
-                    } else if (r < 0.5) {
-                        t = new IceTurret(this.map[x][y])
-                    } else if (r < 0.7) {
-                        t = new AirTurret(this.map[x][y])
+                    /*if (r < 0.8) {
+                        this.map[x][y].turret.addType(TurretElement.Fire)
                     }
-                    if (t !== null) {
-                        this.map[x][y].turret = t
-                        t.upgraded = Math.random() < 0.5
-                        this.turrets.push(t)
+                    if (r < 0.6) {
+                        this.map[x][y].turret.addType(TurretElement.Fire)
+                    }
+                    if (r < 0.4) {
+                        this.map[x][y].turret.addType(TurretElement.Fire)
+                    }
+                    if (r < 0.2) {
+                        this.map[x][y].turret.addType(TurretElement.Fire)
+                    }*/
+                    let t = this.map[x][y].turret
+                    if (r < 0.2) {
+                        t.addType(TurretElement.Air)
+                    } else if (r < 0.4) {
+                        t.addType(TurretElement.Earth)
+                    } else if (r < 0.6) {
+                        t.addType(TurretElement.Fire)
+                    } else if (r < 0.8) {
+                        t.addType(TurretElement.Water)
+                    }
+                    r = Math.random()
+                    t = this.map[x][y].turret
+                    if (r < 0.15) {
+                        t.addType(TurretElement.Air)
+                    } else if (r < 0.3) {
+                        t.addType(TurretElement.Earth)
+                    } else if (r < 0.45) {
+                        t.addType(TurretElement.Fire)
+                    } else if (r < 0.6) {
+                        t.addType(TurretElement.Water)
+                    }
+                    r = Math.random()
+                    t = this.map[x][y].turret
+                    if (r < 0.1) {
+                        t.addType(TurretElement.Air)
+                    } else if (r < 0.2) {
+                        t.addType(TurretElement.Earth)
+                    } else if (r < 0.3) {
+                        t.addType(TurretElement.Fire)
+                    } else if (r < 0.4) {
+                        t.addType(TurretElement.Water)
+                    }
+                    r = Math.random()
+                    t = this.map[x][y].turret
+                    if (r < 0.05) {
+                        t.addType(TurretElement.Air)
+                    } else if (r < 0.1) {
+                        t.addType(TurretElement.Earth)
+                    } else if (r < 0.15) {
+                        t.addType(TurretElement.Fire)
+                    } else if (r < 0.2) {
+                        t.addType(TurretElement.Water)
                     }
                 } else {
                     this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Empty, this.ctx)
@@ -204,13 +241,19 @@ class Game {
         }
     }
 
-    generateCastle() {
+    private generateCastle() {
         this.castle = new RenderablePathSet()
         let x = this.guiPanel.x
         let y = this.height - 192
         let path1 = new Path2D()
         path1.rect(x + 36, y + 36, 120, 120)
-        this.castle.pushNew(path1, "#82614F")
+        let tex = new CellularTexture(
+            192, 192, 144,
+            new ColorRgb(130, 97, 79),
+            new ColorRgb(153, 118, 99),
+            CellularTextureType.Balls
+        )
+        this.castle.pushNew(path1, this.ctx.createPattern(tex.generate(), "repeat"))
         let path2 = new Path2D()
         path2.rect(x + 6, y + 6, 60, 60)
         path2.rect(x + 126, y + 6, 60, 60)
@@ -310,8 +353,10 @@ class Game {
 
     render() {
         this.ctx.drawImage(this.preRendered, 0, 0)
-        for (const t of this.turrets) {
-            t.render(this.ctx, false)
+        for (let x = 0; x < this.mapWidth; ++x) {
+            for (let y = 0; y < this.mapHeight; ++y) {
+                this.map[x][y].render(this.ctx, false)
+            }
         }
         this.particles.render(this.ctx, false)
         let fps = this.performanceMeter.getFps()

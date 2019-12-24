@@ -16,33 +16,34 @@ class Tile extends GameItem {
     pos: Coords
     type: TileType
     turret: Turret
-    _groundFill: string | CanvasPattern | CanvasGradient
-    _decor: RenderablePathSet
+    private groundFill: string | CanvasPattern | CanvasGradient
+    private decor: RenderablePathSet
 
     constructor(game: Game, x: number, y: number, type: TileType, ctx: CanvasRenderingContext2D) {
         super(game)
         this.type = type
         this.turret = null
         this.pos = new Coords(x, y)
-        this._decor = new RenderablePathSet()
+        this.decor = new RenderablePathSet()
         switch (type) {
             case TileType.Empty:
-                this._groundFill = "#5BA346"
+                this.groundFill = "#5BA346"
                 break
             case TileType.Path:
-                this._groundFill = "#B5947E"
+                this.groundFill = "#B5947E"
                 break
             case TileType.Spawn:
                 let spawnGradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32)
                 spawnGradient.addColorStop(0, "#E77B65")
                 spawnGradient.addColorStop(1, "#B5947E")
-                this._groundFill = spawnGradient
+                this.groundFill = spawnGradient
                 break
             case TileType.HQ:
-                this._groundFill = "#B5947E"
+                this.groundFill = "#B5947E"
                 break
             case TileType.Tower:
-                this._groundFill = "#808080"
+                this.groundFill = "#808080"
+                this.turret = new Turret(this)
                 break
         }
         if (this.type === TileType.Path || this.type === TileType.Spawn || this.type === TileType.HQ) {
@@ -69,9 +70,9 @@ class Tile extends GameItem {
                 let gradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32)
                 gradient.addColorStop(0, "#CB5E48")
                 gradient.addColorStop(1, "#997761")
-                this._decor.pushNew(path, gradient)
+                this.decor.pushNew(path, gradient)
             } else {
-                this._decor.pushNew(path, "#997761")
+                this.decor.pushNew(path, "#997761")
             }
         } else if (this.type === TileType.Empty) {
             let path1 = new Path2D()
@@ -91,8 +92,8 @@ class Tile extends GameItem {
                     }
                 }
             }
-            this._decor.pushNew(path1, "#337F1C")
-            this._decor.pushNew(path2, "#479131")
+            this.decor.pushNew(path1, "#337F1C")
+            this.decor.pushNew(path2, "#479131")
         } else if (this.type === TileType.Tower) {
             let path1 = new Path2D()
             path1.moveTo(x, y)
@@ -102,7 +103,7 @@ class Tile extends GameItem {
             path1.lineTo(x + 2, y + 62)
             path1.lineTo(x, y + 62)
             path1.closePath()
-            this._decor.pushNew(path1, "#A0A0A0")
+            this.decor.pushNew(path1, "#A0A0A0")
             let path2 = new Path2D()
             path2.moveTo(x + 62, y + 2)
             path2.lineTo(x + 64, y + 2)
@@ -111,7 +112,7 @@ class Tile extends GameItem {
             path2.lineTo(x + 2, y + 62)
             path2.lineTo(x + 62, y + 62)
             path2.closePath()
-            this._decor.pushNew(path2, "#606060")
+            this.decor.pushNew(path2, "#606060")
             let path3 = new Path2D()
             path3.moveTo(x + 56, y + 8)
             path3.lineTo(x + 58, y + 8)
@@ -120,7 +121,7 @@ class Tile extends GameItem {
             path3.lineTo(x + 8, y + 56)
             path3.lineTo(x + 56, y + 56)
             path3.closePath()
-            this._decor.pushNew(path3, "#909090")
+            this.decor.pushNew(path3, "#909090")
             let path4 = new Path2D()
             path4.moveTo(x + 6, y + 6)
             path4.lineTo(x + 56, y + 6)
@@ -129,7 +130,7 @@ class Tile extends GameItem {
             path4.lineTo(x + 8, y + 56)
             path4.lineTo(x + 6, y + 56)
             path4.closePath()
-            this._decor.pushNew(path4, "#707070")
+            this.decor.pushNew(path4, "#707070")
         }
     }
 
@@ -141,11 +142,19 @@ class Tile extends GameItem {
 
     render(ctx: CanvasRenderingContext2D, preRender: boolean) {
         if (preRender) {
-            ctx.fillStyle = this._groundFill
+            ctx.fillStyle = this.groundFill
             ctx.fillRect(this.pos.x, this.pos.y, 64, 64)
-            this._decor.render(ctx)
+            this.decor.render(ctx)
         } else if (this.type === TileType.Tower && this.turret != null) {
             this.turret.render(ctx, preRender)
+            var elems = this.turret.getType().toColorArray()
+            var x = this.pos.x + 2
+            var y = this.pos.y + 2
+            for (const c of elems) {
+                ctx.fillStyle = c
+                ctx.fillRect(x, y, 4, 4)
+                x += 6
+            }
         }
     }
 

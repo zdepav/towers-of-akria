@@ -11,12 +11,12 @@ enum CellularTextureType {
 // based on https://blackpawn.com/texts/cellular/default.html
 class CellularTexture {
 
-    width: number
-    height: number
-    color1: ColorRgb
-    color2: ColorRgb
-    type: CellularTextureType
-    density: number
+    private width: number
+    private height: number
+    private color1: ColorRgb
+    private color2: ColorRgb
+    private type: CellularTextureType
+    private density: number
 
     // density n => 1 point per n pixels, has to be at least 16
     constructor(width: number, height: number, density: number, color1: ColorRgb, color2: ColorRgb, type: CellularTextureType) {
@@ -28,7 +28,7 @@ class CellularTexture {
         this.density = Math.max(16, density)
     }
 
-    wrappedDistance(x: number, y: number, b: Coords): number {
+    private wrappedDistance(x: number, y: number, b: Coords): number {
         let dx = Math.abs(x - b.x)
         let dy = Math.abs(y - b.y)
         if (dx > this.width / 2) {
@@ -40,7 +40,7 @@ class CellularTexture {
         return Math.sqrt(dx * dx + dy * dy)
     }
     
-    distancesTo2Nearest(x: number, y: number, points: Coords[]): { min1: number, min2: number } {
+    private distancesTo2Nearest(x: number, y: number, points: Coords[]): { min1: number, min2: number } {
         let min1 = Infinity
         let min2 = Infinity
         for (const p of points) {
@@ -55,7 +55,7 @@ class CellularTexture {
         return { min1, min2 }
     }
 
-    flatten(x: number, y: number): number {
+    private flatten(x: number, y: number): number {
         return this.width * y + x
     }
 
