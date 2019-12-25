@@ -1,5 +1,11 @@
 /// <reference path='turrets.ts'/>
+/// <reference path='Game.ts'/>
 /// <reference path='GameItem.ts'/>
+/// <reference path='Coords.ts'/>
+/// <reference path='TextureGenerator.ts'/>
+/// <reference path='RenderablePathSet.ts'/>
+/// <reference path='Angles.ts'/>
+/// <reference path='ColorRgb.ts'/>
 
 enum TileType {
     Unknown,
@@ -12,6 +18,8 @@ enum TileType {
 }
 
 class Tile extends GameItem {
+
+    private static grass: CanvasImageSource
 
     pos: Coords
     type: TileType
@@ -27,7 +35,7 @@ class Tile extends GameItem {
         this.decor = new RenderablePathSet()
         switch (type) {
             case TileType.Empty:
-                this.groundFill = "#5BA346"
+                this.groundFill = ctx.createPattern(Tile.grass, "repeat") // "#5BA346"
                 break
             case TileType.Path:
                 this.groundFill = "#B5947E"
@@ -156,6 +164,10 @@ class Tile extends GameItem {
                 x += 6
             }
         }
+    }
+
+    static init() {
+        Tile.grass = new NoiseTextureGenerator(64, 64, new ColorRgb(91, 163, 70), 0.25, 0, 0.25).generate()
     }
 
 }

@@ -22,8 +22,9 @@ class SmokeParticle extends Particle {
         this.x = x
         this.y = y
         this.life = 0
-        let lightness = Math.floor(Math.random() * 64 + 112)
-        this.rgb = lightness + ',' + lightness + ',' + lightness
+        let lightness = Utils.randInt(112, 176)
+        let h = Utils.byteToHex(lightness)
+        this.rgb = `#{h}{h}{h}`
         this.startSize = startSize
     }
 
@@ -36,7 +37,7 @@ class SmokeParticle extends Particle {
             return
         }
         let r = this.life * 8 + this.startSize
-        ctx.fillStyle = `rgba(${this.rgb},${1 - this.life})`
+        ctx.fillStyle = this.rgb + Utils.byteToHex(255 * (1 - this.life))
         ctx.beginPath()
         ctx.ellipse(this.x, this.y, r, r, 0, 0, Angles.deg360)
         ctx.fill()

@@ -50,6 +50,9 @@ class Game {
     }
 
     init() {
+        Tile.init()
+        Angles.init()
+        Turret.init()
         this.generateMap()
         this.generateCastle()
         this.preRender()
@@ -247,7 +250,7 @@ class Game {
         let y = this.height - 192
         let path1 = new Path2D()
         path1.rect(x + 36, y + 36, 120, 120)
-        let tex = new CellularTexture(
+        let tex = new CellularTextureGenerator(
             192, 192, 144,
             new ColorRgb(130, 97, 79),
             new ColorRgb(153, 118, 99),

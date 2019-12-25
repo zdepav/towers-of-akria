@@ -1,6 +1,28 @@
 /// <reference path="PreRenderedImage.ts"/>
 /// <reference path="ColorRgb.ts"/>
 /// <reference path="Coords.ts"/>
+/// <reference path="Utils.ts"/>
+
+class TextureGenerator {
+
+    protected width: number
+    protected height: number
+    protected color: ColorRgb
+
+    constructor(width: number, height: number, color: ColorRgb) {
+        this.width = width
+        this.height = height
+        this.color = color
+    }
+
+    generate(): CanvasImageSource {
+        let tex = new PreRenderedImage(this.width, this.height)
+        tex.ctx.fillStyle = this.color.toCss()
+        tex.ctx.fillRect(0, 0, this.width, this.height)
+        return tex.image
+    }
+
+}
 
 enum CellularTextureType {
     Lava,
@@ -9,23 +31,18 @@ enum CellularTextureType {
 }
 
 // based on https://blackpawn.com/texts/cellular/default.html
-class CellularTexture {
+class CellularTextureGenerator extends TextureGenerator {
 
-    private width: number
-    private height: number
-    private color1: ColorRgb
     private color2: ColorRgb
     private type: CellularTextureType
     private density: number
 
-    // density n => 1 point per n pixels, has to be at least 16
+    // density n => 1 point per n pixels
     constructor(width: number, height: number, density: number, color1: ColorRgb, color2: ColorRgb, type: CellularTextureType) {
-        this.width = width
-        this.height = height
-        this.color1 = color1
+        super(width, height, color1)
         this.color2 = color2
         this.type = type
-        this.density = Math.max(16, density)
+        this.density = Math.max(1, density)
     }
 
     private wrappedDistance(x: number, y: number, b: Coords): number {
@@ -99,7 +116,33 @@ class CellularTexture {
             for (let y = 0; y < this.height; ++y) {
                 let i = this.flatten(x, y)
                 let coef = (distances[i] - min) / range
-                tex.ctx.fillStyle = ColorRgb.Mix(this.color1, this.color2, coef).toCss()
+                tex.ctx.fillStyle = this.color.mix(this.color2, coef).toCss()
+                tex.ctx.fillRect(x, y, 1, 1);
+            }
+        }
+        return tex.image
+    }
+
+}
+
+class NoiseTextureGenerator extends TextureGenerator {
+
+    private intensity: number
+    private saturation: number
+    private coverage: number
+
+    constructor(width: number, height: number, color: ColorRgb, intensity: number, saturation: number, coverage: number) {
+        super(width, height, color)
+        this.intensity = Utils.clamp(intensity, 0, 1)
+        this.saturation = Utils.clamp(saturation, 0, 1)
+        this.coverage = Utils.clamp(coverage, 0, 1)
+    }
+
+    generate(): CanvasImageSource {
+        let tex = new PreRenderedImage(this.width, this.height)
+        for (let x = 0; x < this.width; ++x) {
+            for (let y = 0; y < this.height; ++y) {
+                tex.ctx.fillStyle = this.color.addNoise(this.intensity, this.saturation, this.coverage).toCss()
                 tex.ctx.fillRect(x, y, 1, 1);
             }
         }

@@ -8,8 +8,6 @@ function gameLoop() {
 }
 
 window.onload = () => {
-    Angles.init()
-    Turret.init()
     game = new Game($("#game-canvas").get(0) as HTMLCanvasElement)
     game.init()
     gameLoop()

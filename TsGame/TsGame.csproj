@@ -87,7 +87,7 @@
   <ItemGroup>
     <AdditionalFiles Include="game\DijkstraNode.ts" />
     <AdditionalFiles Include="game\Coords.ts" />
-    <TypeScriptCompile Include="game\CellularTexture.ts" />
+    <TypeScriptCompile Include="game\TextureGenerator.ts" />
     <TypeScriptCompile Include="game\ColorRgb.ts" />
     <TypeScriptCompile Include="game\Game.ts" />
     <AdditionalFiles Include="game\Tile.ts" />
@@ -109,6 +109,9 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <TypeScriptCompile Include="game\Utils.ts" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

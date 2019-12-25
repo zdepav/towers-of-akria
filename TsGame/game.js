@@ -24,50 +24,80 @@ class Angles {
         Angles.deg360 = Math.PI * 2;
     }
 }
-class PreRenderedImage {
-    constructor(width, height) {
-        let canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        this.ctx = canvas.getContext("2d");
-        this.image = canvas;
+class Utils {
+    static clamp(value, min, max) {
+        return value > max ? max : value < min ? min : value;
+    }
+    static byteToHex(byte) {
+        byte = Utils.clamp(byte, 255, 255);
+        return Utils.hex[Math.floor(byte / 16)] + Utils.hex[Math.floor(byte % 16)];
+    }
+    /**
+     * @param min min value (inclusive)
+     * @param max max value (exclusive)
+     */
+    static randInt(min, max) {
+        if (max < min) {
+            return min;
+        }
+        return Math.floor(Math.random() * (max - min) + min);
     }
 }
+Utils.hex = "0123456789abcdef";
+/// <reference path="Utils.ts"/>
 class ColorRgb {
     constructor(r, g, b) {
-        this.r = Math.min(Math.max(r, 0), 255);
-        this.g = Math.min(Math.max(g, 0), 255);
-        this.b = Math.min(Math.max(b, 0), 255);
+        this.r = Utils.clamp(r, 0, 255);
+        this.g = Utils.clamp(g, 0, 255);
+        this.b = Utils.clamp(b, 0, 255);
     }
     toCss() {
         const hex = "0123456789abcdef";
-        return "#" +
-            hex[Math.floor(this.r / 16)] +
-            hex[Math.floor(this.r % 16)] +
-            hex[Math.floor(this.g / 16)] +
-            hex[Math.floor(this.g % 16)] +
-            hex[Math.floor(this.b / 16)] +
-            hex[Math.floor(this.b % 16)];
+        return "#"
+            + Utils.byteToHex(this.r)
+            + Utils.byteToHex(this.g)
+            + Utils.byteToHex(this.b);
     }
-    static MultiplyFloat(c, ammount) {
-        return new ColorRgb(c.r * ammount, c.g * ammount, c.b * ammount);
+    multiplyFloat(ammount) {
+        return new ColorRgb(this.r * ammount, this.g * ammount, this.b * ammount);
     }
-    static Multiply(c1, c2) {
-        return new ColorRgb(c1.r * c2.r, c1.g * c2.g, c1.b * c2.b);
+    multiply(c) {
+        return new ColorRgb(this.r * c.r, this.g * c.g, this.b * c.b);
     }
-    static Add(c1, c2) {
-        return new ColorRgb(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b);
+    add(c) {
+        return new ColorRgb(this.r + c.r, this.g + c.g, this.b + c.b);
     }
-    static Mix(c1, c2, ammount) {
+    mix(c, ammount) {
         if (ammount >= 1) {
-            return c2;
+            return c;
         }
         else if (ammount <= 0) {
-            return c1;
+            return this;
         }
         else {
             let a2 = 1 - ammount;
-            return new ColorRgb(c1.r * a2 + c2.r * ammount, c1.g * a2 + c2.g * ammount, c1.b * a2 + c2.b * ammount);
+            return new ColorRgb(this.r * a2 + c.r * ammount, this.g * a2 + c.g * ammount, this.b * a2 + c.b * ammount);
+        }
+    }
+    addNoise(intensity, saturation, coverage) {
+        if (Math.random() < coverage) {
+            if (saturation <= 0) {
+                let n = Utils.randInt(-intensity, intensity);
+                return new ColorRgb(this.r + n, this.g + n, this.b + n);
+            }
+            else if (saturation >= 1) {
+                return new ColorRgb(this.r + Utils.randInt(-intensity, intensity), this.g + Utils.randInt(-intensity, intensity), this.b + Utils.randInt(-intensity, intensity));
+            }
+            else {
+                let s2 = 1 - saturation;
+                let rn = Utils.randInt(-intensity, intensity);
+                let gn = saturation * Utils.randInt(-intensity, intensity) + s2 * rn;
+                let bn = saturation * Utils.randInt(-intensity, intensity) + s2 * rn;
+                return new ColorRgb(this.r + rn, this.g + gn, this.b + bn);
+            }
+        }
+        else {
+            return this;
         }
     }
 }
@@ -77,28 +107,54 @@ class Coords {
         this.y = y;
     }
 }
+class PreRenderedImage {
+    constructor(width, height) {
+        let canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        this.ctx = canvas.getContext("2d");
+        this.image = canvas;
+    }
+}
+/// <reference path='Game.ts'/>
+class GameItem {
+    constructor(game) {
+        this.game = game;
+    }
+    step(time) { }
+    render(ctx, preRender) { }
+}
 /// <reference path="PreRenderedImage.ts"/>
 /// <reference path="ColorRgb.ts"/>
 /// <reference path="Coords.ts"/>
+/// <reference path="Utils.ts"/>
+class TextureGenerator {
+    constructor(width, height, color) {
+        this.width = width;
+        this.height = height;
+        this.color = color;
+    }
+    generate() {
+        let tex = new PreRenderedImage(this.width, this.height);
+        tex.ctx.fillStyle = this.color.toCss();
+        tex.ctx.fillRect(0, 0, this.width, this.height);
+        return tex.image;
+    }
+}
 var CellularTextureType;
-/// <reference path="PreRenderedImage.ts"/>
-/// <reference path="ColorRgb.ts"/>
-/// <reference path="Coords.ts"/>
 (function (CellularTextureType) {
     CellularTextureType[CellularTextureType["Lava"] = 0] = "Lava";
     CellularTextureType[CellularTextureType["Net"] = 1] = "Net";
     CellularTextureType[CellularTextureType["Balls"] = 2] = "Balls";
 })(CellularTextureType || (CellularTextureType = {}));
 // based on https://blackpawn.com/texts/cellular/default.html
-class CellularTexture {
-    // density n => 1 point per n pixels, has to be at least 16
+class CellularTextureGenerator extends TextureGenerator {
+    // density n => 1 point per n pixels
     constructor(width, height, density, color1, color2, type) {
-        this.width = width;
-        this.height = height;
-        this.color1 = color1;
+        super(width, height, color1);
         this.color2 = color2;
         this.type = type;
-        this.density = Math.max(16, density);
+        this.density = Math.max(1, density);
     }
     wrappedDistance(x, y, b) {
         let dx = Math.abs(x - b.x);
@@ -166,20 +222,30 @@ class CellularTexture {
             for (let y = 0; y < this.height; ++y) {
                 let i = this.flatten(x, y);
                 let coef = (distances[i] - min) / range;
-                tex.ctx.fillStyle = ColorRgb.Mix(this.color1, this.color2, coef).toCss();
+                tex.ctx.fillStyle = this.color.mix(this.color2, coef).toCss();
                 tex.ctx.fillRect(x, y, 1, 1);
             }
         }
         return tex.image;
     }
 }
-/// <reference path='Game.ts'/>
-class GameItem {
-    constructor(game) {
-        this.game = game;
+class NoiseTextureGenerator extends TextureGenerator {
+    constructor(width, height, color, intensity, saturation, coverage) {
+        super(width, height, color);
+        this.intensity = Utils.clamp(intensity, 0, 1);
+        this.saturation = Utils.clamp(saturation, 0, 1);
+        this.coverage = Utils.clamp(coverage, 0, 1);
     }
-    step(time) { }
-    render(ctx, preRender) { }
+    generate() {
+        let tex = new PreRenderedImage(this.width, this.height);
+        for (let x = 0; x < this.width; ++x) {
+            for (let y = 0; y < this.height; ++y) {
+                tex.ctx.fillStyle = this.color.addNoise(this.intensity, this.saturation, this.coverage).toCss();
+                tex.ctx.fillRect(x, y, 1, 1);
+            }
+        }
+        return tex.image;
+    }
 }
 /// <reference path='Angles.ts'/>
 class Particle {
@@ -193,8 +259,9 @@ class SmokeParticle extends Particle {
         this.x = x;
         this.y = y;
         this.life = 0;
-        let lightness = Math.floor(Math.random() * 64 + 112);
-        this.rgb = lightness + ',' + lightness + ',' + lightness;
+        let lightness = Utils.randInt(112, 176);
+        let h = Utils.byteToHex(lightness);
+        this.rgb = `#{h}{h}{h}`;
         this.startSize = startSize;
     }
     step(time) {
@@ -205,7 +272,7 @@ class SmokeParticle extends Particle {
             return;
         }
         let r = this.life * 8 + this.startSize;
-        ctx.fillStyle = `rgba(${this.rgb},${1 - this.life})`;
+        ctx.fillStyle = this.rgb + Utils.byteToHex(255 * (1 - this.life));
         ctx.beginPath();
         ctx.ellipse(this.x, this.y, r, r, 0, 0, Angles.deg360);
         ctx.fill();
@@ -318,7 +385,7 @@ class TurretType {
 /// <reference path='PreRenderedImage.ts'/>
 /// <reference path='GameItem.ts'/>
 /// <reference path='ColorRgb.ts'/>
-/// <reference path="CellularTexture.ts"/>
+/// <reference path="TextureGenerator.ts"/>
 /// <reference path="ParticleSystem.ts"/>
 /// <reference path="TurretType.ts"/>
 class Turret extends GameItem {
@@ -359,8 +426,8 @@ class Turret extends GameItem {
         //WaterTurret.init()
         IceTurret.init();
         AcidTurret.init();
+        CannonTurret.init();
         //???Turret.init()
-        //CannonTurret.init()
         //LightningTurret.init()
         //FlamethrowerTurret.init()
         //SunTurret.init()
@@ -489,7 +556,7 @@ class EarthTurret extends Turret {
                 this.type.add(type);
                 break;
             case TurretElement.Fire:
-                //this.tile.turret = new CannonTurret(this.tile, this.type.add(type))
+                this.tile.turret = new CannonTurret(this.tile, this.type.add(type));
                 break;
             case TurretElement.Water:
                 this.tile.turret = new AcidTurret(this.tile, this.type.add(type));
@@ -668,7 +735,7 @@ class FireTurret extends Turret {
     constructor(tile, type) {
         super(tile, type);
         this.angle = Math.random() * Angles.deg360;
-        this.smokeTimer = Math.random() * 3.5 + 0.5;
+        this.smokeTimer = Utils.randInt(0.5, 4);
     }
     spawnSmoke() {
         let x;
@@ -678,7 +745,7 @@ class FireTurret extends Turret {
             x = Math.random() * r * 2 - r;
             y = Math.random() * r * 2 - r;
         } while (x * x + y * y > 100);
-        this.smokeTimer = Math.random() * (5.5 - this.type.fire()) + 0.5;
+        this.smokeTimer = Utils.randInt(0.5, 6 - this.type.fire());
         this.game.particles.add(new SmokeParticle(this.center.x + x, this.center.y + y, 0));
     }
     step(time) {
@@ -708,7 +775,7 @@ class FireTurret extends Turret {
                 //this.tile.turret = new LightningTurret(this.tile, this.type.add(type))
                 break;
             case TurretElement.Earth:
-                //this.tile.turret = new CannonTurret(this.tile, this.type.add(type))
+                this.tile.turret = new CannonTurret(this.tile, this.type.add(type));
                 break;
             case TurretElement.Fire:
                 this.type.add(type);
@@ -720,8 +787,8 @@ class FireTurret extends Turret {
     }
     static init() {
         let c = new PreRenderedImage(64, 64);
-        let texLava = new CellularTexture(64, 64, 36, new ColorRgb(255, 80, 32), new ColorRgb(192, 0, 0), CellularTextureType.Balls);
-        let texRock = new CellularTexture(64, 64, 144, new ColorRgb(102, 45, 34), new ColorRgb(102, 45, 34), CellularTextureType.Balls);
+        let texLava = new CellularTextureGenerator(64, 64, 36, new ColorRgb(255, 80, 32), new ColorRgb(192, 0, 0), CellularTextureType.Balls);
+        let texRock = new CellularTextureGenerator(64, 64, 144, new ColorRgb(102, 45, 34), new ColorRgb(102, 45, 34), CellularTextureType.Balls);
         let renderable = new RenderablePathSet();
         let path = new Path2D();
         for (let k = 0; k < 36; ++k) {
@@ -795,7 +862,7 @@ class IceTurret extends Turret {
         }
     }
     static init() {
-        let tex = new CellularTexture(64, 64, 64, new ColorRgb(209, 239, 255), new ColorRgb(112, 190, 204), CellularTextureType.Lava);
+        let tex = new CellularTextureGenerator(64, 64, 64, new ColorRgb(209, 239, 255), new ColorRgb(112, 190, 204), CellularTextureType.Lava);
         let c0 = new PreRenderedImage(64, 64);
         let c1 = new PreRenderedImage(64, 64);
         let c2 = new PreRenderedImage(64, 64);
@@ -873,7 +940,6 @@ class IceTurret extends Turret {
 class AcidTurret extends Turret {
     constructor(tile, type) {
         super(tile, type);
-        this.angle = Math.random() * Angles.deg360;
     }
     step(time) {
         super.step(time);
@@ -883,15 +949,7 @@ class AcidTurret extends Turret {
         if (preRender) {
             return;
         }
-        ctx.translate(this.center.x, this.center.y);
-        ctx.rotate(this.angle);
-        ctx.drawImage(AcidTurret.image, -32, -32);
-        ctx.resetTransform();
-        ctx.fillStyle = "#404040";
-        ctx.textAlign = "left";
-        ctx.textBaseline = "top";
-        ctx.font = "bold 10px serif";
-        ctx.fillText('*', this.tile.pos.x + 2, this.tile.pos.y + 2);
+        ctx.drawImage(AcidTurret.images[this.type.water() + this.type.earth() - 2], this.center.x - 32, this.center.y - 32);
     }
     addType(type) {
         if (this.type.count() >= 4) {
@@ -911,18 +969,200 @@ class AcidTurret extends Turret {
         }
     }
     static init() {
-        let c = new PreRenderedImage(64, 64);
-        let tex = new CellularTexture(64, 64, 16, new ColorRgb(224, 255, 0), new ColorRgb(91, 127, 0), CellularTextureType.Balls);
-        c.ctx.fillStyle = c.ctx.createPattern(tex.generate(), "repeat");
-        c.ctx.fillRect(8, 8, 48, 48);
-        AcidTurret.image = c.image;
+        let acidTex = new CellularTextureGenerator(64, 64, 9, new ColorRgb(224, 255, 0), new ColorRgb(91, 127, 0), CellularTextureType.Balls).generate();
+        let c0 = new PreRenderedImage(64, 64);
+        let c1 = new PreRenderedImage(64, 64);
+        let c2 = new PreRenderedImage(64, 64);
+        let c = [c0, c1, c2];
+        let ctx = c0.ctx;
+        ctx.beginPath();
+        ctx.moveTo(26, 20);
+        ctx.arcTo(44, 20, 44, 26, 6);
+        ctx.arcTo(44, 44, 38, 44, 6);
+        ctx.arcTo(20, 44, 20, 38, 6);
+        ctx.arcTo(20, 20, 26, 20, 6);
+        ctx.closePath();
+        ctx.fillStyle = "#b0b0b0";
+        ctx.fill();
+        ctx.strokeStyle = "#d0d0d0";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        c1.ctx.drawImage(c0.image, 0, 0);
+        c2.ctx.drawImage(c0.image, 0, 0);
+        for (let i = 0; i < 3; ++i) {
+            let w = 8 + 2 * i;
+            let ca = new PreRenderedImage(w, w);
+            ctx = ca.ctx;
+            ctx.fillStyle = "#d0d0d060";
+            ctx.fillRect(0, 0, w, w);
+            ctx.fillStyle = "#d0d0d0";
+            ctx.fillRect(0, 1, w, w - 2);
+            ctx.fillRect(1, 0, w - 2, w);
+            ctx.fillStyle = ctx.createPattern(acidTex, "repeat");
+            ctx.fillRect(1, 1, w - 2, w - 2);
+            ctx = c[i].ctx;
+            ctx.drawImage(ca.image, 20 - w, 28 - i);
+            ctx.drawImage(ca.image, 44, 28 - i);
+            ctx.rotate(Angles.deg90);
+            ctx.drawImage(ca.image, 44, -36 - i);
+            ctx.drawImage(ca.image, 20 - w, -36 - i);
+            ctx.resetTransform();
+            ctx.fillStyle = ctx.createPattern(acidTex, "repeat");
+            ctx.beginPath();
+            ctx.ellipse(32, 32, 6 + i, 6 + i, 0, 0, Angles.deg360);
+            ctx.closePath();
+            ctx.fill();
+            ctx.fillStyle = "#60606080";
+            ctx.fill();
+            let grad = ctx.createLinearGradient(25 - i / 2, 25 - i / 2, 38 + i / 2, 38 + i / 2);
+            grad.addColorStop(0, "#808080");
+            grad.addColorStop(1, "#404040");
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 2 + i;
+            ctx.stroke();
+        }
+        AcidTurret.images = [c0.image, c1.image, c2.image];
+    }
+}
+class CannonTurret extends Turret {
+    constructor(tile, type) {
+        super(tile, type);
+        this.angle = Math.random() * Angles.deg360;
+    }
+    step(time) {
+        super.step(time);
+    }
+    render(ctx, preRender) {
+        super.render(ctx, preRender);
+        if (preRender) {
+            return;
+        }
+        ctx.translate(this.center.x, this.center.y);
+        ctx.rotate(this.angle);
+        //ctx.drawImage(CannonTurret.image, -32, -32)
+        ctx.resetTransform();
+    }
+    addType(type) {
+        if (this.type.count() >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                //this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type))
+                break;
+            case TurretElement.Earth:
+            case TurretElement.Fire:
+                this.type.add(type);
+                break;
+            case TurretElement.Water:
+                //this.tile.turret = new EarthquakeTurret(this.tile, this.type.add(type))
+                break;
+        }
+    }
+    static init() {
+        /*
+        let acidTex = new CellularTexture(
+            64, 64, 9,
+            new ColorRgb(224, 255, 0),
+            new ColorRgb(91, 127, 0),
+            CellularTextureType.Balls
+        ).generate()
+        let c0 = new PreRenderedImage(64, 64)
+        let c1 = new PreRenderedImage(64, 64)
+        let c2 = new PreRenderedImage(64, 64)
+        let c = [c0, c1, c2]
+        let ctx = c0.ctx
+        ctx.beginPath()
+        ctx.moveTo(26, 20)
+        ctx.arcTo(44, 20, 44, 26, 6)
+        ctx.arcTo(44, 44, 38, 44, 6)
+        ctx.arcTo(20, 44, 20, 38, 6)
+        ctx.arcTo(20, 20, 26, 20, 6)
+        ctx.closePath()
+        ctx.fillStyle = "#b0b0b0"
+        ctx.fill()
+        ctx.strokeStyle = "#d0d0d0"
+        ctx.lineWidth = 2
+        ctx.stroke()
+        c1.ctx.drawImage(c0.image, 0, 0)
+        c2.ctx.drawImage(c0.image, 0, 0)
+        for (let i = 0; i < 3; ++i) {
+            let w = 8 + 2 * i
+            let ca = new PreRenderedImage(w, w)
+            ctx = ca.ctx
+            ctx.fillStyle = "#d0d0d060"
+            ctx.fillRect(0, 0, w, w)
+            ctx.fillStyle = "#d0d0d0"
+            ctx.fillRect(0, 1, w, w - 2)
+            ctx.fillRect(1, 0, w - 2, w)
+            ctx.fillStyle = ctx.createPattern(acidTex, "repeat")
+            ctx.fillRect(1, 1, w - 2, w - 2)
+            ctx = c[i].ctx
+            ctx.drawImage(ca.image, 20 - w, 28 - i)
+            ctx.drawImage(ca.image, 44, 28 - i)
+            ctx.rotate(Angles.deg90)
+            ctx.drawImage(ca.image, 44, -36 - i)
+            ctx.drawImage(ca.image, 20 - w, -36 - i)
+            ctx.resetTransform()
+            ctx.fillStyle = ctx.createPattern(acidTex, "repeat")
+            ctx.beginPath()
+            ctx.ellipse(32, 32, 6 + i, 6 + i, 0, 0, Angles.deg360)
+            ctx.closePath()
+            ctx.fill()
+            ctx.fillStyle = "#60606080"
+            ctx.fill()
+            let grad = ctx.createLinearGradient(25 - i / 2, 25 - i / 2, 38 + i / 2, 38 + i / 2)
+            grad.addColorStop(0, "#808080")
+            grad.addColorStop(1, "#404040")
+            ctx.strokeStyle = grad
+            ctx.lineWidth = 2 + i
+            ctx.stroke()
+        }
+        AcidTurret.images = [c0.image, c1.image, c2.image]*/
+    }
+}
+class RenderablePath {
+    constructor(path, fill) {
+        this.path = path;
+        this.fill = fill;
+    }
+    render(ctx) {
+        ctx.fillStyle = this.fill;
+        ctx.fill(this.path);
+    }
+}
+/// <reference path="RenderablePath.ts"/>
+class RenderablePathSet {
+    constructor(paths = null) {
+        this.paths = paths == null ? [] : paths;
+    }
+    push(path) {
+        this.paths.push(path);
+    }
+    pushNew(path, fill) {
+        this.paths.push(new RenderablePath(path, fill));
+    }
+    render(ctx) {
+        for (let i = 0; i < this.paths.length; ++i) {
+            this.paths[i].render(ctx);
+        }
     }
 }
 /// <reference path='turrets.ts'/>
+/// <reference path='Game.ts'/>
 /// <reference path='GameItem.ts'/>
+/// <reference path='Coords.ts'/>
+/// <reference path='TextureGenerator.ts'/>
+/// <reference path='RenderablePathSet.ts'/>
+/// <reference path='Angles.ts'/>
 var TileType;
 /// <reference path='turrets.ts'/>
+/// <reference path='Game.ts'/>
 /// <reference path='GameItem.ts'/>
+/// <reference path='Coords.ts'/>
+/// <reference path='TextureGenerator.ts'/>
+/// <reference path='RenderablePathSet.ts'/>
+/// <reference path='Angles.ts'/>
 (function (TileType) {
     TileType[TileType["Unknown"] = 0] = "Unknown";
     TileType[TileType["Empty"] = 1] = "Empty";
@@ -941,7 +1181,7 @@ class Tile extends GameItem {
         this.decor = new RenderablePathSet();
         switch (type) {
             case TileType.Empty:
-                this.groundFill = "#5BA346";
+                this.groundFill = ctx.createPattern(Tile.grass, "repeat"); // "#5BA346"
                 break;
             case TileType.Path:
                 this.groundFill = "#B5947E";
@@ -1068,6 +1308,9 @@ class Tile extends GameItem {
             }
         }
     }
+    static init() {
+        Tile.grass = new NoiseTextureGenerator(64, 64, new ColorRgb());
+    }
 }
 class Rect {
     constructor(x, y, w, h) {
@@ -1075,33 +1318,6 @@ class Rect {
         this.y = y;
         this.w = w;
         this.h = h;
-    }
-}
-class RenderablePath {
-    constructor(path, fill) {
-        this.path = path;
-        this.fill = fill;
-    }
-    render(ctx) {
-        ctx.fillStyle = this.fill;
-        ctx.fill(this.path);
-    }
-}
-/// <reference path="RenderablePath.ts"/>
-class RenderablePathSet {
-    constructor(paths = null) {
-        this.paths = paths == null ? [] : paths;
-    }
-    push(path) {
-        this.paths.push(path);
-    }
-    pushNew(path, fill) {
-        this.paths.push(new RenderablePath(path, fill));
-    }
-    render(ctx) {
-        for (let i = 0; i < this.paths.length; ++i) {
-            this.paths[i].render(ctx);
-        }
     }
 }
 class PerformanceMeter {
@@ -1158,6 +1374,9 @@ class Game {
         this.guiPanel = new Rect(this.width - 192, 0, 192, this.height - 192);
     }
     init() {
+        Tile.init();
+        Angles.init();
+        Turret.init();
         this.generateMap();
         this.generateCastle();
         this.preRender();
@@ -1370,7 +1589,7 @@ class Game {
         let y = this.height - 192;
         let path1 = new Path2D();
         path1.rect(x + 36, y + 36, 120, 120);
-        let tex = new CellularTexture(192, 192, 144, new ColorRgb(130, 97, 79), new ColorRgb(153, 118, 99), CellularTextureType.Balls);
+        let tex = new CellularTextureGenerator(192, 192, 144, new ColorRgb(130, 97, 79), new ColorRgb(153, 118, 99), CellularTextureType.Balls);
         this.castle.pushNew(path1, this.ctx.createPattern(tex.generate(), "repeat"));
         let path2 = new Path2D();
         path2.rect(x + 6, y + 6, 60, 60);
@@ -1490,8 +1709,6 @@ function gameLoop() {
     game.run();
 }
 window.onload = () => {
-    Angles.init();
-    Turret.init();
     game = new Game($("#game-canvas").get(0));
     game.init();
     gameLoop();

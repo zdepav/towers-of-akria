@@ -4,7 +4,7 @@
 /// <reference path='PreRenderedImage.ts'/>
 /// <reference path='GameItem.ts'/>
 /// <reference path='ColorRgb.ts'/>
-/// <reference path="CellularTexture.ts"/>
+/// <reference path="TextureGenerator.ts"/>
 /// <reference path="ParticleSystem.ts"/>
 /// <reference path="TurretType.ts"/>
 
@@ -59,8 +59,8 @@ class Turret extends GameItem {
 
         IceTurret.init()
         AcidTurret.init()
+        CannonTurret.init()
         //???Turret.init()
-        //CannonTurret.init()
         //LightningTurret.init()
         //FlamethrowerTurret.init()
 
@@ -210,7 +210,7 @@ class EarthTurret extends Turret {
                 this.type.add(type)
                 break
             case TurretElement.Fire:
-                //this.tile.turret = new CannonTurret(this.tile, this.type.add(type))
+                this.tile.turret = new CannonTurret(this.tile, this.type.add(type))
                 break
             case TurretElement.Water:
                 this.tile.turret = new AcidTurret(this.tile, this.type.add(type))
@@ -402,7 +402,7 @@ class FireTurret extends Turret {
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
         this.angle = Math.random() * Angles.deg360
-        this.smokeTimer = Math.random() * 3.5 + 0.5
+        this.smokeTimer = Utils.randInt(0.5, 4)
     }
 
     spawnSmoke() {
@@ -413,7 +413,7 @@ class FireTurret extends Turret {
             x = Math.random() * r * 2 - r
             y = Math.random() * r * 2 - r
         } while (x * x + y * y > 100)
-        this.smokeTimer = Math.random() * (5.5 - this.type.fire()) + 0.5
+        this.smokeTimer = Utils.randInt(0.5, 6 - this.type.fire())
         this.game.particles.add(new SmokeParticle(this.center.x + x, this.center.y + y, 0))
     }
 
@@ -446,7 +446,7 @@ class FireTurret extends Turret {
                 //this.tile.turret = new LightningTurret(this.tile, this.type.add(type))
                 break
             case TurretElement.Earth:
-                //this.tile.turret = new CannonTurret(this.tile, this.type.add(type))
+                this.tile.turret = new CannonTurret(this.tile, this.type.add(type))
                 break
             case TurretElement.Fire:
                 this.type.add(type)
@@ -459,13 +459,13 @@ class FireTurret extends Turret {
 
     static init() {
         let c = new PreRenderedImage(64, 64)
-        let texLava = new CellularTexture(
+        let texLava = new CellularTextureGenerator(
             64, 64, 36,
             new ColorRgb(255, 80, 32),
             new ColorRgb(192, 0, 0),
             CellularTextureType.Balls
         )
-        let texRock = new CellularTexture(
+        let texRock = new CellularTextureGenerator(
             64, 64, 144,
             new ColorRgb(102, 45, 34),
             new ColorRgb(102, 45, 34),
@@ -553,7 +553,7 @@ class IceTurret extends Turret {
     }
 
     static init() {
-        let tex = new CellularTexture(
+        let tex = new CellularTextureGenerator(
             64, 64, 64,
             new ColorRgb(209, 239, 255),
             new ColorRgb(112, 190, 204),
@@ -636,13 +636,10 @@ class IceTurret extends Turret {
 
 class AcidTurret extends Turret {
 
-    private static image: CanvasImageSource
-
-    private angle: number
+    private static images: CanvasImageSource[]
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
-        this.angle = Math.random() * Angles.deg360
     }
 
     step(time: number) {
@@ -654,15 +651,11 @@ class AcidTurret extends Turret {
         if (preRender) {
             return
         }
-        ctx.translate(this.center.x, this.center.y)
-        ctx.rotate(this.angle)
-        ctx.drawImage(AcidTurret.image, -32, -32)
-        ctx.resetTransform()
-        ctx.fillStyle = "#404040"
-        ctx.textAlign = "left"
-        ctx.textBaseline = "top"
-        ctx.font = "bold 10px serif"
-        ctx.fillText('*', this.tile.pos.x + 2, this.tile.pos.y + 2)
+        ctx.drawImage(
+            AcidTurret.images[this.type.water() + this.type.earth() - 2],
+            this.center.x - 32,
+            this.center.y - 32
+        )
     }
 
     addType(type: TurretElement) {
@@ -684,16 +677,188 @@ class AcidTurret extends Turret {
     }
 
     static init() {
-        let c = new PreRenderedImage(64, 64)
-        let tex = new CellularTexture(
-            64, 64, 16,
+        let acidTex = new CellularTextureGenerator(
+            64, 64, 9,
             new ColorRgb(224, 255, 0),
             new ColorRgb(91, 127, 0),
             CellularTextureType.Balls
-        )
-        c.ctx.fillStyle = c.ctx.createPattern(tex.generate(), "repeat")
-        c.ctx.fillRect(8, 8, 48, 48)
-        AcidTurret.image = c.image
+        ).generate()
+        let c0 = new PreRenderedImage(64, 64)
+        let c1 = new PreRenderedImage(64, 64)
+        let c2 = new PreRenderedImage(64, 64)
+        let c = [c0, c1, c2]
+        let ctx = c0.ctx
+        ctx.beginPath()
+        ctx.moveTo(26, 20)
+        ctx.arcTo(44, 20, 44, 26, 6)
+        ctx.arcTo(44, 44, 38, 44, 6)
+        ctx.arcTo(20, 44, 20, 38, 6)
+        ctx.arcTo(20, 20, 26, 20, 6)
+        ctx.closePath()
+        ctx.fillStyle = "#b0b0b0"
+        ctx.fill()
+        ctx.strokeStyle = "#d0d0d0"
+        ctx.lineWidth = 2
+        ctx.stroke()
+        c1.ctx.drawImage(c0.image, 0, 0)
+        c2.ctx.drawImage(c0.image, 0, 0)
+        for (let i = 0; i < 3; ++i) {
+            let w = 8 + 2 * i
+            let ca = new PreRenderedImage(w, w)
+            ctx = ca.ctx
+            ctx.fillStyle = "#d0d0d060"
+            ctx.fillRect(0, 0, w, w)
+            ctx.fillStyle = "#d0d0d0"
+            ctx.fillRect(0, 1, w, w - 2)
+            ctx.fillRect(1, 0, w - 2, w)
+            ctx.fillStyle = ctx.createPattern(acidTex, "repeat")
+            ctx.fillRect(1, 1, w - 2, w - 2)
+            ctx = c[i].ctx
+            ctx.drawImage(ca.image, 20 - w, 28 - i)
+            ctx.drawImage(ca.image, 44, 28 - i)
+            ctx.rotate(Angles.deg90)
+            ctx.drawImage(ca.image, 44, -36 - i)
+            ctx.drawImage(ca.image, 20 - w, -36 - i)
+            ctx.resetTransform()
+            ctx.fillStyle = ctx.createPattern(acidTex, "repeat")
+            ctx.beginPath()
+            ctx.ellipse(32, 32, 6 + i, 6 + i, 0, 0, Angles.deg360)
+            ctx.closePath()
+            ctx.fill()
+            ctx.fillStyle = "#60606080"
+            ctx.fill()
+            let grad = ctx.createLinearGradient(25 - i / 2, 25 - i / 2, 38 + i / 2, 38 + i / 2)
+            grad.addColorStop(0, "#808080")
+            grad.addColorStop(1, "#404040")
+            ctx.strokeStyle = grad
+            ctx.lineWidth = 2 + i
+            ctx.stroke()
+        }
+        AcidTurret.images = [c0.image, c1.image, c2.image]
     }
 
+}
+
+class CannonTurret extends Turret {
+
+    private static image: CanvasImageSource
+
+    private angle: number
+
+    constructor(tile: Tile, type: TurretType) {
+        super(tile, type)
+        this.angle = Math.random() * Angles.deg360
+    }
+
+    step(time: number) {
+        super.step(time)
+    }
+
+    render(ctx: CanvasRenderingContext2D, preRender: boolean) {
+        super.render(ctx, preRender)
+        if (preRender) {
+            return
+        }
+        ctx.translate(this.center.x, this.center.y)
+        ctx.rotate(this.angle)
+        //ctx.drawImage(CannonTurret.image, -32, -32)
+        ctx.resetTransform()
+    }
+
+    addType(type: TurretElement) {
+        if (this.type.count() >= 4) {
+            return
+        }
+        switch (type) {
+            case TurretElement.Air:
+                //this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type))
+                break
+            case TurretElement.Earth:
+            case TurretElement.Fire:
+                this.type.add(type)
+                break
+            case TurretElement.Water:
+                //this.tile.turret = new EarthquakeTurret(this.tile, this.type.add(type))
+                break
+        }
+    }
+
+    static init() {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        /*
+        let acidTex = new CellularTexture(
+            64, 64, 9,
+            new ColorRgb(224, 255, 0),
+            new ColorRgb(91, 127, 0),
+            CellularTextureType.Balls
+        ).generate()
+        let c0 = new PreRenderedImage(64, 64)
+        let c1 = new PreRenderedImage(64, 64)
+        let c2 = new PreRenderedImage(64, 64)
+        let c = [c0, c1, c2]
+        let ctx = c0.ctx
+        ctx.beginPath()
+        ctx.moveTo(26, 20)
+        ctx.arcTo(44, 20, 44, 26, 6)
+        ctx.arcTo(44, 44, 38, 44, 6)
+        ctx.arcTo(20, 44, 20, 38, 6)
+        ctx.arcTo(20, 20, 26, 20, 6)
+        ctx.closePath()
+        ctx.fillStyle = "#b0b0b0"
+        ctx.fill()
+        ctx.strokeStyle = "#d0d0d0"
+        ctx.lineWidth = 2
+        ctx.stroke()
+        c1.ctx.drawImage(c0.image, 0, 0)
+        c2.ctx.drawImage(c0.image, 0, 0)
+        for (let i = 0; i < 3; ++i) {
+            let w = 8 + 2 * i
+            let ca = new PreRenderedImage(w, w)
+            ctx = ca.ctx
+            ctx.fillStyle = "#d0d0d060"
+            ctx.fillRect(0, 0, w, w)
+            ctx.fillStyle = "#d0d0d0"
+            ctx.fillRect(0, 1, w, w - 2)
+            ctx.fillRect(1, 0, w - 2, w)
+            ctx.fillStyle = ctx.createPattern(acidTex, "repeat")
+            ctx.fillRect(1, 1, w - 2, w - 2)
+            ctx = c[i].ctx
+            ctx.drawImage(ca.image, 20 - w, 28 - i)
+            ctx.drawImage(ca.image, 44, 28 - i)
+            ctx.rotate(Angles.deg90)
+            ctx.drawImage(ca.image, 44, -36 - i)
+            ctx.drawImage(ca.image, 20 - w, -36 - i)
+            ctx.resetTransform()
+            ctx.fillStyle = ctx.createPattern(acidTex, "repeat")
+            ctx.beginPath()
+            ctx.ellipse(32, 32, 6 + i, 6 + i, 0, 0, Angles.deg360)
+            ctx.closePath()
+            ctx.fill()
+            ctx.fillStyle = "#60606080"
+            ctx.fill()
+            let grad = ctx.createLinearGradient(25 - i / 2, 25 - i / 2, 38 + i / 2, 38 + i / 2)
+            grad.addColorStop(0, "#808080")
+            grad.addColorStop(1, "#404040")
+            ctx.strokeStyle = grad
+            ctx.lineWidth = 2 + i
+            ctx.stroke()
+        }
+        AcidTurret.images = [c0.image, c1.image, c2.image]*/
+    }
 }
