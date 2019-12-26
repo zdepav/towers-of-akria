@@ -85,23 +85,13 @@
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
-    <AdditionalFiles Include="game\DijkstraNode.ts" />
-    <AdditionalFiles Include="game\Coords.ts" />
     <TypeScriptCompile Include="game\TextureGenerator.ts" />
-    <TypeScriptCompile Include="game\ColorRgb.ts" />
     <TypeScriptCompile Include="game\Game.ts" />
-    <AdditionalFiles Include="game\Tile.ts" />
-    <AdditionalFiles Include="game\RenderablePath.ts" />
-    <AdditionalFiles Include="game\Rect.ts" />
     <AdditionalFiles Include="game\GameItem.ts" />
-    <AdditionalFiles Include="game\RenderablePathSet.ts" />
-    <AdditionalFiles Include="game\PerformanceMeter.ts" />
-    <AdditionalFiles Include="game\PreRenderedImage.ts" />
     <TypeScriptCompile Include="game\main.ts" />
     <TypeScriptCompile Include="game\ParticleSystem.ts" />
     <TypeScriptCompile Include="game\TurretType.ts" />
     <TypeScriptCompile Include="Scripts\typings\jquery\jquery.d.ts" />
-    <TypeScriptCompile Include="game\Angles.ts" />
     <TypeScriptCompile Include="game\turrets.ts" />
   </ItemGroup>
   <ItemGroup>

@@ -1,13 +1,173 @@
-/// <reference path='Tile.ts'/>
 /// <reference path='turrets.ts'/>
-/// <reference path='Rect.ts'/>
 /// <reference path='GameItem.ts'/>
-/// <reference path='RenderablePathSet.ts'/>
-/// <reference path='PerformanceMeter.ts'/>
-/// <reference path='DijkstraNode.ts'/>
-/// <reference path='PreRenderedImage.ts'/>
+/// <reference path='Utils.ts'/>
 /// <reference path="TurretType.ts"/>
 /// <reference path="ParticleSystem.ts"/>
+
+enum TileType {
+    Unknown,
+    Empty,
+    WallGen,
+    Tower,
+    Path,
+    Spawn,
+    HQ
+}
+
+class Tile extends GameItem {
+
+    private static grass: CanvasImageSource
+
+    pos: Coords
+    type: TileType
+    turret: Turret
+    private groundFill: string | CanvasPattern | CanvasGradient
+    private decor: RenderablePathSet
+
+    constructor(game: Game, x: number, y: number, type: TileType, ctx: CanvasRenderingContext2D) {
+        super(game)
+        this.type = type
+        this.turret = null
+        this.pos = new Coords(x, y)
+        this.decor = new RenderablePathSet()
+        switch (type) {
+            case TileType.Empty:
+                this.groundFill = ctx.createPattern(Tile.grass, "repeat") // "#5BA346"
+                break
+            case TileType.Path:
+                this.groundFill = "#B5947E"
+                break
+            case TileType.Spawn:
+                let spawnGradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32)
+                spawnGradient.addColorStop(0, "#E77B65")
+                spawnGradient.addColorStop(1, "#B5947E")
+                this.groundFill = spawnGradient
+                break
+            case TileType.HQ:
+                this.groundFill = "#B5947E"
+                break
+            case TileType.Tower:
+                this.groundFill = "#808080"
+                this.turret = new Turret(this)
+                break
+        }
+        if (this.type === TileType.Path || this.type === TileType.Spawn || this.type === TileType.HQ) {
+            let path = new Path2D()
+            for (let i = 0; i < 4; ++i) {
+                for (let j = 0; j < 4; ++j) {
+                    if (Math.random() < 0.25) {
+                        let _x = x + i * 16 + 4 + Math.random() * 8
+                        let _y = y + j * 16 + 4 + Math.random() * 8
+                        let radius = 2 + 2 * Math.random()
+                        for (let k = 0; k < 4; ++k) {
+                            let a = -Angles.deg45 + Angles.deg90 * (k + 0.25 + 0.5 * Math.random())
+                            if (k === 0) {
+                                path.moveTo(_x + radius * Math.cos(a), _y - radius * Math.sin(a))
+                            } else {
+                                path.lineTo(_x + radius * Math.cos(a), _y - radius * Math.sin(a))
+                            }
+                        }
+                        path.closePath()
+                    }
+                }
+            }
+            if (this.type === TileType.Spawn) {
+                let gradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32)
+                gradient.addColorStop(0, "#CB5E48")
+                gradient.addColorStop(1, "#997761")
+                this.decor.pushNew(path, gradient)
+            } else {
+                this.decor.pushNew(path, "#997761")
+            }
+        } else if (this.type === TileType.Empty) {
+            let path1 = new Path2D()
+            let path2 = new Path2D()
+            for (let i = 0; i < 3; ++i) {
+                for (let j = 0; j < 3; ++j) {
+                    if (Math.random() < 0.25) {
+                        let path = Math.random() < 0.5 ? path1 : path2
+                        path.arc(
+                            x + 6 + 21 * i + Math.random() * 10,
+                            y + 6 + 21 * j + Math.random() * 10,
+                            4 + 2 * Math.random(),
+                            0,
+                            Angles.deg360
+                        )
+                        path.closePath()
+                    }
+                }
+            }
+            this.decor.pushNew(path1, "#337F1C")
+            this.decor.pushNew(path2, "#479131")
+        } else if (this.type === TileType.Tower) {
+            let path1 = new Path2D()
+            path1.moveTo(x, y)
+            path1.lineTo(x + 62, y)
+            path1.lineTo(x + 62, y + 2)
+            path1.lineTo(x + 2, y + 2)
+            path1.lineTo(x + 2, y + 62)
+            path1.lineTo(x, y + 62)
+            path1.closePath()
+            this.decor.pushNew(path1, "#A0A0A0")
+            let path2 = new Path2D()
+            path2.moveTo(x + 62, y + 2)
+            path2.lineTo(x + 64, y + 2)
+            path2.lineTo(x + 64, y + 64)
+            path2.lineTo(x + 2, y + 64)
+            path2.lineTo(x + 2, y + 62)
+            path2.lineTo(x + 62, y + 62)
+            path2.closePath()
+            this.decor.pushNew(path2, "#606060")
+            let path3 = new Path2D()
+            path3.moveTo(x + 56, y + 8)
+            path3.lineTo(x + 58, y + 8)
+            path3.lineTo(x + 58, y + 58)
+            path3.lineTo(x + 8, y + 58)
+            path3.lineTo(x + 8, y + 56)
+            path3.lineTo(x + 56, y + 56)
+            path3.closePath()
+            this.decor.pushNew(path3, "#909090")
+            let path4 = new Path2D()
+            path4.moveTo(x + 6, y + 6)
+            path4.lineTo(x + 56, y + 6)
+            path4.lineTo(x + 56, y + 8)
+            path4.lineTo(x + 8, y + 8)
+            path4.lineTo(x + 8, y + 56)
+            path4.lineTo(x + 6, y + 56)
+            path4.closePath()
+            this.decor.pushNew(path4, "#707070")
+        }
+    }
+
+    step(time: number) {
+        if (this.type === TileType.Tower && this.turret != null) {
+            this.turret.step(time)
+        }
+    }
+
+    render(ctx: CanvasRenderingContext2D, preRender: boolean) {
+        if (preRender) {
+            ctx.fillStyle = this.groundFill
+            ctx.fillRect(this.pos.x, this.pos.y, 64, 64)
+            this.decor.render(ctx)
+        } else if (this.type === TileType.Tower && this.turret != null) {
+            this.turret.render(ctx, preRender)
+            var elems = this.turret.getType().toColorArray()
+            var x = this.pos.x + 2
+            var y = this.pos.y + 2
+            for (const c of elems) {
+                ctx.fillStyle = c
+                ctx.fillRect(x, y, 4, 4)
+                x += 6
+            }
+        }
+    }
+
+    static init() {
+        Tile.grass = new NoiseTextureGenerator(64, 64, new ColorRgb(91, 163, 70), 0.1, 0, 0.25).generate()
+    }
+
+}
 
 class Game {
 

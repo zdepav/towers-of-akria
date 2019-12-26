@@ -1,3 +1,114 @@
+class Utils {
+    static clamp(value, min, max) {
+        return value > max ? max : value < min ? min : value;
+    }
+    static byteToHex(byte) {
+        byte = Utils.clamp(byte, 0, 255);
+        return Utils.hex[Math.floor(byte / 16)] + Utils.hex[Math.floor(byte % 16)];
+    }
+    /**
+     * @param min min value (inclusive)
+     * @param max max value (exclusive)
+     */
+    static randInt(min, max) {
+        if (max <= min) {
+            return min;
+        }
+        return Math.floor(Math.random() * (max - min) + min);
+    }
+    /**
+     * @param min min value (inclusive)
+     * @param max max value (exclusive)
+     */
+    static rand(min, max) {
+        if (max <= min) {
+            return min;
+        }
+        return Math.random() * (max - min) + min;
+    }
+}
+Utils.hex = "0123456789abcdef";
+class RenderablePath {
+    constructor(path, fill) {
+        this.path = path;
+        this.fill = fill;
+    }
+    render(ctx) {
+        ctx.fillStyle = this.fill;
+        ctx.fill(this.path);
+    }
+}
+class RenderablePathSet {
+    constructor(paths = null) {
+        this.paths = paths == null ? [] : paths;
+    }
+    push(path) {
+        this.paths.push(path);
+    }
+    pushNew(path, fill) {
+        this.paths.push(new RenderablePath(path, fill));
+    }
+    render(ctx) {
+        for (let i = 0; i < this.paths.length; ++i) {
+            this.paths[i].render(ctx);
+        }
+    }
+}
+class PreRenderedImage {
+    constructor(width, height) {
+        let canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        this.ctx = canvas.getContext("2d");
+        this.image = canvas;
+    }
+    saveImage(fileName) {
+        let a = document.createElement("a");
+        a.setAttribute("download", fileName + ".png");
+        a.setAttribute("href", this.image
+            .toDataURL("image/png")
+            .replace("image/png", "image/octet-stream"));
+        a.setAttribute("target", "_blank");
+        a.click();
+    }
+}
+class PerformanceMeter {
+    constructor() {
+        this.queue = [];
+        this.sum = 0;
+    }
+    add(fps) {
+        this.queue.push(fps);
+        this.sum += fps;
+        if (this.queue.length > 100) {
+            this.sum -= this.queue.shift();
+        }
+    }
+    getFps() {
+        return this.queue.length > 0 ? this.sum / this.queue.length : NaN;
+    }
+}
+class Coords {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+}
+class Rect {
+    constructor(x, y, w, h) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+    }
+}
+class DijkstraNode {
+    constructor(x, y, previous) {
+        this.previous = previous;
+        this.distance = previous == null ? 0 : previous.distance + 1;
+        this.pos = new Coords(x, y);
+    }
+}
 class Angles {
     static init() {
         Angles.deg10 = Math.PI / 18;
@@ -24,27 +135,6 @@ class Angles {
         Angles.deg360 = Math.PI * 2;
     }
 }
-class Utils {
-    static clamp(value, min, max) {
-        return value > max ? max : value < min ? min : value;
-    }
-    static byteToHex(byte) {
-        byte = Utils.clamp(byte, 255, 255);
-        return Utils.hex[Math.floor(byte / 16)] + Utils.hex[Math.floor(byte % 16)];
-    }
-    /**
-     * @param min min value (inclusive)
-     * @param max max value (exclusive)
-     */
-    static randInt(min, max) {
-        if (max < min) {
-            return min;
-        }
-        return Math.floor(Math.random() * (max - min) + min);
-    }
-}
-Utils.hex = "0123456789abcdef";
-/// <reference path="Utils.ts"/>
 class ColorRgb {
     constructor(r, g, b) {
         this.r = Utils.clamp(r, 0, 255);
@@ -81,39 +171,25 @@ class ColorRgb {
     }
     addNoise(intensity, saturation, coverage) {
         if (Math.random() < coverage) {
+            intensity *= 255;
             if (saturation <= 0) {
-                let n = Utils.randInt(-intensity, intensity);
+                let n = Utils.rand(-intensity, intensity);
                 return new ColorRgb(this.r + n, this.g + n, this.b + n);
             }
             else if (saturation >= 1) {
-                return new ColorRgb(this.r + Utils.randInt(-intensity, intensity), this.g + Utils.randInt(-intensity, intensity), this.b + Utils.randInt(-intensity, intensity));
+                return new ColorRgb(this.r + Utils.rand(-intensity, intensity), this.g + Utils.rand(-intensity, intensity), this.b + Utils.rand(-intensity, intensity));
             }
             else {
                 let s2 = 1 - saturation;
-                let rn = Utils.randInt(-intensity, intensity);
-                let gn = saturation * Utils.randInt(-intensity, intensity) + s2 * rn;
-                let bn = saturation * Utils.randInt(-intensity, intensity) + s2 * rn;
+                let rn = Utils.rand(-intensity, intensity);
+                let gn = saturation * Utils.rand(-intensity, intensity) + s2 * rn;
+                let bn = saturation * Utils.rand(-intensity, intensity) + s2 * rn;
                 return new ColorRgb(this.r + rn, this.g + gn, this.b + bn);
             }
         }
         else {
             return this;
         }
-    }
-}
-class Coords {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-}
-class PreRenderedImage {
-    constructor(width, height) {
-        let canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        this.ctx = canvas.getContext("2d");
-        this.image = canvas;
     }
 }
 /// <reference path='Game.ts'/>
@@ -124,9 +200,6 @@ class GameItem {
     step(time) { }
     render(ctx, preRender) { }
 }
-/// <reference path="PreRenderedImage.ts"/>
-/// <reference path="ColorRgb.ts"/>
-/// <reference path="Coords.ts"/>
 /// <reference path="Utils.ts"/>
 class TextureGenerator {
     constructor(width, height, color) {
@@ -247,7 +320,7 @@ class NoiseTextureGenerator extends TextureGenerator {
         return tex.image;
     }
 }
-/// <reference path='Angles.ts'/>
+/// <reference path='Utils.ts'/>
 class Particle {
     step(time) { }
     render(ctx) { }
@@ -261,7 +334,7 @@ class SmokeParticle extends Particle {
         this.life = 0;
         let lightness = Utils.randInt(112, 176);
         let h = Utils.byteToHex(lightness);
-        this.rgb = `#{h}{h}{h}`;
+        this.rgb = `#${h}${h}${h}`;
         this.startSize = startSize;
     }
     step(time) {
@@ -274,7 +347,7 @@ class SmokeParticle extends Particle {
         let r = this.life * 8 + this.startSize;
         ctx.fillStyle = this.rgb + Utils.byteToHex(255 * (1 - this.life));
         ctx.beginPath();
-        ctx.ellipse(this.x, this.y, r, r, 0, 0, Angles.deg360);
+        ctx.arc(this.x, this.y, r, 0, Angles.deg360);
         ctx.fill();
     }
     isDead() {
@@ -379,12 +452,8 @@ class TurretType {
         return arr;
     }
 }
-/// <reference path='Coords.ts'/>
-/// <reference path='Tile.ts'/>
-/// <reference path='Angles.ts'/>
-/// <reference path='PreRenderedImage.ts'/>
+/// <reference path='Utils.ts'/>
 /// <reference path='GameItem.ts'/>
-/// <reference path='ColorRgb.ts'/>
 /// <reference path="TextureGenerator.ts"/>
 /// <reference path="ParticleSystem.ts"/>
 /// <reference path="TurretType.ts"/>
@@ -395,6 +464,7 @@ class Turret extends GameItem {
         this.center = new Coords(tile.pos.x + 32, tile.pos.y + 32);
         this.hp = 100;
         this.type = type === null ? new TurretType() : type;
+        this.cooldown = 0;
     }
     step(time) {
         if (this.cooldown > 0) {
@@ -415,7 +485,7 @@ class Turret extends GameItem {
                 this.tile.turret = new FireTurret(this.tile, this.type.add(type));
                 break;
             case TurretElement.Water:
-                //this.tile.turret = new WaterTurret(this.tile, this.type.add(type))
+                this.tile.turret = new WaterTurret(this.tile, this.type.add(type));
                 break;
         }
     }
@@ -423,18 +493,18 @@ class Turret extends GameItem {
         AirTurret.init();
         FireTurret.init();
         EarthTurret.init();
-        //WaterTurret.init()
+        WaterTurret.init();
         IceTurret.init();
         AcidTurret.init();
         CannonTurret.init();
         //???Turret.init()
-        //LightningTurret.init()
-        //FlamethrowerTurret.init()
-        //SunTurret.init()
-        //MoonTurret.init()
-        //PlasmaTurret.init()
-        //EarthquakeTurret.init()
-        //ArcaneTurret.init()
+        LightningTurret.init();
+        FlamethrowerTurret.init();
+        SunTurret.init();
+        MoonTurret.init();
+        PlasmaTurret.init();
+        EarthquakeTurret.init();
+        ArcaneTurret.init();
     }
 }
 class AirTurret extends Turret {
@@ -498,7 +568,7 @@ class AirTurret extends Turret {
                 //this.tile.turret = new ???Turret(this.tile, this.type.add(type))
                 break;
             case TurretElement.Fire:
-                //this.tile.turret = new LightningTurret(this.tile, this.type.add(type))
+                this.tile.turret = new LightningTurret(this.tile, this.type.add(type));
                 break;
             case TurretElement.Water:
                 this.tile.turret = new IceTurret(this.tile, this.type.add(type));
@@ -772,7 +842,7 @@ class FireTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
-                //this.tile.turret = new LightningTurret(this.tile, this.type.add(type))
+                this.tile.turret = new LightningTurret(this.tile, this.type.add(type));
                 break;
             case TurretElement.Earth:
                 this.tile.turret = new CannonTurret(this.tile, this.type.add(type));
@@ -781,7 +851,7 @@ class FireTurret extends Turret {
                 this.type.add(type);
                 break;
             case TurretElement.Water:
-                //this.tile.turret = new FlamethrowerTurret(this.tile, this.type.add(type))
+                this.tile.turret = new FlamethrowerTurret(this.tile, this.type.add(type));
                 break;
         }
     }
@@ -824,6 +894,44 @@ class FireTurret extends Turret {
         FireTurret.image = c.image;
     }
 }
+class WaterTurret extends Turret {
+    constructor(tile, type) {
+        super(tile, type);
+    }
+    step(time) {
+        super.step(time);
+    }
+    render(ctx, preRender) {
+        super.render(ctx, preRender);
+        if (preRender) {
+            return;
+        }
+        ctx.drawImage(WaterTurret.image, this.tile.pos.x, this.tile.pos.y);
+    }
+    addType(type) {
+        if (this.type.count() >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                this.tile.turret = new IceTurret(this.tile, this.type.add(type));
+                break;
+            case TurretElement.Fire:
+                this.tile.turret = new FlamethrowerTurret(this.tile, this.type.add(type));
+                break;
+            case TurretElement.Earth:
+                this.tile.turret = new AcidTurret(this.tile, this.type.add(type));
+                break;
+            case TurretElement.Water:
+                this.type.add(type);
+                break;
+        }
+    }
+    static init() {
+        let c = new PreRenderedImage(64, 64);
+        WaterTurret.image = c.image;
+    }
+}
 class IceTurret extends Turret {
     constructor(tile, type) {
         super(tile, type);
@@ -850,10 +958,10 @@ class IceTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Earth:
-                //this.tile.turret = new MoonTurret(this.tile, this.type.add(type))
+                this.tile.turret = new MoonTurret(this.tile, this.type.add(type));
                 break;
             case TurretElement.Fire:
-                //this.tile.turret = new SunTurret(this.tile, this.type.add(type))
+                this.tile.turret = new SunTurret(this.tile, this.type.add(type));
                 break;
             case TurretElement.Air:
             case TurretElement.Water:
@@ -940,16 +1048,19 @@ class IceTurret extends Turret {
 class AcidTurret extends Turret {
     constructor(tile, type) {
         super(tile, type);
+        this.frame = 0;
     }
     step(time) {
         super.step(time);
+        this.frame = (this.frame + time * 8) % 64;
     }
     render(ctx, preRender) {
         super.render(ctx, preRender);
         if (preRender) {
             return;
         }
-        ctx.drawImage(AcidTurret.images[this.type.water() + this.type.earth() - 2], this.center.x - 32, this.center.y - 32);
+        let f = AcidTurret.images[Math.floor(this.frame)][this.type.water() + this.type.earth() - 2];
+        ctx.drawImage(f, this.center.x - 32, this.center.y - 32);
     }
     addType(type) {
         if (this.type.count() >= 4) {
@@ -957,10 +1068,10 @@ class AcidTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
-                //this.tile.turret = new MoonTurret(this.tile, this.type.add(type))
+                this.tile.turret = new MoonTurret(this.tile, this.type.add(type));
                 break;
             case TurretElement.Fire:
-                //this.tile.turret = new EarthquakeTurret(this.tile, this.type.add(type))
+                this.tile.turret = new EarthquakeTurret(this.tile, this.type.add(type));
                 break;
             case TurretElement.Earth:
             case TurretElement.Water:
@@ -970,6 +1081,13 @@ class AcidTurret extends Turret {
     }
     static init() {
         let acidTex = new CellularTextureGenerator(64, 64, 9, new ColorRgb(224, 255, 0), new ColorRgb(91, 127, 0), CellularTextureType.Balls).generate();
+        AcidTurret.images = [];
+        for (let i = 0; i < 64; ++i) {
+            AcidTurret.images.push(this.preRenderFrame(acidTex, i));
+        }
+    }
+    static preRenderFrame(texture, frame) {
+        var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         let c0 = new PreRenderedImage(64, 64);
         let c1 = new PreRenderedImage(64, 64);
         let c2 = new PreRenderedImage(64, 64);
@@ -998,18 +1116,25 @@ class AcidTurret extends Turret {
             ctx.fillStyle = "#d0d0d0";
             ctx.fillRect(0, 1, w, w - 2);
             ctx.fillRect(1, 0, w - 2, w);
-            ctx.fillStyle = ctx.createPattern(acidTex, "repeat");
+            let pattern = ctx.createPattern(texture, "repeat");
+            pattern.setTransform(svg.createSVGMatrix().translate(-frame, 0));
+            ctx.fillStyle = pattern;
             ctx.fillRect(1, 1, w - 2, w - 2);
             ctx = c[i].ctx;
-            ctx.drawImage(ca.image, 20 - w, 28 - i);
-            ctx.drawImage(ca.image, 44, 28 - i);
+            ctx.translate(32, 32);
+            ctx.drawImage(ca.image, 12, -4 - i);
             ctx.rotate(Angles.deg90);
-            ctx.drawImage(ca.image, 44, -36 - i);
-            ctx.drawImage(ca.image, 20 - w, -36 - i);
+            ctx.drawImage(ca.image, 12, -4 - i);
+            ctx.rotate(Angles.deg90);
+            ctx.drawImage(ca.image, 12, -4 - i);
+            ctx.rotate(Angles.deg90);
+            ctx.drawImage(ca.image, 12, -4 - i);
             ctx.resetTransform();
-            ctx.fillStyle = ctx.createPattern(acidTex, "repeat");
+            pattern = ctx.createPattern(texture, "repeat");
+            pattern.setTransform(svg.createSVGMatrix().translate(frame, frame));
+            ctx.fillStyle = pattern;
             ctx.beginPath();
-            ctx.ellipse(32, 32, 6 + i, 6 + i, 0, 0, Angles.deg360);
+            ctx.arc(32, 32, 6 + i, 0, Angles.deg360);
             ctx.closePath();
             ctx.fill();
             ctx.fillStyle = "#60606080";
@@ -1021,7 +1146,7 @@ class AcidTurret extends Turret {
             ctx.lineWidth = 2 + i;
             ctx.stroke();
         }
-        AcidTurret.images = [c0.image, c1.image, c2.image];
+        return [c0.image, c1.image, c2.image];
     }
 }
 class CannonTurret extends Turret {
@@ -1031,15 +1156,20 @@ class CannonTurret extends Turret {
     }
     step(time) {
         super.step(time);
+        if (this.cooldown <= 0) {
+            this.cooldown = 1;
+        }
     }
     render(ctx, preRender) {
         super.render(ctx, preRender);
         if (preRender) {
             return;
         }
+        let r = 24 + 2 * this.type.earth() + 2 * this.type.fire();
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
-        //ctx.drawImage(CannonTurret.image, -32, -32)
+        ctx.translate(-4 * this.cooldown, 0);
+        ctx.drawImage(CannonTurret.image, -r, -r, r * 2, r * 2);
         ctx.resetTransform();
     }
     addType(type) {
@@ -1048,121 +1178,343 @@ class CannonTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
-                //this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type))
+                this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type));
                 break;
             case TurretElement.Earth:
             case TurretElement.Fire:
                 this.type.add(type);
                 break;
             case TurretElement.Water:
-                //this.tile.turret = new EarthquakeTurret(this.tile, this.type.add(type))
+                this.tile.turret = new EarthquakeTurret(this.tile, this.type.add(type));
                 break;
         }
     }
     static init() {
-        /*
-        let acidTex = new CellularTexture(
-            64, 64, 9,
-            new ColorRgb(224, 255, 0),
-            new ColorRgb(91, 127, 0),
-            CellularTextureType.Balls
-        ).generate()
-        let c0 = new PreRenderedImage(64, 64)
-        let c1 = new PreRenderedImage(64, 64)
-        let c2 = new PreRenderedImage(64, 64)
-        let c = [c0, c1, c2]
-        let ctx = c0.ctx
-        ctx.beginPath()
-        ctx.moveTo(26, 20)
-        ctx.arcTo(44, 20, 44, 26, 6)
-        ctx.arcTo(44, 44, 38, 44, 6)
-        ctx.arcTo(20, 44, 20, 38, 6)
-        ctx.arcTo(20, 20, 26, 20, 6)
-        ctx.closePath()
-        ctx.fillStyle = "#b0b0b0"
-        ctx.fill()
-        ctx.strokeStyle = "#d0d0d0"
-        ctx.lineWidth = 2
-        ctx.stroke()
-        c1.ctx.drawImage(c0.image, 0, 0)
-        c2.ctx.drawImage(c0.image, 0, 0)
-        for (let i = 0; i < 3; ++i) {
-            let w = 8 + 2 * i
-            let ca = new PreRenderedImage(w, w)
-            ctx = ca.ctx
-            ctx.fillStyle = "#d0d0d060"
-            ctx.fillRect(0, 0, w, w)
-            ctx.fillStyle = "#d0d0d0"
-            ctx.fillRect(0, 1, w, w - 2)
-            ctx.fillRect(1, 0, w - 2, w)
-            ctx.fillStyle = ctx.createPattern(acidTex, "repeat")
-            ctx.fillRect(1, 1, w - 2, w - 2)
-            ctx = c[i].ctx
-            ctx.drawImage(ca.image, 20 - w, 28 - i)
-            ctx.drawImage(ca.image, 44, 28 - i)
-            ctx.rotate(Angles.deg90)
-            ctx.drawImage(ca.image, 44, -36 - i)
-            ctx.drawImage(ca.image, 20 - w, -36 - i)
-            ctx.resetTransform()
-            ctx.fillStyle = ctx.createPattern(acidTex, "repeat")
-            ctx.beginPath()
-            ctx.ellipse(32, 32, 6 + i, 6 + i, 0, 0, Angles.deg360)
-            ctx.closePath()
-            ctx.fill()
-            ctx.fillStyle = "#60606080"
-            ctx.fill()
-            let grad = ctx.createLinearGradient(25 - i / 2, 25 - i / 2, 38 + i / 2, 38 + i / 2)
-            grad.addColorStop(0, "#808080")
-            grad.addColorStop(1, "#404040")
-            ctx.strokeStyle = grad
-            ctx.lineWidth = 2 + i
-            ctx.stroke()
-        }
-        AcidTurret.images = [c0.image, c1.image, c2.image]*/
+        let c = new PreRenderedImage(64, 64);
+        let ctx = c.ctx;
+        let grad = ctx.createLinearGradient(20, 32, 40, 32);
+        grad.addColorStop(0.000, "#543b2c");
+        grad.addColorStop(0.125, "#664936");
+        grad.addColorStop(0.250, "#6c4d38");
+        grad.addColorStop(0.375, "#6f4f3a");
+        grad.addColorStop(0.500, "#70503b");
+        grad.addColorStop(0.625, "#6f4f3a");
+        grad.addColorStop(0.750, "#6c4d38");
+        grad.addColorStop(0.875, "#664936");
+        grad.addColorStop(1.000, "#543b2c");
+        ctx.fillStyle = grad;
+        ctx.fillRect(20, 19, 20, 26);
+        ctx.beginPath();
+        ctx.arc(20, 32, 7, Angles.deg90, Angles.deg270);
+        ctx.arcTo(42, 25, 52, 28, 50);
+        ctx.arc(54, 28, 2, Angles.deg180, Angles.deg360);
+        ctx.lineTo(56, 36);
+        ctx.arc(54, 36, 2, 0, Angles.deg180);
+        ctx.arcTo(45, 39, 38, 39, 50);
+        ctx.closePath();
+        ctx.strokeStyle = "#101010";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = "#303030";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(52, 28);
+        ctx.lineTo(52, 36);
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        CannonTurret.image = c.image;
     }
 }
-class RenderablePath {
-    constructor(path, fill) {
-        this.path = path;
-        this.fill = fill;
+class LightningTurret extends Turret {
+    constructor(tile, type) {
+        super(tile, type);
+        this.animationTimer = Math.random();
     }
-    render(ctx) {
-        ctx.fillStyle = this.fill;
-        ctx.fill(this.path);
+    step(time) {
+        super.step(time);
+        this.animationTimer = (this.animationTimer + time * (this.type.air() + this.type.fire() - 1) * 0.5) % 1;
+    }
+    render(ctx, preRender) {
+        super.render(ctx, preRender);
+        if (preRender) {
+            return;
+        }
+        ctx.drawImage(LightningTurret.images[Math.floor(this.animationTimer * 8)], this.tile.pos.x, this.tile.pos.y);
+    }
+    addType(type) {
+        if (this.type.count() >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+            case TurretElement.Fire:
+                this.type.add(type);
+                break;
+            case TurretElement.Earth:
+                this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type));
+                break;
+            case TurretElement.Water:
+                this.tile.turret = new SunTurret(this.tile, this.type.add(type));
+                break;
+        }
+    }
+    static init() {
+        let c = [];
+        for (let i = 0; i < 8; ++i) {
+            c[i] = new PreRenderedImage(64, 64);
+        }
+        let ctx = c[0].ctx;
+        let grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 18);
+        grad.addColorStop(0, "#ffffff");
+        grad.addColorStop(0.33, "#a97fff");
+        grad.addColorStop(1, "#d6bfff");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.moveTo(50, 32);
+        for (let i = 1; i < 16; ++i) {
+            let r = i % 2 == 0 ? 21 : 7;
+            ctx.lineTo(32 + r * Math.cos(i * Angles.deg45 / 2), 32 - r * Math.sin(i * Angles.deg45 / 2));
+        }
+        ctx.closePath();
+        ctx.fill();
+        grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 3);
+        grad.addColorStop(0, "#f8f2ff");
+        grad.addColorStop(1, "#c199ff");
+        ctx.fillStyle = grad;
+        let j = true;
+        for (let i = 0; i < 8; ++i, j = !j) {
+            ctx.translate(32 + 18 * Math.cos(i * Angles.deg45), 32 - 18 * Math.sin(i * Angles.deg45));
+            if (j) {
+                ctx.rotate(Angles.deg45);
+            }
+            ctx.fillRect(-3, -3, 6, 6);
+            ctx.resetTransform();
+        }
+        for (let i = 1; i < 8; ++i) {
+            c[i].ctx.drawImage(c[0].image, 0, 0);
+        }
+        for (let i = 0; i < 8; ++i, j = !j) {
+            ctx = c[7 - i].ctx;
+            grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 8);
+            grad.addColorStop(0, "#ffffffc0");
+            grad.addColorStop(1, "#f8f2ff00");
+            ctx.fillStyle = grad;
+            ctx.translate(32 + 18 * Math.cos(i * Angles.deg45), 32 - 18 * Math.sin(i * Angles.deg45));
+            ctx.beginPath();
+            ctx.arc(0, 0, 8, 0, Angles.deg360);
+            ctx.closePath();
+            ctx.fill();
+            ctx.resetTransform();
+        }
+        LightningTurret.images = [];
+        for (let i = 0; i < 8; ++i) {
+            LightningTurret.images.push(c[i].image);
+        }
     }
 }
-/// <reference path="RenderablePath.ts"/>
-class RenderablePathSet {
-    constructor(paths = null) {
-        this.paths = paths == null ? [] : paths;
+class FlamethrowerTurret extends Turret {
+    constructor(tile, type) {
+        super(tile, type);
     }
-    push(path) {
-        this.paths.push(path);
+    step(time) {
+        super.step(time);
     }
-    pushNew(path, fill) {
-        this.paths.push(new RenderablePath(path, fill));
-    }
-    render(ctx) {
-        for (let i = 0; i < this.paths.length; ++i) {
-            this.paths[i].render(ctx);
+    render(ctx, preRender) {
+        super.render(ctx, preRender);
+        if (preRender) {
+            return;
         }
+        ctx.drawImage(FlamethrowerTurret.image, this.tile.pos.x, this.tile.pos.y);
+    }
+    addType(type) {
+        if (this.type.count() >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                this.tile.turret = new SunTurret(this.tile, this.type.add(type));
+                break;
+            case TurretElement.Earth:
+                this.tile.turret = new EarthquakeTurret(this.tile, this.type.add(type));
+                break;
+            case TurretElement.Fire:
+            case TurretElement.Water:
+                this.type.add(type);
+                break;
+        }
+    }
+    static init() {
+        let c = new PreRenderedImage(64, 64);
+        FlamethrowerTurret.image = c.image;
+    }
+}
+class SunTurret extends Turret {
+    constructor(tile, type) {
+        super(tile, type);
+    }
+    step(time) {
+        super.step(time);
+    }
+    render(ctx, preRender) {
+        super.render(ctx, preRender);
+        if (preRender) {
+            return;
+        }
+        ctx.drawImage(SunTurret.image, this.tile.pos.x, this.tile.pos.y);
+    }
+    addType(type) {
+        if (this.type.count() >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+            case TurretElement.Fire:
+            case TurretElement.Water:
+                this.type.add(type);
+                break;
+            case TurretElement.Earth:
+                this.tile.turret = new ArcaneTurret(this.tile, this.type.add(type));
+                break;
+        }
+    }
+    static init() {
+        let c = new PreRenderedImage(64, 64);
+        SunTurret.image = c.image;
+    }
+}
+class MoonTurret extends Turret {
+    constructor(tile, type) {
+        super(tile, type);
+    }
+    step(time) {
+        super.step(time);
+    }
+    render(ctx, preRender) {
+        super.render(ctx, preRender);
+        if (preRender) {
+            return;
+        }
+        ctx.drawImage(MoonTurret.image, this.tile.pos.x, this.tile.pos.y);
+    }
+    addType(type) {
+        if (this.type.count() >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+            case TurretElement.Earth:
+            case TurretElement.Water:
+                this.type.add(type);
+                break;
+            case TurretElement.Fire:
+                this.tile.turret = new ArcaneTurret(this.tile, this.type.add(type));
+                break;
+        }
+    }
+    static init() {
+        let c = new PreRenderedImage(64, 64);
+        MoonTurret.image = c.image;
+    }
+}
+class PlasmaTurret extends Turret {
+    constructor(tile, type) {
+        super(tile, type);
+    }
+    step(time) {
+        super.step(time);
+    }
+    render(ctx, preRender) {
+        super.render(ctx, preRender);
+        if (preRender) {
+            return;
+        }
+        ctx.drawImage(PlasmaTurret.image, this.tile.pos.x, this.tile.pos.y);
+    }
+    addType(type) {
+        if (this.type.count() >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+            case TurretElement.Earth:
+            case TurretElement.Fire:
+                this.type.add(type);
+                break;
+            case TurretElement.Water:
+                this.tile.turret = new ArcaneTurret(this.tile, this.type.add(type));
+                break;
+        }
+    }
+    static init() {
+        let c = new PreRenderedImage(64, 64);
+        PlasmaTurret.image = c.image;
+    }
+}
+class EarthquakeTurret extends Turret {
+    constructor(tile, type) {
+        super(tile, type);
+    }
+    step(time) {
+        super.step(time);
+    }
+    render(ctx, preRender) {
+        super.render(ctx, preRender);
+        if (preRender) {
+            return;
+        }
+        ctx.drawImage(EarthquakeTurret.image, this.tile.pos.x, this.tile.pos.y);
+    }
+    addType(type) {
+        if (this.type.count() >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                this.tile.turret = new ArcaneTurret(this.tile, this.type.add(type));
+                break;
+            case TurretElement.Earth:
+            case TurretElement.Fire:
+            case TurretElement.Water:
+                this.type.add(type);
+                break;
+        }
+    }
+    static init() {
+        let c = new PreRenderedImage(64, 64);
+        EarthquakeTurret.image = c.image;
+    }
+}
+class ArcaneTurret extends Turret {
+    constructor(tile, type) {
+        super(tile, type);
+    }
+    step(time) {
+        super.step(time);
+    }
+    render(ctx, preRender) {
+        super.render(ctx, preRender);
+        if (preRender) {
+            return;
+        }
+        ctx.drawImage(ArcaneTurret.image, this.tile.pos.x, this.tile.pos.y);
+    }
+    addType(type) { }
+    static init() {
+        let c = new PreRenderedImage(64, 64);
+        ArcaneTurret.image = c.image;
     }
 }
 /// <reference path='turrets.ts'/>
-/// <reference path='Game.ts'/>
 /// <reference path='GameItem.ts'/>
-/// <reference path='Coords.ts'/>
-/// <reference path='TextureGenerator.ts'/>
-/// <reference path='RenderablePathSet.ts'/>
-/// <reference path='Angles.ts'/>
+/// <reference path='Utils.ts'/>
+/// <reference path="TurretType.ts"/>
+/// <reference path="ParticleSystem.ts"/>
 var TileType;
 /// <reference path='turrets.ts'/>
-/// <reference path='Game.ts'/>
 /// <reference path='GameItem.ts'/>
-/// <reference path='Coords.ts'/>
-/// <reference path='TextureGenerator.ts'/>
-/// <reference path='RenderablePathSet.ts'/>
-/// <reference path='Angles.ts'/>
+/// <reference path='Utils.ts'/>
+/// <reference path="TurretType.ts"/>
+/// <reference path="ParticleSystem.ts"/>
 (function (TileType) {
     TileType[TileType["Unknown"] = 0] = "Unknown";
     TileType[TileType["Empty"] = 1] = "Empty";
@@ -1309,51 +1661,9 @@ class Tile extends GameItem {
         }
     }
     static init() {
-        Tile.grass = new NoiseTextureGenerator(64, 64, new ColorRgb());
+        Tile.grass = new NoiseTextureGenerator(64, 64, new ColorRgb(91, 163, 70), 0.1, 0, 0.25).generate();
     }
 }
-class Rect {
-    constructor(x, y, w, h) {
-        this.x = x;
-        this.y = y;
-        this.w = w;
-        this.h = h;
-    }
-}
-class PerformanceMeter {
-    constructor() {
-        this.queue = [];
-        this.sum = 0;
-    }
-    add(fps) {
-        this.queue.push(fps);
-        this.sum += fps;
-        if (this.queue.length > 100) {
-            this.sum -= this.queue.shift();
-        }
-    }
-    getFps() {
-        return this.queue.length > 0 ? this.sum / this.queue.length : NaN;
-    }
-}
-/// <reference path="Coords.ts"/>
-class DijkstraNode {
-    constructor(x, y, previous) {
-        this.previous = previous;
-        this.distance = previous == null ? 0 : previous.distance + 1;
-        this.pos = new Coords(x, y);
-    }
-}
-/// <reference path='Tile.ts'/>
-/// <reference path='turrets.ts'/>
-/// <reference path='Rect.ts'/>
-/// <reference path='GameItem.ts'/>
-/// <reference path='RenderablePathSet.ts'/>
-/// <reference path='PerformanceMeter.ts'/>
-/// <reference path='DijkstraNode.ts'/>
-/// <reference path='PreRenderedImage.ts'/>
-/// <reference path="TurretType.ts"/>
-/// <reference path="ParticleSystem.ts"/>
 class Game {
     constructor(canvas) {
         this.ctx = canvas.getContext("2d");

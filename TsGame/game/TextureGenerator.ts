@@ -1,6 +1,3 @@
-/// <reference path="PreRenderedImage.ts"/>
-/// <reference path="ColorRgb.ts"/>
-/// <reference path="Coords.ts"/>
 /// <reference path="Utils.ts"/>
 
 class TextureGenerator {

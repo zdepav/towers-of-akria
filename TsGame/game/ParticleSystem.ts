@@ -1,4 +1,4 @@
-﻿/// <reference path='Angles.ts'/>
+﻿/// <reference path='Utils.ts'/>
 
 class Particle {
 
@@ -24,7 +24,7 @@ class SmokeParticle extends Particle {
         this.life = 0
         let lightness = Utils.randInt(112, 176)
         let h = Utils.byteToHex(lightness)
-        this.rgb = `#{h}{h}{h}`
+        this.rgb = `#${h}${h}${h}`
         this.startSize = startSize
     }
 
@@ -39,7 +39,7 @@ class SmokeParticle extends Particle {
         let r = this.life * 8 + this.startSize
         ctx.fillStyle = this.rgb + Utils.byteToHex(255 * (1 - this.life))
         ctx.beginPath()
-        ctx.ellipse(this.x, this.y, r, r, 0, 0, Angles.deg360)
+        ctx.arc(this.x, this.y, r, 0, Angles.deg360)
         ctx.fill()
     }
 
