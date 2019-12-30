@@ -39,7 +39,7 @@ class SmokeParticle extends Particle {
         let r = this.life * 8 + this.startSize
         ctx.fillStyle = this.rgb + Utils.byteToHex(255 * (1 - this.life))
         ctx.beginPath()
-        ctx.arc(this.x, this.y, r, 0, Angles.deg360)
+        ctx.arc(this.x, this.y, r, 0, Angle.deg360)
         ctx.fill()
     }
 

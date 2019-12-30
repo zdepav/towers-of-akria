@@ -17,6 +17,7 @@ enum TileType {
 class Tile extends GameItem {
 
     private static grass: CanvasImageSource
+    private static path: CanvasImageSource
 
     pos: Coords
     type: TileType
@@ -60,11 +61,11 @@ class Tile extends GameItem {
                         let _y = y + j * 16 + 4 + Math.random() * 8
                         let radius = 2 + 2 * Math.random()
                         for (let k = 0; k < 4; ++k) {
-                            let a = -Angles.deg45 + Angles.deg90 * (k + 0.25 + 0.5 * Math.random())
+                            let a = -Angle.deg45 + Angle.deg90 * (k + 0.25 + 0.5 * Math.random())
                             if (k === 0) {
-                                path.moveTo(_x + radius * Math.cos(a), _y - radius * Math.sin(a))
+                                path.moveTo(Utils.ldx(radius, a, _x), Utils.ldy(radius, a, _y))
                             } else {
-                                path.lineTo(_x + radius * Math.cos(a), _y - radius * Math.sin(a))
+                                path.lineTo(Utils.ldx(radius, a, _x), Utils.ldy(radius, a, _y))
                             }
                         }
                         path.closePath()
@@ -91,7 +92,7 @@ class Tile extends GameItem {
                             y + 6 + 21 * j + Math.random() * 10,
                             4 + 2 * Math.random(),
                             0,
-                            Angles.deg360
+                            Angle.deg360
                         )
                         path.closePath()
                     }
@@ -164,7 +165,7 @@ class Tile extends GameItem {
     }
 
     static init() {
-        Tile.grass = new NoiseTextureGenerator(64, 64, new ColorRgb(91, 163, 70), 0.1, 0, 0.25).generate()
+        Tile.grass = new NoiseTextureGenerator(64, 64, RgbaColorSource.fromHex("#5BA346"), 0.075, 0, 0.25).generateImage()
     }
 
 }
@@ -211,7 +212,6 @@ class Game {
 
     init() {
         Tile.init()
-        Angles.init()
         Turret.init()
         this.generateMap()
         this.generateCastle()
@@ -343,16 +343,16 @@ class Game {
                     this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Tower, this.ctx)
                     let r = Math.random()
                     /*if (r < 0.8) {
-                        this.map[x][y].turret.addType(TurretElement.Fire)
+                        this.map[x][y].turret.addType(TurretElement.Water)
                     }
                     if (r < 0.6) {
-                        this.map[x][y].turret.addType(TurretElement.Fire)
+                        this.map[x][y].turret.addType(TurretElement.Water)
                     }
                     if (r < 0.4) {
-                        this.map[x][y].turret.addType(TurretElement.Fire)
+                        this.map[x][y].turret.addType(TurretElement.Water)
                     }
                     if (r < 0.2) {
-                        this.map[x][y].turret.addType(TurretElement.Fire)
+                        this.map[x][y].turret.addType(TurretElement.Water)
                     }*/
                     let t = this.map[x][y].turret
                     if (r < 0.2) {
@@ -412,11 +412,11 @@ class Game {
         path1.rect(x + 36, y + 36, 120, 120)
         let tex = new CellularTextureGenerator(
             192, 192, 144,
-            new ColorRgb(130, 97, 79),
-            new ColorRgb(153, 118, 99),
+            RgbaColorSource.fromHex("#82614F"),
+            RgbaColorSource.fromHex("#997663"),
             CellularTextureType.Balls
         )
-        this.castle.pushNew(path1, this.ctx.createPattern(tex.generate(), "repeat"))
+        this.castle.pushNew(path1, this.ctx.createPattern(tex.generateImage(), "repeat"))
         let path2 = new Path2D()
         path2.rect(x + 6, y + 6, 60, 60)
         path2.rect(x + 126, y + 6, 60, 60)
@@ -498,7 +498,23 @@ class Game {
 
     preRender() {
         let c = new PreRenderedImage(this.width, this.height)
-        c.ctx.fillStyle = "#C0C0C0"
+        let tex1 = new PerlinNoiseTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
+        let tex2 = new CloudsTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
+        let tex3 = new VelvetTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
+        let tex4 = new GlassTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
+        let tex5 = new BarkTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
+        let tex6 = new CirclesTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#5050FF"), RgbaColorSource.fromHex("#90C0FF"), RgbaColorSource.fromHex("#5050FF00"), 1, 4).generateImage()
+        let tex7 = new FrostedGlassTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
+        let tex8 = new CamouflageTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
+        c.ctx.drawImage(tex1, 0, 0)
+        c.ctx.drawImage(tex2, this.width / 4, 0)
+        c.ctx.drawImage(tex3, this.width / 2, 0)
+        c.ctx.drawImage(tex4, this.width / 4 * 3, 0)
+        c.ctx.drawImage(tex5, 0, this.height / 2)
+        c.ctx.drawImage(tex6, this.width / 4, this.height / 2)
+        c.ctx.drawImage(tex7, this.width / 2, this.height / 2)
+        c.ctx.drawImage(tex8, this.width / 4 * 3, this.height / 2)
+        /*c.ctx.fillStyle = "#C0C0C0"
         c.ctx.fillRect(0, 0, this.width, this.height)
         for (let x = 0; x < this.mapWidth; ++x) {
             for (let y = 0; y < this.mapHeight; ++y) {
@@ -510,13 +526,14 @@ class Game {
         c.ctx.fillStyle = "#606060"
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h)
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2)
-        this.castle.render(c.ctx)
+        this.castle.render(c.ctx)*/
+        c.saveImage("textures")
         this.preRendered = c.image
     }
 
     render() {
         this.ctx.drawImage(this.preRendered, 0, 0)
-        for (let x = 0; x < this.mapWidth; ++x) {
+        /*for (let x = 0; x < this.mapWidth; ++x) {
             for (let y = 0; y < this.mapHeight; ++y) {
                 this.map[x][y].render(this.ctx, false)
             }
@@ -529,7 +546,7 @@ class Game {
             this.ctx.textBaseline = "top"
             this.ctx.font = "bold 16px serif"
             this.ctx.fillText(Math.floor(fps).toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 16)
-        }
+        }*/
     }
 
 }

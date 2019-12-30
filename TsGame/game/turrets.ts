@@ -57,7 +57,7 @@ class Turret extends GameItem {
         IceTurret.init()
         AcidTurret.init()
         CannonTurret.init()
-        //???Turret.init()
+        ArcherTurret.init()
         LightningTurret.init()
         FlamethrowerTurret.init()
 
@@ -84,7 +84,7 @@ class AirTurret extends Turret {
 
     step(time: number) {
         super.step(time)
-        this.angle = (this.angle + Angles.deg360 - time * Angles.deg120) % Angles.deg360
+        this.angle = (this.angle + Angle.deg360 - time * Angle.deg120) % Angle.deg360
     }
 
     render(ctx: CanvasRenderingContext2D, preRender: boolean) {
@@ -97,31 +97,31 @@ class AirTurret extends Turret {
         ctx.drawImage(AirTurret.image, -32, -32)
         switch (this.type.air()) {
             case 1:
-                ctx.rotate(Angles.deg90)
+                ctx.rotate(Angle.deg90)
                 ctx.drawImage(AirTurret.image, -32, -32)
                 break
             case 2:
-                ctx.rotate(Angles.deg60)
+                ctx.rotate(Angle.deg60)
                 ctx.drawImage(AirTurret.image, -32, -32)
-                ctx.rotate(Angles.deg60)
+                ctx.rotate(Angle.deg60)
                 ctx.drawImage(AirTurret.image, -32, -32)
                 break
             case 3:
-                ctx.rotate(Angles.deg45)
+                ctx.rotate(Angle.deg45)
                 ctx.drawImage(AirTurret.image, -32, -32)
-                ctx.rotate(Angles.deg45)
+                ctx.rotate(Angle.deg45)
                 ctx.drawImage(AirTurret.image, -32, -32)
-                ctx.rotate(Angles.deg45)
+                ctx.rotate(Angle.deg45)
                 ctx.drawImage(AirTurret.image, -32, -32)
                 break
             case 4:
-                ctx.rotate(Angles.deg36)
+                ctx.rotate(Angle.deg36)
                 ctx.drawImage(AirTurret.image, -32, -32)
-                ctx.rotate(Angles.deg36)
+                ctx.rotate(Angle.deg36)
                 ctx.drawImage(AirTurret.image, -32, -32)
-                ctx.rotate(Angles.deg36)
+                ctx.rotate(Angle.deg36)
                 ctx.drawImage(AirTurret.image, -32, -32)
-                ctx.rotate(Angles.deg36)
+                ctx.rotate(Angle.deg36)
                 ctx.drawImage(AirTurret.image, -32, -32)
                 break
         }
@@ -137,7 +137,7 @@ class AirTurret extends Turret {
                 this.type.add(type)
                 break
             case TurretElement.Earth:
-                //this.tile.turret = new ???Turret(this.tile, this.type.add(type))
+                this.tile.turret = new ArcherTurret(this.tile, this.type.add(type))
                 break
             case TurretElement.Fire:
                 this.tile.turret = new LightningTurret(this.tile, this.type.add(type))
@@ -152,15 +152,15 @@ class AirTurret extends Turret {
         let c = new PreRenderedImage(64, 64)
         let renderable = new RenderablePathSet()
         let path = new Path2D()
-        path.ellipse(44, 32, 12, 8, 0, 0, Angles.deg180)
+        path.ellipse(44, 32, 12, 8, 0, 0, Angle.deg180)
         let grad = c.ctx.createLinearGradient(32, 32, 32, 40)
         renderable.pushNew(path, grad)
         path = new Path2D()
-        path.ellipse(20, 32, 12, 8, 0, Angles.deg180, 0)
+        path.ellipse(20, 32, 12, 8, 0, Angle.deg180, 0)
         grad = c.ctx.createLinearGradient(32, 32, 32, 24)
         renderable.pushNew(path, grad)
         path = new Path2D()
-        path.arc(32, 32, 8, 0, Angles.deg360)
+        path.arc(32, 32, 8, 0, Angle.deg360)
         grad = c.ctx.createRadialGradient(32, 32, 8, 32, 32, 4)
         renderable.pushNew(path, grad)
         for (const rp of renderable.paths) {
@@ -201,7 +201,7 @@ class EarthTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
-                //this.tile.turret = new ???Turret(this.tile, this.type.add(type))
+                this.tile.turret = new ArcherTurret(this.tile, this.type.add(type))
                 break
             case TurretElement.Earth:
                 this.type.add(type)
@@ -236,7 +236,7 @@ class EarthTurret extends Turret {
         ]
         for (const corner of corners) {
             path = new Path2D()
-            path.arc(corner.x, corner.y, 10, 0, Angles.deg360)
+            path.arc(corner.x, corner.y, 10, 0, Angle.deg360)
             grad = c.ctx.createRadialGradient(corner.x, corner.y, 5, corner.x, corner.y, 10)
             grad.addColorStop(0, "#90d173")
             grad.addColorStop(1, "#6ba370")
@@ -255,7 +255,7 @@ class EarthTurret extends Turret {
         path.closePath()
         renderable.pushNew(path, "#90d173")
         path = new Path2D()
-        path.arc(32, 32, 6, 0, Angles.deg360)
+        path.arc(32, 32, 6, 0, Angle.deg360)
         grad = c.ctx.createRadialGradient(32, 32, 2, 32, 32, 6)
         grad.addColorStop(0, "#beefa7")
         grad.addColorStop(1, "#90d173")
@@ -277,7 +277,7 @@ class EarthTurret extends Turret {
         ]
         for (const corner of corners) {
             path = new Path2D()
-            path.arc(corner.x, corner.y, 10, 0, Angles.deg360)
+            path.arc(corner.x, corner.y, 10, 0, Angle.deg360)
             grad = c.ctx.createRadialGradient(corner.x, corner.y, 5, corner.x, corner.y, 10)
             grad.addColorStop(0, "#6fd243")
             grad.addColorStop(1, "#54a45b")
@@ -296,7 +296,7 @@ class EarthTurret extends Turret {
         path.closePath()
         renderable.pushNew(path, "#6fd243")
         path = new Path2D()
-        path.arc(32, 32, 6, 0, Angles.deg360)
+        path.arc(32, 32, 6, 0, Angle.deg360)
         grad = c.ctx.createRadialGradient(32, 32, 2, 32, 32, 6)
         grad.addColorStop(0, "#a6f083")
         grad.addColorStop(1, "#6fd243")
@@ -318,7 +318,7 @@ class EarthTurret extends Turret {
         ]
         for (const corner of corners) {
             path = new Path2D()
-            path.arc(corner.x, corner.y, 11, 0, Angles.deg360)
+            path.arc(corner.x, corner.y, 11, 0, Angle.deg360)
             grad = c.ctx.createRadialGradient(corner.x, corner.y, 5, corner.x, corner.y, 10)
             grad.addColorStop(0, "#4ed314")
             grad.addColorStop(1, "#3da547")
@@ -337,7 +337,7 @@ class EarthTurret extends Turret {
         path.closePath()
         renderable.pushNew(path, "#4ed314")
         path = new Path2D()
-        path.arc(32, 32, 8, 0, Angles.deg360)
+        path.arc(32, 32, 8, 0, Angle.deg360)
         grad = c.ctx.createRadialGradient(32, 32, 3, 32, 32, 8)
         grad.addColorStop(0, "#8ef260")
         grad.addColorStop(1, "#4ed314")
@@ -359,7 +359,7 @@ class EarthTurret extends Turret {
         ]
         for (const corner of corners) {
             path = new Path2D()
-            path.arc(corner.x, corner.y, 11, 0, Angles.deg360)
+            path.arc(corner.x, corner.y, 11, 0, Angle.deg360)
             grad = c.ctx.createRadialGradient(corner.x, corner.y, 6, corner.x, corner.y, 10)
             grad.addColorStop(0, "#4ed314")
             grad.addColorStop(1, "#3da547")
@@ -378,7 +378,7 @@ class EarthTurret extends Turret {
         path.closePath()
         renderable.pushNew(path, "#4ed314")
         path = new Path2D()
-        path.arc(32, 32, 10, 0, Angles.deg360)
+        path.arc(32, 32, 10, 0, Angle.deg360)
         grad = c.ctx.createRadialGradient(32, 32, 4, 32, 32, 10)
         grad.addColorStop(0, "#b6ff00")
         grad.addColorStop(1, "#4ed314")
@@ -398,7 +398,7 @@ class FireTurret extends Turret {
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
-        this.angle = Math.random() * Angles.deg360
+        this.angle = Angle.rand()
         this.smokeTimer = Utils.randInt(0.5, 4)
     }
 
@@ -458,45 +458,45 @@ class FireTurret extends Turret {
         let c = new PreRenderedImage(64, 64)
         let texLava = new CellularTextureGenerator(
             64, 64, 36,
-            new ColorRgb(255, 80, 32),
-            new ColorRgb(192, 0, 0),
+            RgbaColorSource.fromHex("#FF5020"),
+            RgbaColorSource.fromHex("#C00000"),
             CellularTextureType.Balls
         )
         let texRock = new CellularTextureGenerator(
             64, 64, 144,
-            new ColorRgb(102, 45, 34),
-            new ColorRgb(102, 45, 34),
+            RgbaColorSource.fromHex("#662D22"),
+            RgbaColorSource.fromHex("#44150D"),
             CellularTextureType.Balls
         )
         let renderable = new RenderablePathSet()
         let path = new Path2D()
         for (let k = 0; k < 36; ++k) {
             let radius = 20 + 4 * Math.random()
-            let a = k * Angles.deg10
+            let a = k * Angle.deg10
             if (k === 0) {
-                path.moveTo(32 + radius * Math.cos(a), 32 - radius * Math.sin(a))
+                path.moveTo(Utils.ldx(radius, a, 32), Utils.ldy(radius, a, 32))
             } else {
-                path.lineTo(32 + radius * Math.cos(a), 32 - radius * Math.sin(a))
+                path.lineTo(Utils.ldx(radius, a, 32), Utils.ldy(radius, a, 32))
             }
         }
         path.closePath()
-        renderable.pushNew(path, c.ctx.createPattern(texRock.generate(), "no-repeat"))
+        renderable.pushNew(path, c.ctx.createPattern(texRock.generateImage(), "no-repeat"))
         let grad = c.ctx.createRadialGradient(32, 32, 24, 32, 32, 10)
-        grad.addColorStop(0, "#300000ff")
+        grad.addColorStop(0, "#300000")
         grad.addColorStop(1, "#30000000")
         renderable.pushNew(path, grad)
         path = new Path2D()
         for (let k = 0; k < 18; ++k) {
             let radius = 9 + 2 * Math.random()
-            let a = k * Angles.deg20
+            let a = k * Angle.deg20
             if (k === 0) {
-                path.moveTo(32 + radius * Math.cos(a), 32 - radius * Math.sin(a))
+                path.moveTo(Utils.ldx(radius, a, 32), Utils.ldy(radius, a, 32))
             } else {
-                path.lineTo(32 + radius * Math.cos(a), 32 - radius * Math.sin(a))
+                path.lineTo(Utils.ldx(radius, a, 32), Utils.ldy(radius, a, 32))
             }
         }
         path.closePath()
-        renderable.pushNew(path, c.ctx.createPattern(texLava.generate(), "no-repeat"))
+        renderable.pushNew(path, c.ctx.createPattern(texLava.generateImage(), "no-repeat"))
         renderable.render(c.ctx)
         FireTurret.image = c.image
     }
@@ -505,10 +505,13 @@ class FireTurret extends Turret {
 
 class WaterTurret extends Turret {
 
-    private static image: CanvasImageSource
+    private static images: CanvasImageSource[]
+
+    private angle: number
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
+        this.angle = Angle.rand()
     }
 
     step(time: number) {
@@ -520,7 +523,10 @@ class WaterTurret extends Turret {
         if (preRender) {
             return
         }
-        ctx.drawImage(WaterTurret.image, this.tile.pos.x, this.tile.pos.y)
+        ctx.translate(this.center.x, this.center.y)
+        ctx.rotate(this.angle)
+        ctx.drawImage(WaterTurret.images[this.type.count() - 1], -32, -32)
+        ctx.resetTransform()
     }
 
     addType(type: TurretElement) {
@@ -544,9 +550,77 @@ class WaterTurret extends Turret {
     }
 
     static init() {
-        let c = new PreRenderedImage(64, 64)
-        WaterTurret.image = c.image
+        let sandTex = new NoiseTextureGenerator(
+            64, 64, RgbaColorSource.fromHex("#F2EBC1"),
+            0.08, 0, 1
+        ).generateImage()
+        let groundTex = new NoiseTextureGenerator(
+            64, 64, RgbaColorSource.fromHex("#B9B5A0"),
+            0.05, 0, 1
+        ).generateImage()
+        let c0 = new PreRenderedImage(64, 64)
+        let c1 = new PreRenderedImage(64, 64)
+        let c2 = new PreRenderedImage(64, 64)
+        let c3 = WaterTurret.preRender(groundTex, sandTex)
+        c0.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex).image, 9, 9, 46, 46)
+        c1.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex).image, 6, 6, 52, 52)
+        c2.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex).image, 3, 3, 58, 58)
+        WaterTurret.images = [c0.image, c1.image, c2.image, c3.image]
     }
+
+    private static preRender(groundTex: CanvasImageSource, sandTex: CanvasImageSource): PreRenderedImage {
+        let waterTex = new CellularTextureGenerator(
+            64, 64, Utils.randInt(16, 36),
+            RgbaColorSource.fromHex("#3584CE"),
+            RgbaColorSource.fromHex("#3EB4EF"),
+            CellularTextureType.Balls
+        ).generateImage()
+        let textures = [groundTex, sandTex, waterTex]
+        let pts: { pt_b: Coords, pt: Coords, pt_a: Coords }[][] = [[], [], []]
+        for (let i = 0; i < 8; ++i) {
+            let d2 = Utils.rand(16, 20)
+            let d1 = Utils.rand(d2 + 2, 24)
+            let d0 = Utils.rand(d1, 24)
+            let a = i * Angle.deg45
+            pts[0].push({ pt: Utils.ld(d0, a, 32, 32), pt_b: null, pt_a: null })
+            pts[1].push({ pt: Utils.ld(d1, a, 32, 32), pt_b: null, pt_a: null })
+            pts[2].push({ pt: Utils.ld(d2, a, 32, 32), pt_b: null, pt_a: null })
+        }
+        for (let j = 0; j < 3; ++j) {
+            let layer = pts[j]
+            for (let i = 0; i < 8; ++i) {
+                let ob = layer[(i + 7) % 8]
+                let o = layer[i]
+                let oa = layer[(i + 1) % 8]
+                let angle = Utils.angleBetween(
+                    Utils.getAngle(ob.pt.x, ob.pt.y, o.pt.x, o.pt.y),
+                    Utils.getAngle(o.pt.x, o.pt.y, oa.pt.x, oa.pt.y)
+                )
+                o.pt_a = Utils.ld(5, angle, o.pt.x, o.pt.y)
+                o.pt_b = Utils.ld(5, angle + Angle.deg180, o.pt.x, o.pt.y)
+            }
+        }
+        let c = new PreRenderedImage(64, 64)
+        let ctx = c.ctx
+        for (let j = 0; j < 3; ++j) {
+            let layer = pts[j]
+            ctx.beginPath()
+            ctx.moveTo(layer[0].pt.x, layer[0].pt.y)
+            for (let i = 0; i < 8; ++i) {
+                let o0 = layer[i]
+                let o1 = layer[(i + 1) % 8]
+                ctx.bezierCurveTo(
+                    o0.pt_a.x, o0.pt_a.y,
+                    o1.pt_b.x, o1.pt_b.y,
+                    o1.pt.x, o1.pt.y,
+                )
+            }
+            ctx.fillStyle = ctx.createPattern(textures[j], "repeat")
+            ctx.fill()
+        }
+        return c
+    }
+
 }
 
 class IceTurret extends Turret {
@@ -557,7 +631,7 @@ class IceTurret extends Turret {
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
-        this.angle = Math.random() * Angles.deg360
+        this.angle = Angle.rand()
     }
 
     step(time: number) {
@@ -586,7 +660,7 @@ class IceTurret extends Turret {
                 this.tile.turret = new MoonTurret(this.tile, this.type.add(type))
                 break
             case TurretElement.Fire:
-                this.tile.turret = new SunTurret(this.tile, this.type.add(type))
+                this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type))
                 break
             case TurretElement.Air:
             case TurretElement.Water:
@@ -598,19 +672,19 @@ class IceTurret extends Turret {
     static init() {
         let tex = new CellularTextureGenerator(
             64, 64, 64,
-            new ColorRgb(209, 239, 255),
-            new ColorRgb(112, 190, 204),
+            RgbaColorSource.fromHex("#D1EFFF"),
+            RgbaColorSource.fromHex("#70BECC"),
             CellularTextureType.Lava
         )
         let c0 = new PreRenderedImage(64, 64)
         let c1 = new PreRenderedImage(64, 64)
         let c2 = new PreRenderedImage(64, 64)
-        let fill = c1.ctx.createPattern(tex.generate(), "no-repeat")
+        let fill = c1.ctx.createPattern(tex.generateImage(), "no-repeat")
         IceTurret.preRender(c1.ctx, fill, true)
         c0.ctx.drawImage(c1.image, 0, 0)
-        IceTurret.preRender(c0.ctx, "#ffffff80")
+        IceTurret.preRender(c0.ctx, "#FFFFFF80")
         c2.ctx.drawImage(c1.image, 0, 0)
-        IceTurret.preRender(c2.ctx, "#51afcc80")
+        IceTurret.preRender(c2.ctx, "#51AFCC80")
         IceTurret.images = [c0.image, c1.image, c2.image]
     }
 
@@ -618,30 +692,30 @@ class IceTurret extends Turret {
         if (size >= 2.5) {
             ctx.beginPath()
             ctx.moveTo(x, y)
-            let x2 = x + 8 * Math.cos(angle)
-            let y2 = y - 8 * Math.sin(angle)
+            let x2 = Utils.ldx(8, angle, x)
+            let y2 = Utils.ldy(8, angle, y)
             ctx.lineTo(x2, y2)
             ctx.lineWidth = 3
             ctx.stroke()
-            IceTurret.mkBranch(ctx, (x + x2) / 2, (y + y2) / 2, angle - Angles.deg60, 2)
-            IceTurret.mkBranch(ctx, (x + x2) / 2, (y + y2) / 2, angle + Angles.deg60, 2)
+            IceTurret.mkBranch(ctx, (x + x2) / 2, (y + y2) / 2, angle - Angle.deg60, 2)
+            IceTurret.mkBranch(ctx, (x + x2) / 2, (y + y2) / 2, angle + Angle.deg60, 2)
             IceTurret.mkBranch(ctx, x2, y2, angle, 2)
         } else if (size >= 1.5) {
             ctx.beginPath()
             ctx.moveTo(x, y)
-            let x2 = x + 6 * Math.cos(angle)
-            let y2 = y - 6 * Math.sin(angle)
+            let x2 = Utils.ldx(6, angle, x)
+            let y2 = Utils.ldy(6, angle, y)
             ctx.lineTo(x2, y2)
             ctx.lineWidth = 2
             ctx.stroke()
-            IceTurret.mkBranch(ctx, (x + x2) / 2, (y + y2) / 2, angle - Angles.deg45, 1)
-            IceTurret.mkBranch(ctx, (x + x2) / 2, (y + y2) / 2, angle + Angles.deg45, 1)
+            IceTurret.mkBranch(ctx, (x + x2) / 2, (y + y2) / 2, angle - Angle.deg45, 1)
+            IceTurret.mkBranch(ctx, (x + x2) / 2, (y + y2) / 2, angle + Angle.deg45, 1)
             IceTurret.mkBranch(ctx, x2, y2, angle, 1)
         } else if (size >= 0.5) {
             ctx.beginPath()
             ctx.moveTo(x, y)
-            let x2 = x + 4 * Math.cos(angle)
-            let y2 = y - 4 * Math.sin(angle)
+            let x2 = Utils.ldx(4, angle, x)
+            let y2 = Utils.ldy(4, angle, y)
             ctx.lineTo(x2, y2)
             ctx.lineWidth = 1
             ctx.stroke()
@@ -654,13 +728,13 @@ class IceTurret extends Turret {
         ctx.strokeStyle = fill
         let centerPath = new Path2D()
         for (let k = 0; k < 6; ++k) {
-            let a = k * Angles.deg60
+            let a = k * Angle.deg60
             if (k === 0) {
-                centerPath.moveTo(32 + 8 * Math.cos(a), 32 - 8 * Math.sin(a))
+                centerPath.moveTo(Utils.ldx(8, a, 32), Utils.ldy(8, a, 32))
             } else {
-                centerPath.lineTo(32 + 8 * Math.cos(a), 32 - 8 * Math.sin(a))
+                centerPath.lineTo(Utils.ldx(8, a, 32), Utils.ldy(8, a, 32))
             }
-            IceTurret.mkBranch(ctx, 32 + 8 * Math.cos(a), 32 - 8 * Math.sin(a), a, 3)
+            IceTurret.mkBranch(ctx, Utils.ldx(8, a, 32), Utils.ldy(8, a, 32), a, 3)
         }
         centerPath.closePath()
         ctx.restore()
@@ -668,8 +742,8 @@ class IceTurret extends Turret {
         ctx.fill(centerPath)
         if (drawCenter) {
             let grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 6)
-            grad.addColorStop(0, "#ffffffff")
-            grad.addColorStop(1, "#d1efff00")
+            grad.addColorStop(0, "#FFFFFF")
+            grad.addColorStop(1, "#D1EFFF00")
             ctx.fillStyle = grad
             ctx.fill(centerPath)
         }
@@ -680,6 +754,7 @@ class IceTurret extends Turret {
 class AcidTurret extends Turret {
 
     private static images: CanvasImageSource[][]
+    private static frameCount: number
 
     private frame: number
 
@@ -690,7 +765,7 @@ class AcidTurret extends Turret {
 
     step(time: number) {
         super.step(time)
-        this.frame = (this.frame + time * 8) % 64
+        this.frame = (this.frame + time * 25) % AcidTurret.frameCount
     }
 
     render(ctx: CanvasRenderingContext2D, preRender: boolean) {
@@ -723,18 +798,20 @@ class AcidTurret extends Turret {
     static init() {
         let acidTex = new CellularTextureGenerator(
             64, 64, 9,
-            new ColorRgb(224, 255, 0),
-            new ColorRgb(91, 127, 0),
+            RgbaColorSource.fromHex("#E0FF00"),
+            RgbaColorSource.fromHex("#5B7F00"),
             CellularTextureType.Balls
-        ).generate()
+        ).generateImage()
         AcidTurret.images = []
-        for (let i = 0; i < 64; ++i) {
-            AcidTurret.images.push(this.preRenderFrame(acidTex, i))
+        AcidTurret.frameCount = 100
+        for (let i = 0; i < AcidTurret.frameCount; ++i) {
+            AcidTurret.images.push(AcidTurret.preRenderFrame(acidTex, i))
         }
     }
 
     private static preRenderFrame(texture: CanvasImageSource, frame: number): CanvasImageSource[] {
-        var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement
+        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement
+        let offset = frame / AcidTurret.frameCount * 64
         let c0 = new PreRenderedImage(64, 64)
         let c1 = new PreRenderedImage(64, 64)
         let c2 = new PreRenderedImage(64, 64)
@@ -747,9 +824,9 @@ class AcidTurret extends Turret {
         ctx.arcTo(20, 44, 20, 38, 6)
         ctx.arcTo(20, 20, 26, 20, 6)
         ctx.closePath()
-        ctx.fillStyle = "#b0b0b0"
+        ctx.fillStyle = "#B0B0B0"
         ctx.fill()
-        ctx.strokeStyle = "#d0d0d0"
+        ctx.strokeStyle = "#D0D0D0"
         ctx.lineWidth = 2
         ctx.stroke()
         c1.ctx.drawImage(c0.image, 0, 0)
@@ -758,30 +835,30 @@ class AcidTurret extends Turret {
             let w = 8 + 2 * i
             let ca = new PreRenderedImage(w, w)
             ctx = ca.ctx
-            ctx.fillStyle = "#d0d0d060"
+            ctx.fillStyle = "#D0D0D060"
             ctx.fillRect(0, 0, w, w)
-            ctx.fillStyle = "#d0d0d0"
+            ctx.fillStyle = "#D0D0D0"
             ctx.fillRect(0, 1, w, w - 2)
             ctx.fillRect(1, 0, w - 2, w)
             let pattern = ctx.createPattern(texture, "repeat")
-            pattern.setTransform(svg.createSVGMatrix().translate(-frame, 0))
+            pattern.setTransform(svg.createSVGMatrix().translate(-offset, 0))
             ctx.fillStyle = pattern
             ctx.fillRect(1, 1, w - 2, w - 2)
             ctx = c[i].ctx
             ctx.translate(32, 32)
             ctx.drawImage(ca.image, 12, -4 - i)
-            ctx.rotate(Angles.deg90)
+            ctx.rotate(Angle.deg90)
             ctx.drawImage(ca.image, 12, -4 - i)
-            ctx.rotate(Angles.deg90)
+            ctx.rotate(Angle.deg90)
             ctx.drawImage(ca.image, 12, -4 - i)
-            ctx.rotate(Angles.deg90)
+            ctx.rotate(Angle.deg90)
             ctx.drawImage(ca.image, 12, -4 - i)
             ctx.resetTransform()
             pattern = ctx.createPattern(texture, "repeat")
-            pattern.setTransform(svg.createSVGMatrix().translate(frame, frame))
+            pattern.setTransform(svg.createSVGMatrix().translate(offset, offset))
             ctx.fillStyle = pattern
             ctx.beginPath()
-            ctx.arc(32, 32, 6 + i, 0, Angles.deg360)
+            ctx.arc(32, 32, 6 + i, 0, Angle.deg360)
             ctx.closePath()
             ctx.fill()
             ctx.fillStyle = "#60606080"
@@ -806,13 +883,13 @@ class CannonTurret extends Turret {
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
-        this.angle = Math.random() * Angles.deg360
+        this.angle = Angle.rand()
     }
 
     step(time: number) {
         super.step(time)
         if (this.cooldown <= 0) {
-            this.cooldown = 1
+            this.cooldown = 2
         }
     }
 
@@ -824,7 +901,7 @@ class CannonTurret extends Turret {
         let r = 24 + 2 * this.type.earth() + 2 * this.type.fire()
         ctx.translate(this.center.x, this.center.y)
         ctx.rotate(this.angle)
-        ctx.translate(-4 * this.cooldown, 0)
+        ctx.translate(-2 * this.cooldown, 0)
         ctx.drawImage(CannonTurret.image, -r, -r, r * 2, r * 2)
         ctx.resetTransform()
     }
@@ -851,23 +928,23 @@ class CannonTurret extends Turret {
         let c = new PreRenderedImage(64, 64)
         let ctx = c.ctx
         let grad = ctx.createLinearGradient(20, 32, 40, 32)
-        grad.addColorStop(0.000, "#543b2c")
+        grad.addColorStop(0.000, "#543B2C")
         grad.addColorStop(0.125, "#664936")
-        grad.addColorStop(0.250, "#6c4d38")
-        grad.addColorStop(0.375, "#6f4f3a")
-        grad.addColorStop(0.500, "#70503b")
-        grad.addColorStop(0.625, "#6f4f3a")
-        grad.addColorStop(0.750, "#6c4d38")
+        grad.addColorStop(0.250, "#6C4D38")
+        grad.addColorStop(0.375, "#6F4F3A")
+        grad.addColorStop(0.500, "#70503B")
+        grad.addColorStop(0.625, "#6F4F3A")
+        grad.addColorStop(0.750, "#6C4D38")
         grad.addColorStop(0.875, "#664936")
-        grad.addColorStop(1.000, "#543b2c")
+        grad.addColorStop(1.000, "#543B2C")
         ctx.fillStyle = grad
         ctx.fillRect(20, 19, 20, 26)
         ctx.beginPath()
-        ctx.arc(20, 32, 7, Angles.deg90, Angles.deg270)
+        ctx.arc(20, 32, 7, Angle.deg90, Angle.deg270)
         ctx.arcTo(42, 25, 52, 28, 50)
-        ctx.arc(54, 28, 2, Angles.deg180, Angles.deg360)
+        ctx.arc(54, 28, 2, Angle.deg180, Angle.deg360)
         ctx.lineTo(56, 36)
-        ctx.arc(54, 36, 2, 0, Angles.deg180)
+        ctx.arc(54, 36, 2, 0, Angle.deg180)
         ctx.arcTo(45, 39, 38, 39, 50)
         ctx.closePath()
         ctx.strokeStyle = "#101010"
@@ -881,6 +958,50 @@ class CannonTurret extends Turret {
         ctx.lineWidth = 1
         ctx.stroke()
         CannonTurret.image = c.image
+    }
+}
+
+class ArcherTurret extends Turret {
+
+    private static image: CanvasImageSource
+
+    constructor(tile: Tile, type: TurretType) {
+        super(tile, type)
+    }
+
+    step(time: number) {
+        super.step(time)
+    }
+
+    render(ctx: CanvasRenderingContext2D, preRender: boolean) {
+        super.render(ctx, preRender)
+        if (preRender) {
+            return
+        }
+        ctx.drawImage(ArcherTurret.image, this.tile.pos.x, this.tile.pos.y)
+    }
+
+    addType(type: TurretElement) {
+        if (this.type.count() >= 4) {
+            return
+        }
+        switch (type) {
+            case TurretElement.Air:
+            case TurretElement.Earth:
+                this.type.add(type)
+                break
+            case TurretElement.Fire:
+                this.tile.turret = new SunTurret(this.tile, this.type.add(type))
+                break
+            case TurretElement.Water:
+                this.tile.turret = new MoonTurret(this.tile, this.type.add(type))
+                break
+        }
+    }
+
+    static init() {
+        let c = new PreRenderedImage(64, 64)
+        ArcherTurret.image = c.image
     }
 }
 
@@ -921,10 +1042,10 @@ class LightningTurret extends Turret {
                 this.type.add(type)
                 break
             case TurretElement.Earth:
-                this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type))
+                this.tile.turret = new SunTurret(this.tile, this.type.add(type))
                 break
             case TurretElement.Water:
-                this.tile.turret = new SunTurret(this.tile, this.type.add(type))
+                this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type))
                 break
         }
     }
@@ -936,27 +1057,29 @@ class LightningTurret extends Turret {
         }
         let ctx = c[0].ctx
         let grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 18)
-        grad.addColorStop(0, "#ffffff")
-        grad.addColorStop(0.33, "#a97fff")
-        grad.addColorStop(1, "#d6bfff")
+        grad.addColorStop(0, "#FFFFFF")
+        grad.addColorStop(0.33, "#A97FFF")
+        grad.addColorStop(1, "#D6BFFF")
         ctx.fillStyle = grad
         ctx.beginPath()
         ctx.moveTo(50, 32)
         for (let i = 1; i < 16; ++i) {
             let r = i % 2 == 0 ? 21 : 7
-            ctx.lineTo(32 + r * Math.cos(i * Angles.deg45 / 2), 32 - r * Math.sin(i * Angles.deg45 / 2))
+            let a = i * Angle.deg45 / 2
+            ctx.lineTo(Utils.ldx(r, a, 32), Utils.ldy(r, a, 32))
         }
         ctx.closePath()
         ctx.fill()
         grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 3)
-        grad.addColorStop(0, "#f8f2ff")
-        grad.addColorStop(1, "#c199ff")
+        grad.addColorStop(0, "#F8F2FF")
+        grad.addColorStop(1, "#C199FF")
         ctx.fillStyle = grad
         let j = true
         for (let i = 0; i < 8; ++i, j = !j) {
-            ctx.translate(32 + 18 * Math.cos(i * Angles.deg45), 32 - 18 * Math.sin(i * Angles.deg45))
+            let a = i * Angle.deg45
+            ctx.translate(Utils.ldx(18, a, 32), Utils.ldy(18, a, 32))
             if (j) {
-                ctx.rotate(Angles.deg45)
+                ctx.rotate(Angle.deg45)
             }
             ctx.fillRect(-3, -3, 6, 6)
             ctx.resetTransform()
@@ -967,12 +1090,13 @@ class LightningTurret extends Turret {
         for (let i = 0; i < 8; ++i, j = !j) {
             ctx = c[7 - i].ctx
             grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 8)
-            grad.addColorStop(0, "#ffffffc0")
-            grad.addColorStop(1, "#f8f2ff00")
+            grad.addColorStop(0, "#FFFFFFC0")
+            grad.addColorStop(1, "#F8F2FF00")
             ctx.fillStyle = grad
-            ctx.translate(32 + 18 * Math.cos(i * Angles.deg45), 32 - 18 * Math.sin(i * Angles.deg45))
+            let a = i * Angle.deg45
+            ctx.translate(Utils.ldx(18, a, 32), Utils.ldy(18, a, 32))
             ctx.beginPath()
-            ctx.arc(0, 0, 8, 0, Angles.deg360)
+            ctx.arc(0, 0, 8, 0, Angle.deg360)
             ctx.closePath()
             ctx.fill()
             ctx.resetTransform()
@@ -1030,14 +1154,19 @@ class FlamethrowerTurret extends Turret {
 
 class SunTurret extends Turret {
 
-    private static image: CanvasImageSource
+    private static images: CanvasImageSource[]
+    private static frameCount: number
+
+    private frame: number
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
+        this.frame = 0
     }
 
     step(time: number) {
         super.step(time)
+        this.frame = (this.frame + time * 25) % SunTurret.frameCount
     }
 
     render(ctx: CanvasRenderingContext2D, preRender: boolean) {
@@ -1045,7 +1174,12 @@ class SunTurret extends Turret {
         if (preRender) {
             return
         }
-        ctx.drawImage(SunTurret.image, this.tile.pos.x, this.tile.pos.y)
+        let r = 16 + 4 * this.type.count()
+        ctx.drawImage(
+            SunTurret.images[Math.floor(this.frame)],
+            this.center.x - r, this.center.y - r,
+            r * 2, r * 2
+        )
     }
 
     addType(type: TurretElement) {
@@ -1054,20 +1188,58 @@ class SunTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
+            case TurretElement.Earth:
             case TurretElement.Fire:
-            case TurretElement.Water:
                 this.type.add(type)
                 break
-            case TurretElement.Earth:
+            case TurretElement.Water:
                 this.tile.turret = new ArcaneTurret(this.tile, this.type.add(type))
                 break
         }
     }
 
     static init() {
+        SunTurret.images = []
+        SunTurret.frameCount = 90
         let c = new PreRenderedImage(64, 64)
-        SunTurret.image = c.image
+        let ctx = c.ctx
+        let grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32)
+        grad.addColorStop(0.00000, "#FFFF40")   //  0
+        grad.addColorStop(0.09375, "#FFFD3D")   //  3
+        grad.addColorStop(0.18750, "#FFFA37")   //  6
+        grad.addColorStop(0.28125, "#FFF42A")   //  9
+        grad.addColorStop(0.37500, "#FFE000")   // 12
+        grad.addColorStop(0.40625, "#FFFFC0")   // 13
+        grad.addColorStop(1.00000, "#FFFFC000") // 32
+        ctx.fillStyle = grad
+        ctx.beginPath()
+        for (let i = 0; i < 12; ++i) {
+            let a0 = i * Angle.deg30
+            let a1 = a0 + Angle.deg10
+            let a2 = a0 + Angle.deg30
+            ctx.arc(32, 32, 32, a0, a1)
+            ctx.lineTo(Utils.ldx(12, a1, 32), Utils.ldy(12, a1, 32))
+            ctx.arc(32, 32, 12, a1, a2)
+            ctx.lineTo(Utils.ldx(32, a2, 32), Utils.ldy(32, a2, 32))
+        }
+        ctx.fill()
+        for (let i = 0; i < SunTurret.frameCount; ++i) {
+            SunTurret.images.push(SunTurret.preRenderFrame(c.image, i))
+        }
     }
+
+    private static preRenderFrame(texture: CanvasImageSource, frame: number): CanvasImageSource {
+        let offset = frame / SunTurret.frameCount * Angle.deg30
+        let c = new PreRenderedImage(64, 64)
+        let ctx = c.ctx
+        ctx.translate(32, 32)
+        ctx.drawImage(texture, -32, -32)
+        ctx.rotate(offset)
+        ctx.drawImage(texture, -32, -32)
+        ctx.resetTransform()
+        return c.image
+    }
+
 }
 
 class MoonTurret extends Turret {
@@ -1116,12 +1288,16 @@ class PlasmaTurret extends Turret {
 
     private static image: CanvasImageSource
 
+    private angle: number
+
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
+        this.angle = Angle.rand()
     }
 
     step(time: number) {
         super.step(time)
+        this.angle += time * Angle.deg90
     }
 
     render(ctx: CanvasRenderingContext2D, preRender: boolean) {
@@ -1129,7 +1305,10 @@ class PlasmaTurret extends Turret {
         if (preRender) {
             return
         }
-        ctx.drawImage(PlasmaTurret.image, this.tile.pos.x, this.tile.pos.y)
+        ctx.translate(this.center.x, this.center.y)
+        ctx.rotate(this.angle)
+        ctx.drawImage(PlasmaTurret.image, -32, -32)
+        ctx.resetTransform()
     }
 
     addType(type: TurretElement) {
@@ -1138,19 +1317,25 @@ class PlasmaTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
-            case TurretElement.Earth:
             case TurretElement.Fire:
+            case TurretElement.Water:
                 this.type.add(type)
                 break
-            case TurretElement.Water:
+            case TurretElement.Earth:
                 this.tile.turret = new ArcaneTurret(this.tile, this.type.add(type))
                 break
         }
     }
 
     static init() {
-        let c = new PreRenderedImage(64, 64)
-        PlasmaTurret.image = c.image
+        let tex = new CirclesTextureGenerator(
+            64, 64,
+            RgbaColorSource.fromHex("#889FFF40"),
+            RgbaColorSource.fromHex("#BF9BFF"),
+            RgbaColorSource.fromHex("#889FFF00"),
+            0.25, 3
+        ).generateImage()
+        PlasmaTurret.image = tex
     }
 }
 
