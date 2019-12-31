@@ -57,6 +57,11 @@
         return width * y + x
     }
 
+    // steps ~ number of values between 0 and 1
+    static granulate(value: number, steps: number) {
+        return Math.floor(value * steps) / steps + 1 / steps / 2
+    }
+
     static byteToHex(byte: number): string {
         byte = Utils.clamp(byte, 0, 255)
         return Utils.hex[Math.floor(byte / 16)] + Utils.hex[Math.floor(byte % 16)]
@@ -385,14 +390,14 @@ abstract class ColorSource {
         this.height = height
     }
 
-    getColor(x: number, y: number): RgbaColorSource {
+    getColor(x: number, y: number): RgbaColor {
         return this._getColor(
             Utils.wrap(x, 0, this.width),
             Utils.wrap(y, 0, this.height)
         )
     }
 
-    protected abstract _getColor(x: number, y: number): RgbaColorSource;
+    protected abstract _getColor(x: number, y: number): RgbaColor;
 
     generateImage(): CanvasImageSource {
         let tex = new PreRenderedImage(this.width, this.height)
@@ -416,9 +421,9 @@ class CanvasColorSource extends ColorSource {
         this.ctx = ctx === null ? canvas.getContext("2d") : ctx
     }
 
-    protected _getColor(x: number, y: number): RgbaColorSource {
+    protected _getColor(x: number, y: number): RgbaColor {
         var data = this.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
-        return new RgbaColorSource(data[0], data[1], data[2], data[3]);
+        return new RgbaColor(data[0], data[1], data[2], data[3]);
     }
 
     generateImage(): CanvasImageSource {
@@ -429,35 +434,34 @@ class CanvasColorSource extends ColorSource {
 
 }
 
-class RgbaColorSource extends ColorSource {
+class RgbaColor {
 
-    static transparent: RgbaColorSource
-    static black: RgbaColorSource
-    static red: RgbaColorSource
-    static green: RgbaColorSource
-    static blue: RgbaColorSource
-    static yellow: RgbaColorSource
-    static cyan: RgbaColorSource
-    static magenta: RgbaColorSource
-    static white: RgbaColorSource
+    static transparent: RgbaColor
+    static black: RgbaColor
+    static red: RgbaColor
+    static green: RgbaColor
+    static blue: RgbaColor
+    static yellow: RgbaColor
+    static cyan: RgbaColor
+    static magenta: RgbaColor
+    static white: RgbaColor
 
     r: number
     g: number
     b: number
     a: number
 
-    constructor(r: number, g: number, b: number, a: number = 255, width: number = 1, height: number = 1) {
-        super(Math.max(1, Math.floor(width)), Math.max(1, Math.floor(height)))
+    constructor(r: number, g: number, b: number, a: number = 255) {
         this.r = Math.floor(Utils.clamp(r, 0, 255))
         this.g = Math.floor(Utils.clamp(g, 0, 255))
         this.b = Math.floor(Utils.clamp(b, 0, 255))
         this.a = Math.floor(Utils.clamp(a, 0, 255))
     }
 
-    static fromHex(color: string): RgbaColorSource {
+    static fromHex(color: string): RgbaColor {
         if (/^#[0-9a-f]{3}[0-9a-f]?$/i.test(color)) {
             let a = color.length > 4 ? parseInt(color[4], 16) * 17 : 255
-            return new RgbaColorSource(
+            return new RgbaColor(
                 parseInt(color[1], 16) * 17,
                 parseInt(color[2], 16) * 17,
                 parseInt(color[3], 16) * 17,
@@ -465,7 +469,7 @@ class RgbaColorSource extends ColorSource {
             )
         } else if (/^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(color)) {
             let a = color.length > 7 ? parseInt(color.substr(7, 2), 16) : 255
-            return new RgbaColorSource(
+            return new RgbaColor(
                 parseInt(color.substr(1, 2), 16),
                 parseInt(color.substr(3, 2), 16),
                 parseInt(color.substr(5, 2), 16),
@@ -490,8 +494,8 @@ class RgbaColorSource extends ColorSource {
             + Utils.byteToHex(this.a)
     }
 
-    multiplyFloat(ammount: number, multiplyAlpha: boolean = false): RgbaColorSource {
-        return new RgbaColorSource(
+    multiplyFloat(ammount: number, multiplyAlpha: boolean = false): RgbaColor {
+        return new RgbaColor(
             this.r * ammount,
             this.g * ammount,
             this.b * ammount,
@@ -499,38 +503,30 @@ class RgbaColorSource extends ColorSource {
         )
     }
 
-    multiply(c: RgbaColorSource): RgbaColorSource {
-        return new RgbaColorSource(this.r * c.r, this.g * c.g, this.b * c.b, this.a * c.a)
+    multiply(c: RgbaColor): RgbaColor {
+        return new RgbaColor(this.r * c.r, this.g * c.g, this.b * c.b, this.a * c.a)
     }
 
-    add(c: RgbaColorSource): RgbaColorSource {
-        return new RgbaColorSource(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.pa())
+    add(c: RgbaColor): RgbaColor {
+        return new RgbaColor(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.pa())
     }
 
-    withRed(r: number): RgbaColorSource {
-        return new RgbaColorSource(r, this.g, this.b, this.a)
-    }
+    withRed(r: number): RgbaColor { return new RgbaColor(r, this.g, this.b, this.a) }
 
-    withGreen(g: number): RgbaColorSource {
-        return new RgbaColorSource(this.r, g, this.b, this.a)
-    }
+    withGreen(g: number): RgbaColor { return new RgbaColor(this.r, g, this.b, this.a) }
 
-    withBlue(b: number): RgbaColorSource {
-        return new RgbaColorSource(this.r, this.g, b, this.a)
-    }
+    withBlue(b: number): RgbaColor { return new RgbaColor(this.r, this.g, b, this.a) }
 
-    withAlpha(a: number): RgbaColorSource {
-        return new RgbaColorSource(this.r, this.g, this.b, a)
-    }
+    withAlpha(a: number): RgbaColor { return new RgbaColor(this.r, this.g, this.b, a) }
 
-    lerp(c: RgbaColorSource, ammount: number): RgbaColorSource {
+    lerp(c: RgbaColor, ammount: number): RgbaColor {
         if (ammount >= 1) {
             return c
         } else if (ammount <= 0) {
             return this
         } else {
             let a2 = 1 - ammount
-            return new RgbaColorSource(
+            return new RgbaColor(
                 this.r * a2 + c.r * ammount,
                 this.g * a2 + c.g * ammount,
                 this.b * a2 + c.b * ammount,
@@ -539,14 +535,14 @@ class RgbaColorSource extends ColorSource {
         }
     }
 
-    addNoise(intensity: number, saturation: number, coverage: number): RgbaColorSource {
+    addNoise(intensity: number, saturation: number, coverage: number): RgbaColor {
         if (Math.random() < coverage) {
             intensity *= 255
             if (saturation <= 0) {
                 let n = Utils.rand(-intensity, intensity)
-                return new RgbaColorSource(this.r + n, this.g + n, this.b + n, this.a)
+                return new RgbaColor(this.r + n, this.g + n, this.b + n, this.a)
             } else if (saturation >= 1) {
-                return new RgbaColorSource(
+                return new RgbaColor(
                     this.r + Utils.rand(-intensity, intensity),
                     this.g + Utils.rand(-intensity, intensity),
                     this.b + Utils.rand(-intensity, intensity),
@@ -557,34 +553,49 @@ class RgbaColorSource extends ColorSource {
                 let rn = Utils.rand(-intensity, intensity)
                 let gn = saturation * Utils.rand(-intensity, intensity) + s2 * rn
                 let bn = saturation * Utils.rand(-intensity, intensity) + s2 * rn
-                return new RgbaColorSource(this.r + rn, this.g + gn, this.b + bn, this.a)
+                return new RgbaColor(this.r + rn, this.g + gn, this.b + bn, this.a)
             }
         } else {
             return this
         }
     }
 
-    protected _getColor(x: number, y: number): RgbaColorSource { return this }
-
-    generateImage(): CanvasImageSource {
-        let tex = new PreRenderedImage(this.width, this.height)
-        tex.ctx.fillStyle = this.toCss()
-        tex.ctx.fillRect(0, 0, this.width, this.height)
-        return tex.image
+    source(width: number = 1, height: number = 1): RgbaColorSource {
+        return new RgbaColorSource(this, width, height)
     }
 
     static init() {
-        RgbaColorSource.transparent = new RgbaColorSource(0, 0, 0, 0)
-        RgbaColorSource.black = new RgbaColorSource(0, 0, 0)
-        RgbaColorSource.red = new RgbaColorSource(255, 0, 0)
-        RgbaColorSource.green = new RgbaColorSource(0, 255, 0)
-        RgbaColorSource.blue = new RgbaColorSource(0, 0, 255)
-        RgbaColorSource.yellow = new RgbaColorSource(255, 255, 0)
-        RgbaColorSource.cyan = new RgbaColorSource(0, 255, 255)
-        RgbaColorSource.magenta = new RgbaColorSource(255, 0, 255)
-        RgbaColorSource.white = new RgbaColorSource(255, 255, 255)
+        RgbaColor.transparent = new RgbaColor(0, 0, 0, 0)
+        RgbaColor.black = new RgbaColor(0, 0, 0)
+        RgbaColor.red = new RgbaColor(255, 0, 0)
+        RgbaColor.green = new RgbaColor(0, 255, 0)
+        RgbaColor.blue = new RgbaColor(0, 0, 255)
+        RgbaColor.yellow = new RgbaColor(255, 255, 0)
+        RgbaColor.cyan = new RgbaColor(0, 255, 255)
+        RgbaColor.magenta = new RgbaColor(255, 0, 255)
+        RgbaColor.white = new RgbaColor(255, 255, 255)
     }
 
 }
 
-RgbaColorSource.init()
+RgbaColor.init()
+
+class RgbaColorSource extends ColorSource {
+
+    color: RgbaColor
+
+    constructor(color: RgbaColor, width: number = 1, height: number = 1) {
+        super(Math.max(1, Math.floor(width)), Math.max(1, Math.floor(height)))
+        this.color = color
+    }
+
+    protected _getColor(x: number, y: number): RgbaColor { return this.color }
+
+    generateImage(): CanvasImageSource {
+        let tex = new PreRenderedImage(this.width, this.height)
+        tex.ctx.fillStyle = this.color.toCss()
+        tex.ctx.fillRect(0, 0, this.width, this.height)
+        return tex.image
+    }
+
+}

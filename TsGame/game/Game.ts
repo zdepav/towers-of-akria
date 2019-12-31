@@ -165,7 +165,7 @@ class Tile extends GameItem {
     }
 
     static init() {
-        Tile.grass = new NoiseTextureGenerator(64, 64, RgbaColorSource.fromHex("#5BA346"), 0.075, 0, 0.25).generateImage()
+        Tile.grass = new NoiseTextureGenerator(64, 64, RgbaColor.fromHex("#5BA346").source(), 0.075, 0, 0.25).generateImage()
     }
 
 }
@@ -412,8 +412,8 @@ class Game {
         path1.rect(x + 36, y + 36, 120, 120)
         let tex = new CellularTextureGenerator(
             192, 192, 144,
-            RgbaColorSource.fromHex("#82614F"),
-            RgbaColorSource.fromHex("#997663"),
+            RgbaColor.fromHex("#82614F").source(),
+            RgbaColor.fromHex("#997663").source(),
             CellularTextureType.Balls
         )
         this.castle.pushNew(path1, this.ctx.createPattern(tex.generateImage(), "repeat"))
@@ -498,14 +498,48 @@ class Game {
 
     preRender() {
         let c = new PreRenderedImage(this.width, this.height)
-        let tex1 = new PerlinNoiseTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
-        let tex2 = new CloudsTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
-        let tex3 = new VelvetTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
-        let tex4 = new GlassTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
-        let tex5 = new BarkTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
-        let tex6 = new CirclesTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#5050FF"), RgbaColorSource.fromHex("#90C0FF"), RgbaColorSource.fromHex("#5050FF00"), 1, 4).generateImage()
-        let tex7 = new FrostedGlassTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
-        let tex8 = new CamouflageTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage()
+        /*let tex1 = new PerlinNoiseTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
+        let tex2 = new CloudsTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
+        let tex3 = new VelvetTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
+        let tex4 = new GlassTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
+        let tex5 = new BarkTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
+        let tex6 = new CirclesTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#5050FF").source(),
+            RgbaColor.fromHex("#90C0FF").source(),
+            RgbaColor.fromHex("#5050FF00").source(),
+            1, 4
+        ).generateImage()
+        let tex7 = new FrostedGlassTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
+        let tex8 = new CamouflageTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
         c.ctx.drawImage(tex1, 0, 0)
         c.ctx.drawImage(tex2, this.width / 4, 0)
         c.ctx.drawImage(tex3, this.width / 2, 0)
@@ -513,8 +547,8 @@ class Game {
         c.ctx.drawImage(tex5, 0, this.height / 2)
         c.ctx.drawImage(tex6, this.width / 4, this.height / 2)
         c.ctx.drawImage(tex7, this.width / 2, this.height / 2)
-        c.ctx.drawImage(tex8, this.width / 4 * 3, this.height / 2)
-        /*c.ctx.fillStyle = "#C0C0C0"
+        c.ctx.drawImage(tex8, this.width / 4 * 3, this.height / 2)*/
+        c.ctx.fillStyle = "#C0C0C0"
         c.ctx.fillRect(0, 0, this.width, this.height)
         for (let x = 0; x < this.mapWidth; ++x) {
             for (let y = 0; y < this.mapHeight; ++y) {
@@ -526,14 +560,14 @@ class Game {
         c.ctx.fillStyle = "#606060"
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h)
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2)
-        this.castle.render(c.ctx)*/
+        this.castle.render(c.ctx)
         c.saveImage("textures")
         this.preRendered = c.image
     }
 
     render() {
         this.ctx.drawImage(this.preRendered, 0, 0)
-        /*for (let x = 0; x < this.mapWidth; ++x) {
+        for (let x = 0; x < this.mapWidth; ++x) {
             for (let y = 0; y < this.mapHeight; ++y) {
                 this.map[x][y].render(this.ctx, false)
             }
@@ -546,7 +580,7 @@ class Game {
             this.ctx.textBaseline = "top"
             this.ctx.font = "bold 16px serif"
             this.ctx.fillText(Math.floor(fps).toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 16)
-        }*/
+        }
     }
 
 }

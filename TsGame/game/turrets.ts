@@ -458,14 +458,14 @@ class FireTurret extends Turret {
         let c = new PreRenderedImage(64, 64)
         let texLava = new CellularTextureGenerator(
             64, 64, 36,
-            RgbaColorSource.fromHex("#FF5020"),
-            RgbaColorSource.fromHex("#C00000"),
+            RgbaColor.fromHex("#FF5020").source(),
+            RgbaColor.fromHex("#C00000").source(),
             CellularTextureType.Balls
         )
         let texRock = new CellularTextureGenerator(
             64, 64, 144,
-            RgbaColorSource.fromHex("#662D22"),
-            RgbaColorSource.fromHex("#44150D"),
+            RgbaColor.fromHex("#662D22").source(),
+            RgbaColor.fromHex("#44150D").source(),
             CellularTextureType.Balls
         )
         let renderable = new RenderablePathSet()
@@ -551,11 +551,11 @@ class WaterTurret extends Turret {
 
     static init() {
         let sandTex = new NoiseTextureGenerator(
-            64, 64, RgbaColorSource.fromHex("#F2EBC1"),
+            64, 64, RgbaColor.fromHex("#F2EBC1").source(),
             0.08, 0, 1
         ).generateImage()
         let groundTex = new NoiseTextureGenerator(
-            64, 64, RgbaColorSource.fromHex("#B9B5A0"),
+            64, 64, RgbaColor.fromHex("#B9B5A0").source(),
             0.05, 0, 1
         ).generateImage()
         let c0 = new PreRenderedImage(64, 64)
@@ -571,8 +571,8 @@ class WaterTurret extends Turret {
     private static preRender(groundTex: CanvasImageSource, sandTex: CanvasImageSource): PreRenderedImage {
         let waterTex = new CellularTextureGenerator(
             64, 64, Utils.randInt(16, 36),
-            RgbaColorSource.fromHex("#3584CE"),
-            RgbaColorSource.fromHex("#3EB4EF"),
+            RgbaColor.fromHex("#3584CE").source(),
+            RgbaColor.fromHex("#3EB4EF").source(),
             CellularTextureType.Balls
         ).generateImage()
         let textures = [groundTex, sandTex, waterTex]
@@ -672,8 +672,8 @@ class IceTurret extends Turret {
     static init() {
         let tex = new CellularTextureGenerator(
             64, 64, 64,
-            RgbaColorSource.fromHex("#D1EFFF"),
-            RgbaColorSource.fromHex("#70BECC"),
+            RgbaColor.fromHex("#D1EFFF").source(),
+            RgbaColor.fromHex("#70BECC").source(),
             CellularTextureType.Lava
         )
         let c0 = new PreRenderedImage(64, 64)
@@ -798,8 +798,8 @@ class AcidTurret extends Turret {
     static init() {
         let acidTex = new CellularTextureGenerator(
             64, 64, 9,
-            RgbaColorSource.fromHex("#E0FF00"),
-            RgbaColorSource.fromHex("#5B7F00"),
+            RgbaColor.fromHex("#E0FF00").source(),
+            RgbaColor.fromHex("#5B7F00").source(),
             CellularTextureType.Balls
         ).generateImage()
         AcidTurret.images = []
@@ -1286,7 +1286,7 @@ class MoonTurret extends Turret {
 
 class PlasmaTurret extends Turret {
 
-    private static image: CanvasImageSource
+    private static images: CanvasImageSource[]
 
     private angle: number
 
@@ -1297,7 +1297,7 @@ class PlasmaTurret extends Turret {
 
     step(time: number) {
         super.step(time)
-        this.angle += time * Angle.deg90
+        this.angle += time * Angle.deg45
     }
 
     render(ctx: CanvasRenderingContext2D, preRender: boolean) {
@@ -1305,9 +1305,12 @@ class PlasmaTurret extends Turret {
         if (preRender) {
             return
         }
+        let variant = (this.type.count() - 3) * 2
         ctx.translate(this.center.x, this.center.y)
         ctx.rotate(this.angle)
-        ctx.drawImage(PlasmaTurret.image, -32, -32)
+        ctx.drawImage(PlasmaTurret.images[variant], -32, -32)
+        ctx.rotate(-2 * this.angle)
+        ctx.drawImage(PlasmaTurret.images[variant + 1], -32, -32)
         ctx.resetTransform()
     }
 
@@ -1328,14 +1331,36 @@ class PlasmaTurret extends Turret {
     }
 
     static init() {
-        let tex = new CirclesTextureGenerator(
+        let background = RgbaColor.fromHex("#889FFF00").source()
+        let color1 = new PerlinNoiseTextureGenerator(
             64, 64,
-            RgbaColorSource.fromHex("#889FFF40"),
-            RgbaColorSource.fromHex("#BF9BFF"),
-            RgbaColorSource.fromHex("#889FFF00"),
-            0.25, 3
+            RgbaColor.fromHex("#8C8CFF").source(),
+            RgbaColor.fromHex("#A3C6FF").source(),
+            0.5
+        )
+        let tex1a = new CirclesTextureGenerator(
+            64, 64,
+            RgbaColor.fromHex("#889FFF40").source(),
+            color1, background, 0.4, 2
         ).generateImage()
-        PlasmaTurret.image = tex
+        let tex1b = new CirclesTextureGenerator(
+            64, 64,
+            RgbaColor.fromHex("#889FFF40").source(),
+            color1, background, 0.28, 3
+        ).generateImage()
+        let color2 = new PerlinNoiseTextureGenerator(
+            64, 64,
+            RgbaColor.fromHex("#B28CFF").source(),
+            RgbaColor.fromHex("#DAC6FF").source(),
+            0.5
+        )
+        let tex2a = new CirclesTextureGenerator(
+            64, 64, color2, background, background, 0.4, 2
+        ).generateImage()
+        let tex2b = new CirclesTextureGenerator(
+            64, 64, color2, background, background, 0.28, 3
+        ).generateImage()
+        PlasmaTurret.images = [tex1a, tex2a, tex1b, tex2b]
     }
 }
 

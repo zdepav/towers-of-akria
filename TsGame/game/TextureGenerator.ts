@@ -2,11 +2,11 @@
 
 abstract class TextureGenerator extends ColorSource {
 
-    protected color: RgbaColorSource
+    protected color: ColorSource
 
-    constructor(width: number, height: number, color: RgbaColorSource) {
+    constructor(width: number, height: number, color: ColorSource | null) {
         super(width, height)
-        this.color = color
+        this.color = color === null ? RgbaColor.black.source() : color
     }
 
 }
@@ -20,7 +20,7 @@ enum CellularTextureType {
 // based on https://blackpawn.com/texts/cellular/default.html
 class CellularTextureGenerator extends TextureGenerator {
 
-    private color2: RgbaColorSource
+    private color2: ColorSource
     private type: CellularTextureType
     private density: number
     private distances: number[]
@@ -28,9 +28,9 @@ class CellularTextureGenerator extends TextureGenerator {
     private range: number
 
     // density n => 1 point per n pixels
-    constructor(width: number, height: number, density: number, color1: RgbaColorSource, color2: RgbaColorSource, type: CellularTextureType) {
+    constructor(width: number, height: number, density: number, color1: ColorSource | null, color2: ColorSource | null, type: CellularTextureType) {
         super(width, height, color1)
-        this.color2 = color2
+        this.color2 = color2 === null ? RgbaColor.white.source() : color2
         this.type = type
         this.density = Math.max(1, density)
         let points: Coords[] = []
@@ -96,9 +96,9 @@ class CellularTextureGenerator extends TextureGenerator {
         return { min1, min2 }
     }
 
-    protected _getColor(x: number, y: number): RgbaColorSource {
-        return this.color.lerp(
-            this.color2,
+    protected _getColor(x: number, y: number): RgbaColor {
+        return this.color.getColor(x, y).lerp(
+            this.color2.getColor(x, y),
             (this.distances[Utils.flatten(this.width, x, y)] - this.min) / this.range
         )
     }
@@ -107,12 +107,12 @@ class CellularTextureGenerator extends TextureGenerator {
 
 class NoiseTextureGenerator extends TextureGenerator {
 
-    private cache: RgbaColorSource[]
+    private cache: RgbaColor[]
     private intensity: number
     private saturation: number
     private coverage: number
 
-    constructor(width: number, height: number, color: RgbaColorSource, intensity: number, saturation: number, coverage: number) {
+    constructor(width: number, height: number, color: ColorSource | null, intensity: number, saturation: number, coverage: number) {
         super(width, height, color)
         this.intensity = Utils.clamp(intensity, 0, 1)
         this.saturation = Utils.clamp(saturation, 0, 1)
@@ -120,10 +120,10 @@ class NoiseTextureGenerator extends TextureGenerator {
         this.cache = []
     }
 
-    protected _getColor(x: number, y: number): RgbaColorSource {
+    protected _getColor(x: number, y: number): RgbaColor {
         let i = Utils.flatten(this.width, Math.floor(x), Math.floor(y))
         if (this.cache[i] === undefined) {
-            this.cache[i] = this.color.addNoise(this.intensity, this.saturation, this.coverage)
+            this.cache[i] = this.color.getColor(x, y).addNoise(this.intensity, this.saturation, this.coverage)
         }
         return this.cache[i]
     }
@@ -157,12 +157,12 @@ class PerlinGradient {
 
 abstract class PerlinTextureGenerator extends TextureGenerator {
 
-    protected color2: RgbaColorSource
+    protected color2: ColorSource
     protected scale: number
 
-    constructor(width: number, height: number, color1: RgbaColorSource, color2: RgbaColorSource, scale: number = 1) {
+    constructor(width: number, height: number, color1: ColorSource | null, color2: ColorSource | null, scale: number = 1) {
         super(width, height, color1)
-        this.color2 = color2
+        this.color2 = color2 === null ? RgbaColor.white.source() : color2
         this.scale = 1 / (scale * 32)
     }
 
@@ -198,14 +198,14 @@ class PerlinNoiseTextureGenerator extends PerlinTextureGenerator {
 
     private gradient: PerlinGradient
 
-    constructor(width: number, height: number, color1: RgbaColorSource, color2: RgbaColorSource, scale: number = 1) {
+    constructor(width: number, height: number, color1: ColorSource | null, color2: ColorSource | null, scale: number = 1) {
         super(width, height, color1, color2, scale)
         this.gradient = new PerlinGradient(this.width * this.scale, this.height * this.scale)
     }
 
-    protected _getColor(x: number, y: number): RgbaColorSource {
-        return this.color.lerp(
-            this.color2,
+    protected _getColor(x: number, y: number): RgbaColor {
+        return this.color.getColor(x, y).lerp(
+            this.color2.getColor(x, y),
             this.perlin(this.gradient, x * this.scale, y * this.scale) / 2 + 0.5
         )
     }
@@ -214,11 +214,11 @@ class PerlinNoiseTextureGenerator extends PerlinTextureGenerator {
 
 class CloudsTextureGenerator extends PerlinTextureGenerator {
 
-    scales: number[]
-    coeficients: number[]
-    gradients: PerlinGradient[]
+    private scales: number[]
+    private coeficients: number[]
+    private gradients: PerlinGradient[]
 
-    constructor(width: number, height: number, color1: RgbaColorSource, color2: RgbaColorSource, scale: number = 1) {
+    constructor(width: number, height: number, color1: ColorSource | null, color2: ColorSource | null, scale: number = 1) {
         super(width, height, color1, color2, scale)
         this.scales = [
             this.scale / 4,
@@ -235,44 +235,38 @@ class CloudsTextureGenerator extends PerlinTextureGenerator {
         }
     }
 
-    protected _getColor(x: number, y: number): RgbaColorSource {
+    protected _getColor(x: number, y: number): RgbaColor {
         let v = 0
         for (let i = 0; i < 6; ++i) {
             v += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i]
         }
-        return this.color.lerp(this.color2, v / 2 + 0.5)
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), v / 2 + 0.5)
     }
 
 }
 
 class VelvetTextureGenerator extends PerlinTextureGenerator {
 
-    constructor(width: number, height: number, color1: RgbaColorSource, color2: RgbaColorSource, scale: number = 1) {
+    private gradients: PerlinGradient[]
+
+    constructor(width: number, height: number, color1: ColorSource | null, color2: ColorSource | null, scale: number = 1) {
         super(width, height, color1, color2, scale)
+        this.gradients = []
+        let w = this.width * this.scale, h = this.height * this.scale
+        for (let i = 0; i < 3; ++i) {
+            this.gradients.push(new PerlinGradient(w, h))
+        }
     }
 
-    generateImage(): CanvasImageSource {
-        let tex = new PreRenderedImage(this.width, this.height)
-        let w = this.width * this.scale, h = this.height * this.scale
-        let grads = [
-            new PerlinGradient(w, h),
-            new PerlinGradient(w, h),
-            new PerlinGradient(w, h)
-        ]
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                tex.ctx.fillStyle = this.color.lerp(
-                    this.color2,
-                    this.perlin(
-                        grads[0],
-                        x * this.scale + this.perlin(grads[1], x * this.scale, y * this.scale),
-                        y * this.scale + this.perlin(grads[2], x * this.scale, y * this.scale)
-                    ) / 2 + 0.5
-                ).toCss()
-                tex.ctx.fillRect(x, y, 1, 1);
-            }
-        }
-        return tex.image
+    protected _getColor(x: number, y: number): RgbaColor {
+        return this.color.getColor(x, y).lerp(
+            this.color2.getColor(x, y),
+            this.perlin(
+                this.gradients[0],
+                x * this.scale + this.perlin(this.gradients[1], x * this.scale, y * this.scale),
+                y * this.scale + this.perlin(this.gradients[2], x * this.scale, y * this.scale)
+            ) / 2 + 0.5
+        )
     }
 
 }
@@ -280,238 +274,169 @@ class VelvetTextureGenerator extends PerlinTextureGenerator {
 class GlassTextureGenerator extends PerlinTextureGenerator {
 
     private turbulence: number
+    private gradients: PerlinGradient[]
 
-    constructor(width: number, height: number, color1: RgbaColorSource, color2: RgbaColorSource, scale: number = 1, turbulence: number = 1) {
+    constructor(width: number, height: number, color1: ColorSource | null, color2: ColorSource | null, scale: number = 1, turbulence: number = 1) {
         super(width, height, color1, color2, scale)
         this.turbulence = 0.125 * turbulence
+        this.gradients = []
+        let w = this.width * this.scale, h = this.height * this.scale
+        for (let i = 0; i < 3; ++i) {
+            this.gradients.push(new PerlinGradient(w, h))
+        }
     }
 
-    generateImage(): CanvasImageSource {
-        let tex = new PreRenderedImage(this.width, this.height)
-        let w = this.width * this.scale, h = this.height * this.scale
-        let grads = [
-            new PerlinGradient(w, h),
-            new PerlinGradient(w, h),
-            new PerlinGradient(w, h)
-        ]
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                let _x = Math.cos((this.perlin(grads[1], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence)
-                let _y = Math.sin((this.perlin(grads[2], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence)
-                tex.ctx.fillStyle = this.color.lerp(
-                    this.color2,
-                    this.perlin(
-                        grads[0],
-                        x * this.scale + _x,
-                        y * this.scale + _y
-                    ) / 2 + 0.5
-                ).toCss()
-                tex.ctx.fillRect(x, y, 1, 1);
-            }
-        }
-        return tex.image
+    protected _getColor(x: number, y: number): RgbaColor {
+        let _x = Math.cos((this.perlin(this.gradients[1], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence)
+        let _y = Math.sin((this.perlin(this.gradients[2], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence)
+        return this.color.getColor(x, y).lerp(
+            this.color2.getColor(x, y),
+            this.perlin(
+                this.gradients[0],
+                x * this.scale + _x,
+                y * this.scale + _y
+            ) / 2 + 0.5
+        )
     }
 
 }
 
 class FrostedGlassTextureGenerator extends PerlinTextureGenerator {
 
-    constructor(width: number, height: number, color1: RgbaColorSource, color2: RgbaColorSource, scale: number = 1) {
+    private scales: number[]
+    private coeficients: number[]
+    private gradients: PerlinGradient[]
+
+    constructor(width: number, height: number, color1: ColorSource | null, color2: ColorSource | null, scale: number = 1) {
         super(width, height, color1, color2, scale)
+        this.scales = [this.scale, this.scale * 2, this.scale * 4]
+        this.coeficients = [0.5, 0.25, 0.25]
+        this.gradients = []
+        for (let i = 0; i < 7; ++i) {
+            this.gradients.push(new PerlinGradient(this.width * this.scales[i % 3], this.height * this.scales[i % 3]))
+        }
     }
 
-    generateImage(): CanvasImageSource {
-        let tex = new PreRenderedImage(this.width, this.height)
-        let scales = [
-            this.scale,
-            this.scale * 2,
-            this.scale * 4
-        ]
-        let grads = [
-            new PerlinGradient(this.width * scales[0], this.height * scales[0]),
-            new PerlinGradient(this.width * scales[1], this.height * scales[1]),
-            new PerlinGradient(this.width * scales[2], this.height * scales[2]),
-            new PerlinGradient(this.width * scales[0], this.height * scales[0]),
-            new PerlinGradient(this.width * scales[1], this.height * scales[1]),
-            new PerlinGradient(this.width * scales[2], this.height * scales[2]),
-            new PerlinGradient(this.width * scales[0], this.height * scales[0])
-        ]
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                tex.ctx.fillStyle = this.color.lerp(
-                    this.color2,
-                    this.perlin(
-                        grads[6],
-                        x * this.scale
-                        + this.perlin(grads[0], x * scales[0], y * scales[0]) * 0.5
-                        + this.perlin(grads[1], x * scales[1], y * scales[1]) * 0.25
-                        + this.perlin(grads[2], x * scales[2], y * scales[2]) * 0.25,
-                        y * this.scale
-                        + this.perlin(grads[3], x * scales[0], y * scales[0]) * 0.5
-                        + this.perlin(grads[4], x * scales[1], y * scales[1]) * 0.25
-                        + this.perlin(grads[5], x * scales[2], y * scales[2]) * 0.25
-                    ) / 2 + 0.5
-                ).toCss()
-                tex.ctx.fillRect(x, y, 1, 1);
-            }
+    protected _getColor(x: number, y: number): RgbaColor {
+        let _x = x * this.scale, _y = y * this.scale
+        for (let i = 0; i < 3; ++i) {
+            _x += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i]
+            _y += this.perlin(this.gradients[i + 3], x * this.scales[i], y * this.scales[i]) * this.coeficients[i]
         }
-        return tex.image
+        return this.color.getColor(x, y).lerp(
+            this.color2.getColor(x, y),
+            this.perlin(this.gradients[6], _x, _y) / 2 + 0.5
+        )
     }
 
 }
 
 class BarkTextureGenerator extends PerlinTextureGenerator {
 
-    constructor(width: number, height: number, color1: RgbaColorSource, color2: RgbaColorSource, scale: number = 1) {
+    private scales: number[]
+    private coeficients: number[]
+    private gradients: PerlinGradient[]
+
+    constructor(width: number, height: number, color1: ColorSource | null, color2: ColorSource | null, scale: number = 1) {
         super(width, height, color1, color2, scale)
+        this.scales = [this.scale, this.scale * 2, this.scale * 4, this.scale * 6]
+        this.coeficients = [0.5, 0.25, 0.25]
+        this.gradients = []
+        for (let i = 0; i < 4; ++i) {
+            this.gradients.push(new PerlinGradient(this.width * this.scales[i], this.height * this.scales[i]))
+        }
     }
 
-    generateImage(): CanvasImageSource {
-        let tex = new PreRenderedImage(this.width, this.height)
-        let scales = [
-            this.scale,
-            this.scale * 2,
-            this.scale * 4,
-            this.scale * 6
-        ]
-        let grads = [
-            new PerlinGradient(this.width * scales[0], this.height * scales[0]),
-            new PerlinGradient(this.width * scales[1], this.height * scales[1]),
-            new PerlinGradient(this.width * scales[2], this.height * scales[2]),
-            new PerlinGradient(this.width * scales[3], this.height * scales[3])
-        ]
-        function granulate(value: number, steps: number) {
-            return Math.floor(value * steps) / steps + 1 / steps / 2
+    protected _getColor(x: number, y: number): RgbaColor {
+        let v = 0
+        for (let i = 0; i < 3; ++i) {
+            v += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i]
         }
-        let f = 4, a = 2, m = this.scale * Math.PI / 2
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                tex.ctx.fillStyle = this.color.lerp(
-                    this.color2,
-                    (
-                        granulate(
-                            Math.sin(
-                                f * (
-                                    x * m +
-                                    a * (
-                                        this.perlin(grads[0], x * scales[0], y * scales[0]) * 0.5
-                                        + this.perlin(grads[1], x * scales[1], y * scales[1]) * 0.25
-                                        + this.perlin(grads[2], x * scales[2], y * scales[2]) * 0.25
-                                    )
-                                )
-                            ),
-                            2
-                        ) +
-                        granulate(this.perlin(grads[3], x * scales[3], y * scales[3]), 5)
-                    ) / 4 + 0.5
-                ).toCss()
-                tex.ctx.fillRect(x, y, 1, 1);
-            }
-        }
-        return tex.image
+        v = Utils.granulate(Math.sin(2 * x * this.scale * Math.PI + 8 * v), 2)
+        v += Utils.granulate(this.perlin(this.gradients[3], x * this.scales[3], y * this.scales[3]), 5)
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), v / 4 + 0.5)
     }
 
 }
 
 class CirclesTextureGenerator extends PerlinTextureGenerator {
 
+    private cx: number
+    private cy: number
     private ringCount: number
-    private background: RgbaColorSource
+    private ringCountL: number
+    private background: ColorSource
+    private scale2: number
+    private gradients: PerlinGradient[]
 
-    constructor(width: number, height: number, color1: RgbaColorSource, color2: RgbaColorSource, background: RgbaColorSource|null, scale: number = 1, ringCount: number = Infinity) {
+    constructor(width: number, height: number, color1: ColorSource | null, color2: ColorSource | null, background: ColorSource | null, scale: number = 1, ringCount: number = Infinity) {
         super(width, height, color1, color2, scale)
         this.ringCount = ringCount
-        this.background = background !== null ? background : RgbaColorSource.transparent
+        this.ringCountL = this.ringCount - 0.25
+        this.background = background !== null ? background : RgbaColor.transparent.source()
+        this.gradients = []
+        this.scale2 = this.scale * 2
+        for (let i = 0; i < 2; ++i) {
+            this.gradients.push(new PerlinGradient(this.width * this.scale2, this.height * this.scale2))
+        }
+        this.cx = this.width * this.scale / 2
+        this.cy = this.height * this.scale / 2
     }
 
-    generateImage(): CanvasImageSource {
-        let tex = new PreRenderedImage(this.width, this.height)
-        let scale = this.scale * 2
-        let grads = [
-            new PerlinGradient(this.width * scale, this.height * scale),
-            new PerlinGradient(this.width * scale, this.height * scale)
-        ]
-        let cx = this.width * this.scale / 2, cy = this.height * this.scale / 2
-        let ringCountL = this.ringCount - 0.25, background = this.background.toCss()
-        let _x: number, _y: number, d: number, c: RgbaColorSource
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                _x = x * this.scale + this.perlin(grads[0], x * scale, y * scale) * 0.5 - cx
-                _y = y * this.scale + this.perlin(grads[1], x * scale, y * scale) * 0.5 - cy
-                d = Math.sqrt(_x * _x + _y * _y)
-                if (d > this.ringCount) {
-                    tex.ctx.fillStyle = background
-                } else {
-                    c = this.color.lerp(
-                        this.color2,
-                        Utils.interpolateSmooth(0, 1, 1 - Math.abs(1 - d % 1 * 2))
-                    )
-                    if (d > ringCountL) {
-                        tex.ctx.fillStyle = c.lerp(
-                            this.background,
-                            Utils.interpolateSmooth(0, 1, (d - ringCountL) * 4)
-                        ).toCss()
-                    } else {
-                        tex.ctx.fillStyle = c.toCss()
-                    }
-                }
-                tex.ctx.fillRect(x, y, 1, 1);
+    protected _getColor(x: number, y: number): RgbaColor {
+        let _x = x * this.scale + this.perlin(this.gradients[0], x * this.scale2, y * this.scale2) * 0.5 - this.cx
+        let _y = y * this.scale + this.perlin(this.gradients[1], x * this.scale2, y * this.scale2) * 0.5 - this.cy
+        let d = Math.sqrt(_x * _x + _y * _y)
+        if (d > this.ringCount) {
+            return this.background.getColor(x, y)
+        } else {
+            let c = this.color.getColor(x, y).lerp(
+                this.color2.getColor(x, y),
+                Utils.interpolateSmooth(0, 1, 1 - Math.abs(1 - d % 1 * 2))
+            )
+            if (d > this.ringCountL) {
+                return c.lerp(
+                    this.background.getColor(x, y),
+                    Utils.interpolateSmooth(0, 1, (d - this.ringCountL) * 4)
+                )
+            } else {
+                return c
             }
         }
-        return tex.image
     }
 
 }
 
 class CamouflageTextureGenerator extends PerlinTextureGenerator {
 
-    constructor(width: number, height: number, color1: RgbaColorSource, color2: RgbaColorSource, scale: number = 1) {
+    private scales: number[]
+    private coeficients: number[]
+    private gradients: PerlinGradient[]
+
+    constructor(width: number, height: number, color1: ColorSource | null, color2: ColorSource | null, scale: number = 1) {
         super(width, height, color1, color2, scale)
+        this.scales = [this.scale, this.scale * 2, this.scale * 4]
+        this.coeficients = [1.5, 0.75, 0.75]
+        this.gradients = []
+        for (let i = 0; i < 9; ++i) {
+            this.gradients.push(new PerlinGradient(this.width * this.scales[i % 3], this.height * this.scales[i % 3]))
+        }
     }
 
-    generateImage(): CanvasImageSource {
-        let tex = new PreRenderedImage(this.width, this.height)
-        let scales = [
-            this.scale,
-            this.scale * 2,
-            this.scale * 4
-        ]
-        let grads = [
-            new PerlinGradient(this.width * scales[0], this.height * scales[0]),
-            new PerlinGradient(this.width * scales[1], this.height * scales[1]),
-            new PerlinGradient(this.width * scales[2], this.height * scales[2]),
-            new PerlinGradient(this.width * scales[0], this.height * scales[0]),
-            new PerlinGradient(this.width * scales[1], this.height * scales[1]),
-            new PerlinGradient(this.width * scales[2], this.height * scales[2]),
-            new PerlinGradient(this.width * scales[0], this.height * scales[0]),
-            new PerlinGradient(this.width * scales[1], this.height * scales[1]),
-            new PerlinGradient(this.width * scales[2], this.height * scales[2])
-        ]
-        function granulate(value: number, steps: number) {
-            return Math.floor(value * steps) / steps + 1 / steps / 2
+    protected _getColor(x: number, y: number): RgbaColor {
+        let _x = x * this.scale, _y = y * this.scale
+        for (let i = 0; i < 3; ++i) {
+            _x += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i]
+            _y += this.perlin(this.gradients[i + 3], x * this.scales[i], y * this.scales[i]) * this.coeficients[i]
         }
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                let _x = x * this.scale
-                    + this.perlin(grads[0], x * scales[0], y * scales[0]) * 1.5
-                    + this.perlin(grads[1], x * scales[1], y * scales[1]) * 0.75
-                    + this.perlin(grads[2], x * scales[2], y * scales[2]) * 0.75
-                let _y = y * this.scale
-                    + this.perlin(grads[3], x * scales[0], y * scales[0]) * 1.5
-                    + this.perlin(grads[4], x * scales[1], y * scales[1]) * 0.75
-                    + this.perlin(grads[5], x * scales[2], y * scales[2]) * 0.75
-                tex.ctx.fillStyle = this.color.lerp(
-                    this.color2,
-                    (
-                        granulate(this.perlin(grads[6], _x, _y), 4) * 0.7 +
-                        granulate(this.perlin(grads[7], _x * 2, _y * 2), 5) * 0.2 +
-                        granulate(this.perlin(grads[8], _x * 4, _y * 4), 6) * 0.1
-                    ) / 2 + 0.5
-                ).toCss()
-                tex.ctx.fillRect(x, y, 1, 1);
-            }
-        }
-        return tex.image
+        return this.color.getColor(x, y).lerp(
+            this.color2.getColor(x, y),
+            (
+                Utils.granulate(this.perlin(this.gradients[6], _x, _y), 4) * 0.7 +
+                Utils.granulate(this.perlin(this.gradients[7], _x * 2, _y * 2), 5) * 0.2 +
+                Utils.granulate(this.perlin(this.gradients[8], _x * 4, _y * 4), 6) * 0.1
+            ) / 2 + 0.5
+        )
     }
 
 }

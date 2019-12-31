@@ -54,6 +54,10 @@ class Utils {
     static flatten(width, x, y) {
         return width * y + x;
     }
+    // steps ~ number of values between 0 and 1
+    static granulate(value, steps) {
+        return Math.floor(value * steps) / steps + 1 / steps / 2;
+    }
     static byteToHex(byte) {
         byte = Utils.clamp(byte, 0, 255);
         return Utils.hex[Math.floor(byte / 16)] + Utils.hex[Math.floor(byte % 16)];
@@ -286,7 +290,7 @@ class CanvasColorSource extends ColorSource {
     }
     _getColor(x, y) {
         var data = this.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
-        return new RgbaColorSource(data[0], data[1], data[2], data[3]);
+        return new RgbaColor(data[0], data[1], data[2], data[3]);
     }
     generateImage() {
         let tex = new PreRenderedImage(this.width, this.height);
@@ -294,9 +298,8 @@ class CanvasColorSource extends ColorSource {
         return tex.image;
     }
 }
-class RgbaColorSource extends ColorSource {
-    constructor(r, g, b, a = 255, width = 1, height = 1) {
-        super(Math.max(1, Math.floor(width)), Math.max(1, Math.floor(height)));
+class RgbaColor {
+    constructor(r, g, b, a = 255) {
         this.r = Math.floor(Utils.clamp(r, 0, 255));
         this.g = Math.floor(Utils.clamp(g, 0, 255));
         this.b = Math.floor(Utils.clamp(b, 0, 255));
@@ -305,11 +308,11 @@ class RgbaColorSource extends ColorSource {
     static fromHex(color) {
         if (/^#[0-9a-f]{3}[0-9a-f]?$/i.test(color)) {
             let a = color.length > 4 ? parseInt(color[4], 16) * 17 : 255;
-            return new RgbaColorSource(parseInt(color[1], 16) * 17, parseInt(color[2], 16) * 17, parseInt(color[3], 16) * 17, a);
+            return new RgbaColor(parseInt(color[1], 16) * 17, parseInt(color[2], 16) * 17, parseInt(color[3], 16) * 17, a);
         }
         else if (/^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(color)) {
             let a = color.length > 7 ? parseInt(color.substr(7, 2), 16) : 255;
-            return new RgbaColorSource(parseInt(color.substr(1, 2), 16), parseInt(color.substr(3, 2), 16), parseInt(color.substr(5, 2), 16), a);
+            return new RgbaColor(parseInt(color.substr(1, 2), 16), parseInt(color.substr(3, 2), 16), parseInt(color.substr(5, 2), 16), a);
         }
         else
             return null;
@@ -326,26 +329,18 @@ class RgbaColorSource extends ColorSource {
             + Utils.byteToHex(this.a);
     }
     multiplyFloat(ammount, multiplyAlpha = false) {
-        return new RgbaColorSource(this.r * ammount, this.g * ammount, this.b * ammount, multiplyAlpha ? this.a * ammount : this.a);
+        return new RgbaColor(this.r * ammount, this.g * ammount, this.b * ammount, multiplyAlpha ? this.a * ammount : this.a);
     }
     multiply(c) {
-        return new RgbaColorSource(this.r * c.r, this.g * c.g, this.b * c.b, this.a * c.a);
+        return new RgbaColor(this.r * c.r, this.g * c.g, this.b * c.b, this.a * c.a);
     }
     add(c) {
-        return new RgbaColorSource(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.pa());
+        return new RgbaColor(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.pa());
     }
-    withRed(r) {
-        return new RgbaColorSource(r, this.g, this.b, this.a);
-    }
-    withGreen(g) {
-        return new RgbaColorSource(this.r, g, this.b, this.a);
-    }
-    withBlue(b) {
-        return new RgbaColorSource(this.r, this.g, b, this.a);
-    }
-    withAlpha(a) {
-        return new RgbaColorSource(this.r, this.g, this.b, a);
-    }
+    withRed(r) { return new RgbaColor(r, this.g, this.b, this.a); }
+    withGreen(g) { return new RgbaColor(this.r, g, this.b, this.a); }
+    withBlue(b) { return new RgbaColor(this.r, this.g, b, this.a); }
+    withAlpha(a) { return new RgbaColor(this.r, this.g, this.b, a); }
     lerp(c, ammount) {
         if (ammount >= 1) {
             return c;
@@ -355,7 +350,7 @@ class RgbaColorSource extends ColorSource {
         }
         else {
             let a2 = 1 - ammount;
-            return new RgbaColorSource(this.r * a2 + c.r * ammount, this.g * a2 + c.g * ammount, this.b * a2 + c.b * ammount, this.a * a2 + c.a * ammount);
+            return new RgbaColor(this.r * a2 + c.r * ammount, this.g * a2 + c.g * ammount, this.b * a2 + c.b * ammount, this.a * a2 + c.a * ammount);
         }
     }
     addNoise(intensity, saturation, coverage) {
@@ -363,43 +358,52 @@ class RgbaColorSource extends ColorSource {
             intensity *= 255;
             if (saturation <= 0) {
                 let n = Utils.rand(-intensity, intensity);
-                return new RgbaColorSource(this.r + n, this.g + n, this.b + n, this.a);
+                return new RgbaColor(this.r + n, this.g + n, this.b + n, this.a);
             }
             else if (saturation >= 1) {
-                return new RgbaColorSource(this.r + Utils.rand(-intensity, intensity), this.g + Utils.rand(-intensity, intensity), this.b + Utils.rand(-intensity, intensity), this.a);
+                return new RgbaColor(this.r + Utils.rand(-intensity, intensity), this.g + Utils.rand(-intensity, intensity), this.b + Utils.rand(-intensity, intensity), this.a);
             }
             else {
                 let s2 = 1 - saturation;
                 let rn = Utils.rand(-intensity, intensity);
                 let gn = saturation * Utils.rand(-intensity, intensity) + s2 * rn;
                 let bn = saturation * Utils.rand(-intensity, intensity) + s2 * rn;
-                return new RgbaColorSource(this.r + rn, this.g + gn, this.b + bn, this.a);
+                return new RgbaColor(this.r + rn, this.g + gn, this.b + bn, this.a);
             }
         }
         else {
             return this;
         }
     }
-    _getColor(x, y) { return this; }
+    source(width = 1, height = 1) {
+        return new RgbaColorSource(this, width, height);
+    }
+    static init() {
+        RgbaColor.transparent = new RgbaColor(0, 0, 0, 0);
+        RgbaColor.black = new RgbaColor(0, 0, 0);
+        RgbaColor.red = new RgbaColor(255, 0, 0);
+        RgbaColor.green = new RgbaColor(0, 255, 0);
+        RgbaColor.blue = new RgbaColor(0, 0, 255);
+        RgbaColor.yellow = new RgbaColor(255, 255, 0);
+        RgbaColor.cyan = new RgbaColor(0, 255, 255);
+        RgbaColor.magenta = new RgbaColor(255, 0, 255);
+        RgbaColor.white = new RgbaColor(255, 255, 255);
+    }
+}
+RgbaColor.init();
+class RgbaColorSource extends ColorSource {
+    constructor(color, width = 1, height = 1) {
+        super(Math.max(1, Math.floor(width)), Math.max(1, Math.floor(height)));
+        this.color = color;
+    }
+    _getColor(x, y) { return this.color; }
     generateImage() {
         let tex = new PreRenderedImage(this.width, this.height);
-        tex.ctx.fillStyle = this.toCss();
+        tex.ctx.fillStyle = this.color.toCss();
         tex.ctx.fillRect(0, 0, this.width, this.height);
         return tex.image;
     }
-    static init() {
-        RgbaColorSource.transparent = new RgbaColorSource(0, 0, 0, 0);
-        RgbaColorSource.black = new RgbaColorSource(0, 0, 0);
-        RgbaColorSource.red = new RgbaColorSource(255, 0, 0);
-        RgbaColorSource.green = new RgbaColorSource(0, 255, 0);
-        RgbaColorSource.blue = new RgbaColorSource(0, 0, 255);
-        RgbaColorSource.yellow = new RgbaColorSource(255, 255, 0);
-        RgbaColorSource.cyan = new RgbaColorSource(0, 255, 255);
-        RgbaColorSource.magenta = new RgbaColorSource(255, 0, 255);
-        RgbaColorSource.white = new RgbaColorSource(255, 255, 255);
-    }
 }
-RgbaColorSource.init();
 /// <reference path='Game.ts'/>
 class GameItem {
     constructor(game) {
@@ -412,7 +416,7 @@ class GameItem {
 class TextureGenerator extends ColorSource {
     constructor(width, height, color) {
         super(width, height);
-        this.color = color;
+        this.color = color === null ? RgbaColor.black.source() : color;
     }
 }
 var CellularTextureType;
@@ -426,7 +430,7 @@ class CellularTextureGenerator extends TextureGenerator {
     // density n => 1 point per n pixels
     constructor(width, height, density, color1, color2, type) {
         super(width, height, color1);
-        this.color2 = color2;
+        this.color2 = color2 === null ? RgbaColor.white.source() : color2;
         this.type = type;
         this.density = Math.max(1, density);
         let points = [];
@@ -488,7 +492,7 @@ class CellularTextureGenerator extends TextureGenerator {
         return { min1, min2 };
     }
     _getColor(x, y) {
-        return this.color.lerp(this.color2, (this.distances[Utils.flatten(this.width, x, y)] - this.min) / this.range);
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), (this.distances[Utils.flatten(this.width, x, y)] - this.min) / this.range);
     }
 }
 class NoiseTextureGenerator extends TextureGenerator {
@@ -502,7 +506,7 @@ class NoiseTextureGenerator extends TextureGenerator {
     _getColor(x, y) {
         let i = Utils.flatten(this.width, Math.floor(x), Math.floor(y));
         if (this.cache[i] === undefined) {
-            this.cache[i] = this.color.addNoise(this.intensity, this.saturation, this.coverage);
+            this.cache[i] = this.color.getColor(x, y).addNoise(this.intensity, this.saturation, this.coverage);
         }
         return this.cache[i];
     }
@@ -525,7 +529,7 @@ class PerlinGradient {
 class PerlinTextureGenerator extends TextureGenerator {
     constructor(width, height, color1, color2, scale = 1) {
         super(width, height, color1);
-        this.color2 = color2;
+        this.color2 = color2 === null ? RgbaColor.white.source() : color2;
         this.scale = 1 / (scale * 32);
     }
     dotGridGradient(gradient, ix, iy, x, y) {
@@ -547,7 +551,7 @@ class PerlinNoiseTextureGenerator extends PerlinTextureGenerator {
         this.gradient = new PerlinGradient(this.width * this.scale, this.height * this.scale);
     }
     _getColor(x, y) {
-        return this.color.lerp(this.color2, this.perlin(this.gradient, x * this.scale, y * this.scale) / 2 + 0.5);
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.perlin(this.gradient, x * this.scale, y * this.scale) / 2 + 0.5);
     }
 }
 class CloudsTextureGenerator extends PerlinTextureGenerator {
@@ -572,205 +576,128 @@ class CloudsTextureGenerator extends PerlinTextureGenerator {
         for (let i = 0; i < 6; ++i) {
             v += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
         }
-        return this.color.lerp(this.color2, v / 2 + 0.5);
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), v / 2 + 0.5);
     }
 }
 class VelvetTextureGenerator extends PerlinTextureGenerator {
     constructor(width, height, color1, color2, scale = 1) {
         super(width, height, color1, color2, scale);
-    }
-    generateImage() {
-        let tex = new PreRenderedImage(this.width, this.height);
+        this.gradients = [];
         let w = this.width * this.scale, h = this.height * this.scale;
-        let grads = [
-            new PerlinGradient(w, h),
-            new PerlinGradient(w, h),
-            new PerlinGradient(w, h)
-        ];
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                tex.ctx.fillStyle = this.color.lerp(this.color2, this.perlin(grads[0], x * this.scale + this.perlin(grads[1], x * this.scale, y * this.scale), y * this.scale + this.perlin(grads[2], x * this.scale, y * this.scale)) / 2 + 0.5).toCss();
-                tex.ctx.fillRect(x, y, 1, 1);
-            }
+        for (let i = 0; i < 3; ++i) {
+            this.gradients.push(new PerlinGradient(w, h));
         }
-        return tex.image;
+    }
+    _getColor(x, y) {
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.perlin(this.gradients[0], x * this.scale + this.perlin(this.gradients[1], x * this.scale, y * this.scale), y * this.scale + this.perlin(this.gradients[2], x * this.scale, y * this.scale)) / 2 + 0.5);
     }
 }
 class GlassTextureGenerator extends PerlinTextureGenerator {
     constructor(width, height, color1, color2, scale = 1, turbulence = 1) {
         super(width, height, color1, color2, scale);
         this.turbulence = 0.125 * turbulence;
-    }
-    generateImage() {
-        let tex = new PreRenderedImage(this.width, this.height);
+        this.gradients = [];
         let w = this.width * this.scale, h = this.height * this.scale;
-        let grads = [
-            new PerlinGradient(w, h),
-            new PerlinGradient(w, h),
-            new PerlinGradient(w, h)
-        ];
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                let _x = Math.cos((this.perlin(grads[1], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence);
-                let _y = Math.sin((this.perlin(grads[2], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence);
-                tex.ctx.fillStyle = this.color.lerp(this.color2, this.perlin(grads[0], x * this.scale + _x, y * this.scale + _y) / 2 + 0.5).toCss();
-                tex.ctx.fillRect(x, y, 1, 1);
-            }
+        for (let i = 0; i < 3; ++i) {
+            this.gradients.push(new PerlinGradient(w, h));
         }
-        return tex.image;
+    }
+    _getColor(x, y) {
+        let _x = Math.cos((this.perlin(this.gradients[1], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence);
+        let _y = Math.sin((this.perlin(this.gradients[2], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence);
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.perlin(this.gradients[0], x * this.scale + _x, y * this.scale + _y) / 2 + 0.5);
     }
 }
 class FrostedGlassTextureGenerator extends PerlinTextureGenerator {
     constructor(width, height, color1, color2, scale = 1) {
         super(width, height, color1, color2, scale);
-    }
-    generateImage() {
-        let tex = new PreRenderedImage(this.width, this.height);
-        let scales = [
-            this.scale,
-            this.scale * 2,
-            this.scale * 4
-        ];
-        let grads = [
-            new PerlinGradient(this.width * scales[0], this.height * scales[0]),
-            new PerlinGradient(this.width * scales[1], this.height * scales[1]),
-            new PerlinGradient(this.width * scales[2], this.height * scales[2]),
-            new PerlinGradient(this.width * scales[0], this.height * scales[0]),
-            new PerlinGradient(this.width * scales[1], this.height * scales[1]),
-            new PerlinGradient(this.width * scales[2], this.height * scales[2]),
-            new PerlinGradient(this.width * scales[0], this.height * scales[0])
-        ];
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                tex.ctx.fillStyle = this.color.lerp(this.color2, this.perlin(grads[6], x * this.scale
-                    + this.perlin(grads[0], x * scales[0], y * scales[0]) * 0.5
-                    + this.perlin(grads[1], x * scales[1], y * scales[1]) * 0.25
-                    + this.perlin(grads[2], x * scales[2], y * scales[2]) * 0.25, y * this.scale
-                    + this.perlin(grads[3], x * scales[0], y * scales[0]) * 0.5
-                    + this.perlin(grads[4], x * scales[1], y * scales[1]) * 0.25
-                    + this.perlin(grads[5], x * scales[2], y * scales[2]) * 0.25) / 2 + 0.5).toCss();
-                tex.ctx.fillRect(x, y, 1, 1);
-            }
+        this.scales = [this.scale, this.scale * 2, this.scale * 4];
+        this.coeficients = [0.5, 0.25, 0.25];
+        this.gradients = [];
+        for (let i = 0; i < 7; ++i) {
+            this.gradients.push(new PerlinGradient(this.width * this.scales[i % 3], this.height * this.scales[i % 3]));
         }
-        return tex.image;
+    }
+    _getColor(x, y) {
+        let _x = x * this.scale, _y = y * this.scale;
+        for (let i = 0; i < 3; ++i) {
+            _x += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
+            _y += this.perlin(this.gradients[i + 3], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
+        }
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.perlin(this.gradients[6], _x, _y) / 2 + 0.5);
     }
 }
 class BarkTextureGenerator extends PerlinTextureGenerator {
     constructor(width, height, color1, color2, scale = 1) {
         super(width, height, color1, color2, scale);
+        this.scales = [this.scale, this.scale * 2, this.scale * 4, this.scale * 6];
+        this.coeficients = [0.5, 0.25, 0.25];
+        this.gradients = [];
+        for (let i = 0; i < 4; ++i) {
+            this.gradients.push(new PerlinGradient(this.width * this.scales[i], this.height * this.scales[i]));
+        }
     }
-    generateImage() {
-        let tex = new PreRenderedImage(this.width, this.height);
-        let scales = [
-            this.scale,
-            this.scale * 2,
-            this.scale * 4,
-            this.scale * 6
-        ];
-        let grads = [
-            new PerlinGradient(this.width * scales[0], this.height * scales[0]),
-            new PerlinGradient(this.width * scales[1], this.height * scales[1]),
-            new PerlinGradient(this.width * scales[2], this.height * scales[2]),
-            new PerlinGradient(this.width * scales[3], this.height * scales[3])
-        ];
-        function granulate(value, steps) {
-            return Math.floor(value * steps) / steps + 1 / steps / 2;
+    _getColor(x, y) {
+        let v = 0;
+        for (let i = 0; i < 3; ++i) {
+            v += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
         }
-        let f = 4, a = 2, m = this.scale * Math.PI / 2;
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                tex.ctx.fillStyle = this.color.lerp(this.color2, (granulate(Math.sin(f * (x * m +
-                    a * (this.perlin(grads[0], x * scales[0], y * scales[0]) * 0.5
-                        + this.perlin(grads[1], x * scales[1], y * scales[1]) * 0.25
-                        + this.perlin(grads[2], x * scales[2], y * scales[2]) * 0.25))), 2) +
-                    granulate(this.perlin(grads[3], x * scales[3], y * scales[3]), 5)) / 4 + 0.5).toCss();
-                tex.ctx.fillRect(x, y, 1, 1);
-            }
-        }
-        return tex.image;
+        v = Utils.granulate(Math.sin(2 * x * this.scale * Math.PI + 8 * v), 2);
+        v += Utils.granulate(this.perlin(this.gradients[3], x * this.scales[3], y * this.scales[3]), 5);
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), v / 4 + 0.5);
     }
 }
 class CirclesTextureGenerator extends PerlinTextureGenerator {
     constructor(width, height, color1, color2, background, scale = 1, ringCount = Infinity) {
         super(width, height, color1, color2, scale);
         this.ringCount = ringCount;
-        this.background = background !== null ? background : RgbaColorSource.transparent;
+        this.ringCountL = this.ringCount - 0.25;
+        this.background = background !== null ? background : RgbaColor.transparent.source();
+        this.gradients = [];
+        this.scale2 = this.scale * 2;
+        for (let i = 0; i < 2; ++i) {
+            this.gradients.push(new PerlinGradient(this.width * this.scale2, this.height * this.scale2));
+        }
+        this.cx = this.width * this.scale / 2;
+        this.cy = this.height * this.scale / 2;
     }
-    generateImage() {
-        let tex = new PreRenderedImage(this.width, this.height);
-        let scale = this.scale * 2;
-        let grads = [
-            new PerlinGradient(this.width * scale, this.height * scale),
-            new PerlinGradient(this.width * scale, this.height * scale)
-        ];
-        let cx = this.width * this.scale / 2, cy = this.height * this.scale / 2;
-        let ringCountL = this.ringCount - 0.25, background = this.background.toCss();
-        let _x, _y, d, c;
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                _x = x * this.scale + this.perlin(grads[0], x * scale, y * scale) * 0.5 - cx;
-                _y = y * this.scale + this.perlin(grads[1], x * scale, y * scale) * 0.5 - cy;
-                d = Math.sqrt(_x * _x + _y * _y);
-                if (d > this.ringCount) {
-                    tex.ctx.fillStyle = background;
-                }
-                else {
-                    c = this.color.lerp(this.color2, Utils.interpolateSmooth(0, 1, 1 - Math.abs(1 - d % 1 * 2)));
-                    if (d > ringCountL) {
-                        tex.ctx.fillStyle = c.lerp(this.background, Utils.interpolateSmooth(0, 1, (d - ringCountL) * 4)).toCss();
-                    }
-                    else {
-                        tex.ctx.fillStyle = c.toCss();
-                    }
-                }
-                tex.ctx.fillRect(x, y, 1, 1);
+    _getColor(x, y) {
+        let _x = x * this.scale + this.perlin(this.gradients[0], x * this.scale2, y * this.scale2) * 0.5 - this.cx;
+        let _y = y * this.scale + this.perlin(this.gradients[1], x * this.scale2, y * this.scale2) * 0.5 - this.cy;
+        let d = Math.sqrt(_x * _x + _y * _y);
+        if (d > this.ringCount) {
+            return this.background.getColor(x, y);
+        }
+        else {
+            let c = this.color.getColor(x, y).lerp(this.color2.getColor(x, y), Utils.interpolateSmooth(0, 1, 1 - Math.abs(1 - d % 1 * 2)));
+            if (d > this.ringCountL) {
+                return c.lerp(this.background.getColor(x, y), Utils.interpolateSmooth(0, 1, (d - this.ringCountL) * 4));
+            }
+            else {
+                return c;
             }
         }
-        return tex.image;
     }
 }
 class CamouflageTextureGenerator extends PerlinTextureGenerator {
     constructor(width, height, color1, color2, scale = 1) {
         super(width, height, color1, color2, scale);
+        this.scales = [this.scale, this.scale * 2, this.scale * 4];
+        this.coeficients = [1.5, 0.75, 0.75];
+        this.gradients = [];
+        for (let i = 0; i < 9; ++i) {
+            this.gradients.push(new PerlinGradient(this.width * this.scales[i % 3], this.height * this.scales[i % 3]));
+        }
     }
-    generateImage() {
-        let tex = new PreRenderedImage(this.width, this.height);
-        let scales = [
-            this.scale,
-            this.scale * 2,
-            this.scale * 4
-        ];
-        let grads = [
-            new PerlinGradient(this.width * scales[0], this.height * scales[0]),
-            new PerlinGradient(this.width * scales[1], this.height * scales[1]),
-            new PerlinGradient(this.width * scales[2], this.height * scales[2]),
-            new PerlinGradient(this.width * scales[0], this.height * scales[0]),
-            new PerlinGradient(this.width * scales[1], this.height * scales[1]),
-            new PerlinGradient(this.width * scales[2], this.height * scales[2]),
-            new PerlinGradient(this.width * scales[0], this.height * scales[0]),
-            new PerlinGradient(this.width * scales[1], this.height * scales[1]),
-            new PerlinGradient(this.width * scales[2], this.height * scales[2])
-        ];
-        function granulate(value, steps) {
-            return Math.floor(value * steps) / steps + 1 / steps / 2;
+    _getColor(x, y) {
+        let _x = x * this.scale, _y = y * this.scale;
+        for (let i = 0; i < 3; ++i) {
+            _x += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
+            _y += this.perlin(this.gradients[i + 3], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
         }
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                let _x = x * this.scale
-                    + this.perlin(grads[0], x * scales[0], y * scales[0]) * 1.5
-                    + this.perlin(grads[1], x * scales[1], y * scales[1]) * 0.75
-                    + this.perlin(grads[2], x * scales[2], y * scales[2]) * 0.75;
-                let _y = y * this.scale
-                    + this.perlin(grads[3], x * scales[0], y * scales[0]) * 1.5
-                    + this.perlin(grads[4], x * scales[1], y * scales[1]) * 0.75
-                    + this.perlin(grads[5], x * scales[2], y * scales[2]) * 0.75;
-                tex.ctx.fillStyle = this.color.lerp(this.color2, (granulate(this.perlin(grads[6], _x, _y), 4) * 0.7 +
-                    granulate(this.perlin(grads[7], _x * 2, _y * 2), 5) * 0.2 +
-                    granulate(this.perlin(grads[8], _x * 4, _y * 4), 6) * 0.1) / 2 + 0.5).toCss();
-                tex.ctx.fillRect(x, y, 1, 1);
-            }
-        }
-        return tex.image;
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), (Utils.granulate(this.perlin(this.gradients[6], _x, _y), 4) * 0.7 +
+            Utils.granulate(this.perlin(this.gradients[7], _x * 2, _y * 2), 5) * 0.2 +
+            Utils.granulate(this.perlin(this.gradients[8], _x * 4, _y * 4), 6) * 0.1) / 2 + 0.5);
     }
 }
 /// <reference path='Utils.ts'/>
@@ -1310,8 +1237,8 @@ class FireTurret extends Turret {
     }
     static init() {
         let c = new PreRenderedImage(64, 64);
-        let texLava = new CellularTextureGenerator(64, 64, 36, RgbaColorSource.fromHex("#FF5020"), RgbaColorSource.fromHex("#C00000"), CellularTextureType.Balls);
-        let texRock = new CellularTextureGenerator(64, 64, 144, RgbaColorSource.fromHex("#662D22"), RgbaColorSource.fromHex("#44150D"), CellularTextureType.Balls);
+        let texLava = new CellularTextureGenerator(64, 64, 36, RgbaColor.fromHex("#FF5020").source(), RgbaColor.fromHex("#C00000").source(), CellularTextureType.Balls);
+        let texRock = new CellularTextureGenerator(64, 64, 144, RgbaColor.fromHex("#662D22").source(), RgbaColor.fromHex("#44150D").source(), CellularTextureType.Balls);
         let renderable = new RenderablePathSet();
         let path = new Path2D();
         for (let k = 0; k < 36; ++k) {
@@ -1385,8 +1312,8 @@ class WaterTurret extends Turret {
         }
     }
     static init() {
-        let sandTex = new NoiseTextureGenerator(64, 64, RgbaColorSource.fromHex("#F2EBC1"), 0.08, 0, 1).generateImage();
-        let groundTex = new NoiseTextureGenerator(64, 64, RgbaColorSource.fromHex("#B9B5A0"), 0.05, 0, 1).generateImage();
+        let sandTex = new NoiseTextureGenerator(64, 64, RgbaColor.fromHex("#F2EBC1").source(), 0.08, 0, 1).generateImage();
+        let groundTex = new NoiseTextureGenerator(64, 64, RgbaColor.fromHex("#B9B5A0").source(), 0.05, 0, 1).generateImage();
         let c0 = new PreRenderedImage(64, 64);
         let c1 = new PreRenderedImage(64, 64);
         let c2 = new PreRenderedImage(64, 64);
@@ -1397,7 +1324,7 @@ class WaterTurret extends Turret {
         WaterTurret.images = [c0.image, c1.image, c2.image, c3.image];
     }
     static preRender(groundTex, sandTex) {
-        let waterTex = new CellularTextureGenerator(64, 64, Utils.randInt(16, 36), RgbaColorSource.fromHex("#3584CE"), RgbaColorSource.fromHex("#3EB4EF"), CellularTextureType.Balls).generateImage();
+        let waterTex = new CellularTextureGenerator(64, 64, Utils.randInt(16, 36), RgbaColor.fromHex("#3584CE").source(), RgbaColor.fromHex("#3EB4EF").source(), CellularTextureType.Balls).generateImage();
         let textures = [groundTex, sandTex, waterTex];
         let pts = [[], [], []];
         for (let i = 0; i < 8; ++i) {
@@ -1475,7 +1402,7 @@ class IceTurret extends Turret {
         }
     }
     static init() {
-        let tex = new CellularTextureGenerator(64, 64, 64, RgbaColorSource.fromHex("#D1EFFF"), RgbaColorSource.fromHex("#70BECC"), CellularTextureType.Lava);
+        let tex = new CellularTextureGenerator(64, 64, 64, RgbaColor.fromHex("#D1EFFF").source(), RgbaColor.fromHex("#70BECC").source(), CellularTextureType.Lava);
         let c0 = new PreRenderedImage(64, 64);
         let c1 = new PreRenderedImage(64, 64);
         let c2 = new PreRenderedImage(64, 64);
@@ -1585,7 +1512,7 @@ class AcidTurret extends Turret {
         }
     }
     static init() {
-        let acidTex = new CellularTextureGenerator(64, 64, 9, RgbaColorSource.fromHex("#E0FF00"), RgbaColorSource.fromHex("#5B7F00"), CellularTextureType.Balls).generateImage();
+        let acidTex = new CellularTextureGenerator(64, 64, 9, RgbaColor.fromHex("#E0FF00").source(), RgbaColor.fromHex("#5B7F00").source(), CellularTextureType.Balls).generateImage();
         AcidTurret.images = [];
         AcidTurret.frameCount = 100;
         for (let i = 0; i < AcidTurret.frameCount; ++i) {
@@ -2008,16 +1935,19 @@ class PlasmaTurret extends Turret {
     }
     step(time) {
         super.step(time);
-        this.angle += time * Angle.deg90;
+        this.angle += time * Angle.deg45;
     }
     render(ctx, preRender) {
         super.render(ctx, preRender);
         if (preRender) {
             return;
         }
+        let variant = (this.type.count() - 3) * 2;
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
-        ctx.drawImage(PlasmaTurret.image, -32, -32);
+        ctx.drawImage(PlasmaTurret.images[variant], -32, -32);
+        ctx.rotate(-2 * this.angle);
+        ctx.drawImage(PlasmaTurret.images[variant + 1], -32, -32);
         ctx.resetTransform();
     }
     addType(type) {
@@ -2036,8 +1966,14 @@ class PlasmaTurret extends Turret {
         }
     }
     static init() {
-        let tex = new CirclesTextureGenerator(64, 64, RgbaColorSource.fromHex("#889FFF40"), RgbaColorSource.fromHex("#BF9BFF"), RgbaColorSource.fromHex("#889FFF00"), 0.25, 3).generateImage();
-        PlasmaTurret.image = tex;
+        let background = RgbaColor.fromHex("#889FFF00").source();
+        let color1 = new PerlinNoiseTextureGenerator(64, 64, RgbaColor.fromHex("#8C8CFF").source(), RgbaColor.fromHex("#A3C6FF").source(), 0.5);
+        let tex1a = new CirclesTextureGenerator(64, 64, RgbaColor.fromHex("#889FFF40").source(), color1, background, 0.4, 2).generateImage();
+        let tex1b = new CirclesTextureGenerator(64, 64, RgbaColor.fromHex("#889FFF40").source(), color1, background, 0.28, 3).generateImage();
+        let color2 = new PerlinNoiseTextureGenerator(64, 64, RgbaColor.fromHex("#B28CFF").source(), RgbaColor.fromHex("#DAC6FF").source(), 0.5);
+        let tex2a = new CirclesTextureGenerator(64, 64, color2, background, background, 0.4, 2).generateImage();
+        let tex2b = new CirclesTextureGenerator(64, 64, color2, background, background, 0.28, 3).generateImage();
+        PlasmaTurret.images = [tex1a, tex2a, tex1b, tex2b];
     }
 }
 class EarthquakeTurret extends Turret {
@@ -2251,7 +2187,7 @@ class Tile extends GameItem {
         }
     }
     static init() {
-        Tile.grass = new NoiseTextureGenerator(64, 64, RgbaColorSource.fromHex("#5BA346"), 0.075, 0, 0.25).generateImage();
+        Tile.grass = new NoiseTextureGenerator(64, 64, RgbaColor.fromHex("#5BA346").source(), 0.075, 0, 0.25).generateImage();
     }
 }
 class Game {
@@ -2488,7 +2424,7 @@ class Game {
         let y = this.height - 192;
         let path1 = new Path2D();
         path1.rect(x + 36, y + 36, 120, 120);
-        let tex = new CellularTextureGenerator(192, 192, 144, RgbaColorSource.fromHex("#82614F"), RgbaColorSource.fromHex("#997663"), CellularTextureType.Balls);
+        let tex = new CellularTextureGenerator(192, 192, 144, RgbaColor.fromHex("#82614F").source(), RgbaColor.fromHex("#997663").source(), CellularTextureType.Balls);
         this.castle.pushNew(path1, this.ctx.createPattern(tex.generateImage(), "repeat"));
         let path2 = new Path2D();
         path2.rect(x + 6, y + 6, 60, 60);
@@ -2568,54 +2504,88 @@ class Game {
     }
     preRender() {
         let c = new PreRenderedImage(this.width, this.height);
-        let tex1 = new PerlinNoiseTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage();
-        let tex2 = new CloudsTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage();
-        let tex3 = new VelvetTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage();
-        let tex4 = new GlassTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage();
-        let tex5 = new BarkTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage();
-        let tex6 = new CirclesTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#5050FF"), RgbaColorSource.fromHex("#90C0FF"), RgbaColorSource.fromHex("#5050FF00"), 1, 4).generateImage();
-        let tex7 = new FrostedGlassTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage();
-        let tex8 = new CamouflageTextureGenerator(this.width / 4, this.height / 2, RgbaColorSource.fromHex("#2020FF"), RgbaColorSource.fromHex("#C0FFFF")).generateImage();
-        c.ctx.drawImage(tex1, 0, 0);
-        c.ctx.drawImage(tex2, this.width / 4, 0);
-        c.ctx.drawImage(tex3, this.width / 2, 0);
-        c.ctx.drawImage(tex4, this.width / 4 * 3, 0);
-        c.ctx.drawImage(tex5, 0, this.height / 2);
-        c.ctx.drawImage(tex6, this.width / 4, this.height / 2);
-        c.ctx.drawImage(tex7, this.width / 2, this.height / 2);
-        c.ctx.drawImage(tex8, this.width / 4 * 3, this.height / 2);
-        /*c.ctx.fillStyle = "#C0C0C0"
-        c.ctx.fillRect(0, 0, this.width, this.height)
+        /*let tex1 = new PerlinNoiseTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
+        let tex2 = new CloudsTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
+        let tex3 = new VelvetTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
+        let tex4 = new GlassTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
+        let tex5 = new BarkTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
+        let tex6 = new CirclesTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#5050FF").source(),
+            RgbaColor.fromHex("#90C0FF").source(),
+            RgbaColor.fromHex("#5050FF00").source(),
+            1, 4
+        ).generateImage()
+        let tex7 = new FrostedGlassTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
+        let tex8 = new CamouflageTextureGenerator(
+            this.width / 4, this.height / 2,
+            RgbaColor.fromHex("#2020FF").source(),
+            RgbaColor.fromHex("#C0FFFF").source()
+        ).generateImage()
+        c.ctx.drawImage(tex1, 0, 0)
+        c.ctx.drawImage(tex2, this.width / 4, 0)
+        c.ctx.drawImage(tex3, this.width / 2, 0)
+        c.ctx.drawImage(tex4, this.width / 4 * 3, 0)
+        c.ctx.drawImage(tex5, 0, this.height / 2)
+        c.ctx.drawImage(tex6, this.width / 4, this.height / 2)
+        c.ctx.drawImage(tex7, this.width / 2, this.height / 2)
+        c.ctx.drawImage(tex8, this.width / 4 * 3, this.height / 2)*/
+        c.ctx.fillStyle = "#C0C0C0";
+        c.ctx.fillRect(0, 0, this.width, this.height);
         for (let x = 0; x < this.mapWidth; ++x) {
             for (let y = 0; y < this.mapHeight; ++y) {
-                this.map[x][y].render(c.ctx, true)
+                this.map[x][y].render(c.ctx, true);
             }
         }
-        c.ctx.fillStyle = "#B5947E"
-        c.ctx.fillRect(this.guiPanel.x, this.height - 192, 192, 192)
-        c.ctx.fillStyle = "#606060"
-        c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h)
-        c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2)
-        this.castle.render(c.ctx)*/
+        c.ctx.fillStyle = "#B5947E";
+        c.ctx.fillRect(this.guiPanel.x, this.height - 192, 192, 192);
+        c.ctx.fillStyle = "#606060";
+        c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h);
+        c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2);
+        this.castle.render(c.ctx);
         c.saveImage("textures");
         this.preRendered = c.image;
     }
     render() {
         this.ctx.drawImage(this.preRendered, 0, 0);
-        /*for (let x = 0; x < this.mapWidth; ++x) {
+        for (let x = 0; x < this.mapWidth; ++x) {
             for (let y = 0; y < this.mapHeight; ++y) {
-                this.map[x][y].render(this.ctx, false)
+                this.map[x][y].render(this.ctx, false);
             }
         }
-        this.particles.render(this.ctx, false)
-        let fps = this.performanceMeter.getFps()
+        this.particles.render(this.ctx, false);
+        let fps = this.performanceMeter.getFps();
         if (!isNaN(fps)) {
-            this.ctx.fillStyle = "#000000"
-            this.ctx.textAlign = "right"
-            this.ctx.textBaseline = "top"
-            this.ctx.font = "bold 16px serif"
-            this.ctx.fillText(Math.floor(fps).toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 16)
-        }*/
+            this.ctx.fillStyle = "#000000";
+            this.ctx.textAlign = "right";
+            this.ctx.textBaseline = "top";
+            this.ctx.font = "bold 16px serif";
+            this.ctx.fillText(Math.floor(fps).toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 16);
+        }
     }
 }
 /// <reference path='Game.ts'/>
