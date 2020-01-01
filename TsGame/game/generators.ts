@@ -30,9 +30,9 @@ abstract class ColorSource {
         return tex.image
     }
 
-    static get(color: ColorSource | RgbaColor | string | null): ColorSource | null {
+    static get(color: ColorSource | RgbaColor | string | null): ColorSource {
         if (color === null) {
-            return null
+            return RgbaColor.transparent.source()
         } else if (color instanceof ColorSource) {
             return color
         } else if (color instanceof RgbaColor) {
@@ -40,7 +40,7 @@ abstract class ColorSource {
         } else if (Utils.isString(color)) {
             return RgbaColor.fromHex(color as string).source()
         } else {
-            return null
+            return RgbaColor.transparent.source()
         }
     }
 
@@ -50,9 +50,9 @@ class CanvasColorSource extends ColorSource {
 
     private ctx: CanvasRenderingContext2D
 
-    constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D | null) {
+    constructor(canvas: HTMLCanvasElement, ctx?: CanvasRenderingContext2D) {
         super(canvas.width, canvas.height)
-        this.ctx = ctx === null ? canvas.getContext("2d") : ctx
+        this.ctx = ctx === undefined ? canvas.getContext("2d") as CanvasRenderingContext2D : ctx
     }
 
     protected _getColor(x: number, y: number): RgbaColor {
@@ -109,7 +109,7 @@ class RgbaColor {
                 parseInt(color.substr(5, 2), 16),
                 a
             )
-        } else return null
+        } else throw new Error("Invalid color format")
     }
 
     private pr(): number { return this.r * this.a / 255 }

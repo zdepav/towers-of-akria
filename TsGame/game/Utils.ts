@@ -2,6 +2,10 @@
 
     static hex = "0123456789abcdef"
 
+    static sign(value: number): number {
+        return value < 0 ? -1 : value > 0 ? 1 : 0
+    }
+
     /**
      * @param min min value (inclusive)
      * @param max max value (inclusive)
@@ -178,15 +182,18 @@ class RenderablePathSet {
 
     paths: RenderablePath[]
 
-    constructor(paths: RenderablePath[] = null) {
-        this.paths = paths == null ? [] : paths
+    constructor(paths?: RenderablePath[]) {
+        this.paths = paths === undefined ? [] : paths
     }
 
     push(path: RenderablePath) {
         this.paths.push(path)
     }
 
-    pushNew(path: Path2D, fill: string | CanvasPattern | CanvasGradient) {
+    pushNew(path: Path2D, fill: string | CanvasPattern | CanvasGradient | null) {
+        if (fill === null) {
+            return
+        }
         this.paths.push(new RenderablePath(path, fill))
     }
 
@@ -194,6 +201,19 @@ class RenderablePathSet {
         for (let i = 0; i < this.paths.length; ++i) {
             this.paths[i].render(ctx)
         }
+    }
+
+    pushPolygon(points: number[], fill: string | CanvasPattern | CanvasGradient | null, originX: number = 0, originY: number = 0) {
+        if (fill === null || points.length % 2 !== 0 || points.length < 6) {
+            return
+        }
+        let path = new Path2D()
+        path.moveTo(originX + points[0], originY + points[1])
+        for (let i = 2; i < points.length; i += 2) {
+            path.lineTo(originX + points[i], originY + points[i + 1])
+        }
+        path.closePath()
+        this.paths.push(new RenderablePath(path, fill))
     }
 
 }
@@ -207,7 +227,7 @@ class PreRenderedImage {
         let canvas = document.createElement("canvas")
         canvas.width = width
         canvas.height = height
-        this.ctx = canvas.getContext("2d")
+        this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D
         this.image = canvas
     }
 
@@ -240,7 +260,7 @@ class PerformanceMeter {
         this.queue.push(fps)
         this.sum += fps
         if (this.queue.length > 100) {
-            this.sum -= this.queue.shift()
+            this.sum -= this.queue.shift() as number
         }
     }
 
@@ -324,6 +344,14 @@ class Vec2 {
         return this.x === 0 && this.y === 0
     }
 
+    equals(v: Vec2): boolean {
+        return this.x === v.x && this.y === v.y
+    }
+
+    toString(): string {
+        return `${this.x};${this.y}`
+    }
+
     static randUnit(): Vec2 {
         let a = Angle.rand()
         return new Vec2(Utils.ldx(1, a), Utils.ldy(1, a))
@@ -337,15 +365,67 @@ class Vec2 {
 
 Vec2.init()
 
+class Vec2Set {
+
+    private data: { [value: string]: Vec2 }
+
+    size: number
+
+    constructor() {
+        this.data = {}
+        this.size = 0
+    }
+
+    add(value: Vec2): boolean {
+        let s = value.toString()
+        if (this.data[s] !== undefined) {
+            return false
+        } else {
+            this.data[s] = value
+            ++this.size
+            return true
+        }
+    }
+
+    contains(value: Vec2) {
+        return this.data[value.toString()] !== undefined
+    }
+
+    remove(value: Vec2): boolean {
+        let s = value.toString()
+        if (this.data[s] !== undefined) {
+            delete this.data[value.toString()]
+            --this.size
+            return true
+        } else {
+            return false
+        }
+    }
+
+    values(): Vec2[] {
+        let r: Vec2[] = []
+        for (var v in this.data) {
+            r.push(this.data[v])
+        }
+        return r
+    }
+
+}
+
 class DijkstraNode {
 
     pos: Vec2
-    previous: DijkstraNode
+    previous: DijkstraNode | null
     distance: number
 
-    constructor(x: number, y: number, previous: DijkstraNode) {
-        this.previous = previous
-        this.distance = previous == null ? 0 : previous.distance + 1
+    constructor(x: number, y: number, previous?: DijkstraNode) {
+        if (previous === undefined) {
+            this.previous = null
+            this.distance = 0
+        } else {
+            this.previous = previous
+            this.distance = previous.distance + 1
+        }
         this.pos = new Vec2(x, y)
     }
 

@@ -9,8 +9,8 @@ class TurretType {
 
     private type: number[]
 
-    constructor(type: number[] = null) {
-        this.type = type === null ? [0, 0, 0, 0] : type
+    constructor(type?: number[]) {
+        this.type = type === undefined ? [0, 0, 0, 0] : type
     }
 
     copy(): TurretType { return new TurretType(this.type.slice()) }

@@ -19,13 +19,12 @@ class Tile {
     private static spawnTex: CanvasImageSource
     static pathTex: CanvasImageSource
 
-    private groundFill: string | CanvasPattern | CanvasGradient
     private decor: RenderablePathSet
 
     game: Game
     pos: Vec2
     type: TileType
-    turret: Turret
+    turret: Turret | null
 
     constructor(game: Game, x: number, y: number, type: TileType, ctx: CanvasRenderingContext2D) {
         this.game = game
@@ -33,29 +32,7 @@ class Tile {
         this.turret = null
         this.pos = new Vec2(x, y)
         this.decor = new RenderablePathSet()
-        switch (type) {
-            case TileType.Empty:
-                this.groundFill = ctx.createPattern(Tile.grassTex, "repeat") // "#5BA346"
-                break
-            case TileType.Path:
-                this.groundFill = ctx.createPattern(Tile.pathTex, "repeat") // "#B5947E"
-                break
-            case TileType.Spawn:
-                this.groundFill = ctx.createPattern(Tile.spawnTex, "repeat")
-                /*  let spawnGradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32)
-                    spawnGradient.addColorStop(0, "#E77B65")
-                    spawnGradient.addColorStop(1, "#B5947E")
-                    this.groundFill = spawnGradient */
-                break
-            case TileType.HQ:
-                this.groundFill = ctx.createPattern(Tile.pathTex, "repeat") // "#B5947E"
-                break
-            case TileType.Tower:
-                this.groundFill = "#808080"
-                this.turret = new Turret(this)
-                break
-        }
-        if (this.type === TileType.Path || this.type === TileType.Spawn || this.type === TileType.HQ) {
+        if (type === TileType.Path || type === TileType.Spawn || type === TileType.HQ) {
             let path = new Path2D()
             for (let i = 0; i < 4; ++i) {
                 for (let j = 0; j < 4; ++j) {
@@ -75,7 +52,7 @@ class Tile {
                     }
                 }
             }
-            if (this.type === TileType.Spawn) {
+            if (type === TileType.Spawn) {
                 let gradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32)
                 gradient.addColorStop(0, "#CB5E48")
                 gradient.addColorStop(1, "#997761")
@@ -83,7 +60,7 @@ class Tile {
             } else {
                 this.decor.pushNew(path, "#997761")
             }
-        } else if (this.type === TileType.Empty) {
+        } else if (type === TileType.Empty) {
             let path1 = new Path2D()
             let path2 = new Path2D()
             for (let i = 0; i < 3; ++i) {
@@ -103,43 +80,12 @@ class Tile {
             }
             this.decor.pushNew(path1, "#337F1C")
             this.decor.pushNew(path2, "#479131")
-        } else if (this.type === TileType.Tower) {
-            let path1 = new Path2D()
-            path1.moveTo(x, y)
-            path1.lineTo(x + 62, y)
-            path1.lineTo(x + 62, y + 2)
-            path1.lineTo(x + 2, y + 2)
-            path1.lineTo(x + 2, y + 62)
-            path1.lineTo(x, y + 62)
-            path1.closePath()
-            this.decor.pushNew(path1, "#A0A0A0")
-            let path2 = new Path2D()
-            path2.moveTo(x + 62, y + 2)
-            path2.lineTo(x + 64, y + 2)
-            path2.lineTo(x + 64, y + 64)
-            path2.lineTo(x + 2, y + 64)
-            path2.lineTo(x + 2, y + 62)
-            path2.lineTo(x + 62, y + 62)
-            path2.closePath()
-            this.decor.pushNew(path2, "#606060")
-            let path3 = new Path2D()
-            path3.moveTo(x + 56, y + 8)
-            path3.lineTo(x + 58, y + 8)
-            path3.lineTo(x + 58, y + 58)
-            path3.lineTo(x + 8, y + 58)
-            path3.lineTo(x + 8, y + 56)
-            path3.lineTo(x + 56, y + 56)
-            path3.closePath()
-            this.decor.pushNew(path3, "#909090")
-            let path4 = new Path2D()
-            path4.moveTo(x + 6, y + 6)
-            path4.lineTo(x + 56, y + 6)
-            path4.lineTo(x + 56, y + 8)
-            path4.lineTo(x + 8, y + 8)
-            path4.lineTo(x + 8, y + 56)
-            path4.lineTo(x + 6, y + 56)
-            path4.closePath()
-            this.decor.pushNew(path4, "#707070")
+        } else if (type === TileType.Tower) {
+            this.decor.pushPolygon([0, 0, 62, 0, 62, 2, 2, 2, 2, 62, 0, 62], "#A0A0A0", x, y)
+            this.decor.pushPolygon([62, 2, 64, 2, 64, 64, 2, 64, 2, 62, 62, 62], "#606060", x, y)
+            this.decor.pushPolygon([56, 8, 58, 8, 58, 58, 8, 58, 8, 56, 56, 56], "#909090", x, y)
+            this.decor.pushPolygon([6, 6, 56, 6, 56, 8, 8, 8, 8, 56, 6, 56], "#707070", x, y)
+            this.turret = new Turret(this)
         }
     }
 
@@ -151,8 +97,24 @@ class Tile {
 
     render(ctx: CanvasRenderingContext2D, preRender: boolean) {
         if (preRender) {
-            ctx.fillStyle = this.groundFill
-            ctx.fillRect(this.pos.x, this.pos.y, 64, 64)
+            switch (this.type) {
+                case TileType.Empty:
+                    ctx.drawImage(Tile.grassTex, this.pos.x, this.pos.y)
+                    break
+                case TileType.Path:
+                    ctx.drawImage(Tile.pathTex, this.pos.x, this.pos.y)
+                    break
+                case TileType.Spawn:
+                    ctx.drawImage(Tile.spawnTex, this.pos.x, this.pos.y)
+                    break
+                case TileType.HQ:
+                    ctx.drawImage(Tile.pathTex, this.pos.x, this.pos.y)
+                    break
+                case TileType.Tower:
+                    ctx.fillStyle = "#808080"
+                    ctx.fillRect(this.pos.x, this.pos.y, 64, 64)
+                    break
+            }
             this.decor.render(ctx)
         } else if (this.type === TileType.Tower && this.turret != null) {
             this.turret.render(ctx, preRender)
@@ -177,7 +139,9 @@ class Tile {
         Tile.spawnTex = grad.generateImage()
     }
 
-    onClick(button: MouseButton, x: number, y: number) { }
+    onClick(button: MouseButton, x: number, y: number) {
+
+    }
 
 }
 
@@ -194,16 +158,18 @@ class Game {
     private time: number
     private performanceMeter: PerformanceMeter
     private mousePosition: Vec2
-    private selectedTurretElement: TurretElement | null
+    private selectedTile: Vec2 | null
+    private mouseButton: MouseButton | null
 
     mapWidth: number
     mapHeight: number
     width: number
     height: number
     particles: ParticleSystem
+    selectedTurretElement: TurretElement | null
 
     constructor(canvas: HTMLCanvasElement) {
-        this.ctx = canvas.getContext("2d")
+        this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D
         this.canvas = canvas
         this.prevTime = new Date().getTime()
         this.time = 0
@@ -211,6 +177,8 @@ class Game {
         this.performanceMeter = new PerformanceMeter()
         this.particles = new ParticleSystem(this)
         this.selectedTurretElement = null
+        this.selectedTile = null
+        this.mouseButton = null
 
         let canvasWidth = canvas.width
         let mapWidth = Math.floor(canvasWidth / 64) - 3
@@ -237,23 +205,22 @@ class Game {
             e.preventDefault()
             return false;
         }, false)
-        let g = this
-        this.canvas.addEventListener("mousemove", (e: MouseEvent) => g.onMouseMove(e), false)
-        this.canvas.addEventListener("mousedown", (e: MouseEvent) => g.onMouseDown(e), false)
-        this.canvas.addEventListener("mouseup", (e: MouseEvent) => g.onMouseUp(e), false)
-        this.canvas.addEventListener("keydown", (e: KeyboardEvent) => g.onKeyDown(e), false)
-        this.canvas.addEventListener("keyup", (e: KeyboardEvent) => g.onKeyUp(e), false)
+        this.canvas.addEventListener("mousemove", this.onMouseMove, false)
+        this.canvas.addEventListener("mousedown", this.onMouseDown, false)
+        this.canvas.addEventListener("mouseup", this.onMouseUp, false)
+        this.canvas.addEventListener("keydown", this.onKeyDown, false)
+        this.canvas.addEventListener("keyup", this.onKeyUp, false)
     }
 
     private generateMap() {
         let mapGen: TileType[][] = []
-        this.map = []
-        let dijkstraMap: DijkstraNode[][] = []
-        let wallGens: Set<Vec2> = new Set<Vec2>()
+        let map: (Tile | null)[][] = []
+        let dijkstraMap: (DijkstraNode | null)[][] = []
+        let wallGens = new Vec2Set()
         for (let x = 0; x < this.mapWidth; ++x) {
-            var columnDijkstra: DijkstraNode[] = []
+            var columnDijkstra: (DijkstraNode | null)[] = []
             var columnGen: TileType[] = []
-            var column: Tile[] = []
+            var column: (Tile | null)[] = []
             for (let y = 0; y < this.mapHeight; ++y) {
                 if (x === 0 || x === this.mapWidth - 1 || y === 0 || y === this.mapHeight - 1) {
                     columnGen.push(TileType.Empty)
@@ -268,10 +235,10 @@ class Game {
             }
             mapGen.push(columnGen)
             dijkstraMap.push(columnDijkstra)
-            this.map.push(column)
+            map.push(column)
         }
         while (wallGens.size > 0) {
-            let wg: Vec2
+            let wg: Vec2 = Vec2.zero
             let i = Math.random() * wallGens.size
             for (const _wg of wallGens.values()) {
                 if (i < 1) {
@@ -281,7 +248,7 @@ class Game {
                     i -= 1
                 }
             }
-            wallGens.delete(wg)
+            wallGens.remove(wg)
             if (mapGen[wg.x][wg.y] !== TileType.WallGen) {
                 continue
             }
@@ -312,11 +279,11 @@ class Game {
         }
         let startY = 1 + 2 * Math.floor((this.mapHeight - 1) / 2 * Math.random())
         let endY = this.mapHeight - 2
-        let startNode = new DijkstraNode(1, startY, null)
+        let startNode = new DijkstraNode(1, startY)
         dijkstraMap[1][0] = startNode
         let queue = [dijkstraMap[1][0]]
         while (queue.length > 0) {
-            let dn = queue.shift()
+            let dn: DijkstraNode | null = queue.shift() as DijkstraNode
             let x = dn.pos.x
             let y = dn.pos.y
             if (x === this.mapWidth - 2 && y === endY) {
@@ -352,11 +319,11 @@ class Game {
         for (let x = 0; x < this.mapWidth; ++x) {
             for (let y = 0; y < this.mapHeight; ++y) {
                 if (mapGen[x][y] === TileType.Spawn) {
-                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Spawn, this.ctx)
+                    map[x][y] = new Tile(this, x * 64, y * 64, TileType.Spawn, this.ctx)
                 } else if (mapGen[x][y] === TileType.HQ) {
-                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.HQ, this.ctx)
+                    map[x][y] = new Tile(this, x * 64, y * 64, TileType.HQ, this.ctx)
                 } else if (mapGen[x][y] === TileType.Path) {
-                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Path, this.ctx)
+                    map[x][y] = new Tile(this, x * 64, y * 64, TileType.Path, this.ctx)
                 } else if (
                     (x > 0 && mapGen[x - 1][y] === TileType.Path) ||
                     (y > 0 && mapGen[x][y - 1] === TileType.Path) ||
@@ -367,136 +334,52 @@ class Game {
                     (x > 0 && y < this.mapHeight - 1 && mapGen[x - 1][y + 1] === TileType.Path) ||
                     (x < this.mapWidth - 1 && y < this.mapHeight - 1 && mapGen[x + 1][y + 1] === TileType.Path)
                 ) {
-                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Tower, this.ctx)
-                    let r = Math.random()
-                    /*if (r < 0.8) {
-                        this.map[x][y].turret.addType(TurretElement.Earth)
-                    }
-                    if (r < 0.6) {
-                        this.map[x][y].turret.addType(TurretElement.Earth)
-                    }
-                    if (r < 0.4) {
-                        this.map[x][y].turret.addType(TurretElement.Earth)
-                    }
-                    if (r < 0.2) {
-                        this.map[x][y].turret.addType(TurretElement.Earth)
-                    }*/
-                    let t = this.map[x][y].turret
-                    if (r < 0.2) {
-                        t.addType(TurretElement.Air)
-                    } else if (r < 0.4) {
-                        t.addType(TurretElement.Earth)
-                    } else if (r < 0.6) {
-                        t.addType(TurretElement.Fire)
-                    } else if (r < 0.8) {
-                        t.addType(TurretElement.Water)
-                    }
-                    r = Math.random()
-                    t = this.map[x][y].turret
-                    if (r < 0.15) {
-                        t.addType(TurretElement.Air)
-                    } else if (r < 0.3) {
-                        t.addType(TurretElement.Earth)
-                    } else if (r < 0.45) {
-                        t.addType(TurretElement.Fire)
-                    } else if (r < 0.6) {
-                        t.addType(TurretElement.Water)
-                    }
-                    r = Math.random()
-                    t = this.map[x][y].turret
-                    if (r < 0.1) {
-                        t.addType(TurretElement.Air)
-                    } else if (r < 0.2) {
-                        t.addType(TurretElement.Earth)
-                    } else if (r < 0.3) {
-                        t.addType(TurretElement.Fire)
-                    } else if (r < 0.4) {
-                        t.addType(TurretElement.Water)
-                    }
-                    r = Math.random()
-                    t = this.map[x][y].turret
-                    if (r < 0.05) {
-                        t.addType(TurretElement.Air)
-                    } else if (r < 0.1) {
-                        t.addType(TurretElement.Earth)
-                    } else if (r < 0.15) {
-                        t.addType(TurretElement.Fire)
-                    } else if (r < 0.2) {
-                        t.addType(TurretElement.Water)
-                    }
+                    map[x][y] = new Tile(this, x * 64, y * 64, TileType.Tower, this.ctx)
                 } else {
-                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Empty, this.ctx)
+                    map[x][y] = new Tile(this, x * 64, y * 64, TileType.Empty, this.ctx)
                 }
             }
         }
+        this.map = map as Tile[][] // all tiles are initialized by now
     }
 
     private generateCastle() {
         this.castle = new RenderablePathSet()
         let x = this.guiPanel.x
         let y = this.height - 192
-        let path1 = new Path2D()
-        path1.rect(x + 36, y + 36, 120, 120)
+        let path = new Path2D()
+        path.rect(x + 36, y + 36, 120, 120)
         let tex = new FrostedGlassTextureGenerator(192, 192, "#82614F", "#997663", 0.5)
-        this.castle.pushNew(path1, this.ctx.createPattern(tex.generateImage(), "repeat"))
-        let path2 = new Path2D()
-        path2.rect(x + 6, y + 6, 60, 60)
-        path2.rect(x + 126, y + 6, 60, 60)
-        path2.rect(x + 6, y + 126, 60, 60)
-        path2.rect(x + 126, y + 126, 60, 60)
-        path2.rect(x + 30, y + 66, 12, 60)
-        path2.rect(x + 66, y + 30, 60, 12)
-        path2.rect(x + 150, y + 66, 12, 60)
-        path2.rect(x + 66, y + 150, 60, 12)
-        this.castle.pushNew(path2, "#505050")
-        let path3 = new Path2D()
-        path3.rect(x + 18, y + 18, 36, 36)
-        path3.rect(x + 138, y + 18, 36, 36)
-        path3.rect(x + 18, y + 138, 36, 36)
-        path3.rect(x + 138, y + 138, 36, 36)
-        this.castle.pushNew(path3, "#404040")
-        let path4 = new Path2D()
-        path4.rect(x + 6, y + 6, 12, 12)
-        path4.rect(x + 30, y + 6, 12, 12)
-        path4.rect(x + 54, y + 6, 12, 12)
-        path4.rect(x + 126, y + 6, 12, 12)
-        path4.rect(x + 150, y + 6, 12, 12)
-        path4.rect(x + 174, y + 6, 12, 12)
-        path4.rect(x + 6, y + 30, 12, 12)
-        path4.rect(x + 54, y + 30, 12, 12)
-        path4.rect(x + 78, y + 30, 12, 12)
-        path4.rect(x + 102, y + 30, 12, 12)
-        path4.rect(x + 126, y + 30, 12, 12)
-        path4.rect(x + 174, y + 30, 12, 12)
-        path4.rect(x + 6, y + 54, 12, 12)
-        path4.rect(x + 30, y + 54, 12, 12)
-        path4.rect(x + 54, y + 54, 12, 12)
-        path4.rect(x + 126, y + 54, 12, 12)
-        path4.rect(x + 150, y + 54, 12, 12)
-        path4.rect(x + 174, y + 54, 12, 12)
-        path4.rect(x + 30, y + 78, 12, 12)
-        path4.rect(x + 150, y + 78, 12, 12)
-        path4.rect(x + 30, y + 102, 12, 12)
-        path4.rect(x + 150, y + 102, 12, 12)
-        path4.rect(x + 6, y + 126, 12, 12)
-        path4.rect(x + 30, y + 126, 12, 12)
-        path4.rect(x + 54, y + 126, 12, 12)
-        path4.rect(x + 126, y + 126, 12, 12)
-        path4.rect(x + 150, y + 126, 12, 12)
-        path4.rect(x + 174, y + 126, 12, 12)
-        path4.rect(x + 6, y + 150, 12, 12)
-        path4.rect(x + 54, y + 150, 12, 12)
-        path4.rect(x + 78, y + 150, 12, 12)
-        path4.rect(x + 102, y + 150, 12, 12)
-        path4.rect(x + 126, y + 150, 12, 12)
-        path4.rect(x + 174, y + 150, 12, 12)
-        path4.rect(x + 6, y + 174, 12, 12)
-        path4.rect(x + 30, y + 174, 12, 12)
-        path4.rect(x + 54, y + 174, 12, 12)
-        path4.rect(x + 126, y + 174, 12, 12)
-        path4.rect(x + 150, y + 174, 12, 12)
-        path4.rect(x + 174, y + 174, 12, 12)
-        this.castle.pushNew(path4, "#606060")
+        this.castle.pushNew(path, this.ctx.createPattern(tex.generateImage(), "repeat"))
+        let points = [
+            [6, 6, 60, 60], [126, 6, 60, 60], [6, 126, 60, 60], [126, 126, 60, 60],
+            [30, 66, 12, 60], [66, 30, 60, 12], [150, 66, 12, 60], [66, 150, 60, 12]
+        ]
+        path = new Path2D()
+        for (let p of points) {
+            path.rect(x + p[0], y + p[1], p[2], p[3])
+        }
+        this.castle.pushNew(path, "#505050")
+        points = [[18, 18, 36, 36], [138, 18, 36, 36], [18, 138, 36, 36], [138, 138, 36, 36]]
+        path = new Path2D()
+        for (let p of points) {
+            path.rect(x + p[0], y + p[1], p[2], p[3])
+        }
+        this.castle.pushNew(path, "#404040")
+        points = [
+            [6, 6, 12, 12], [30, 6, 12, 12], [54, 6, 12, 12], [126, 6, 12, 12], [150, 6, 12, 12], [174, 6, 12, 12],
+            [6, 30, 12, 12], [54, 30, 12, 12], [78, 30, 12, 12], [102, 30, 12, 12], [126, 30, 12, 12], [174, 30, 12, 12],
+            [6, 54, 12, 12], [30, 54, 12, 12], [54, 54, 12, 12], [126, 54, 12, 12], [150, 54, 12, 12], [174, 54, 12, 12],
+            [30, 78, 12, 12], [150, 78, 12, 12], [30, 102, 12, 12], [150, 102, 12, 12],
+            [6, 126, 12, 12], [30, 126, 12, 12], [54, 126, 12, 12], [126, 126, 12, 12], [150, 126, 12, 12], [174, 126, 12, 12],
+            [6, 150, 12, 12], [54, 150, 12, 12], [78, 150, 12, 12], [102, 150, 12, 12], [126, 150, 12, 12], [174, 150, 12, 12],
+            [6, 174, 12, 12], [30, 174, 12, 12], [54, 174, 12, 12], [126, 174, 12, 12], [150, 174, 12, 12], [174, 174, 12, 12]
+        ]
+        path = new Path2D()
+        for (let p of points) {
+            path.rect(x + p[0], y + p[1], p[2], p[3])
+        }
+        this.castle.pushNew(path, "#606060")
     }
 
     run() {
@@ -518,7 +401,7 @@ class Game {
         this.time += timeDiff
     }
 
-    private onMouseMove(e: MouseEvent) {
+    private setMousePosition(e: MouseEvent) {
         var rect = this.canvas.getBoundingClientRect()
         this.mousePosition = new Vec2(
             Utils.clamp(Math.floor(e.clientX - rect.left), 0, this.width - 1),
@@ -526,15 +409,31 @@ class Game {
         )
     }
 
-    private onMouseDown(e: MouseEvent) {
-        this.onMouseMove(e)
+    private onMouseMove = (e: MouseEvent) => {
+        this.setMousePosition(e)
+        if (this.selectedTile == null) {
+            return
+        }
+        let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64))
+        if (!tp.equals(this.selectedTile)) {
+            this.selectedTile = null
+        }
+
     }
 
-    private onMouseUp(e: MouseEvent) {
-        this.onMouseMove(e)
+    private onMouseDown = (e: MouseEvent) => {
+        this.setMousePosition(e)
+        let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64))
+        if (tp.x < this.mapWidth && tp.y < this.mapHeight) {
+            this.selectedTile = tp
+        }
     }
 
-    private onKeyDown(e: KeyboardEvent) {
+    private onMouseUp = (e: MouseEvent) => {
+        this.setMousePosition(e)
+    }
+
+    private onKeyDown = (e: KeyboardEvent) => {
         switch (e.key.toUpperCase()) {
             case 'Q':
                 this.selectedTurretElement = TurretElement.Air
@@ -551,9 +450,7 @@ class Game {
         }
     }
 
-    private onKeyUp(e: KeyboardEvent) {
-
-    }
+    private onKeyUp = (e: KeyboardEvent) => { }
 
     private preRender() {
         let c = new PreRenderedImage(this.width, this.height)

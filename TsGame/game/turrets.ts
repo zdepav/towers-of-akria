@@ -14,12 +14,12 @@ class Turret {
 
     game: Game
 
-    constructor(tile: Tile, type: TurretType = null) {
+    constructor(tile: Tile, type?: TurretType) {
         this.game = tile.game
         this.tile = tile
         this.center = new Vec2(tile.pos.x + 32, tile.pos.y + 32)
         this.hp = 100
-        this.type = type === null ? new TurretType() : type
+        this.type = type === undefined ? new TurretType() : type
         this.cooldown = 0
     }
 
@@ -551,8 +551,7 @@ class WaterTurret extends Turret {
     private static preRender(groundTex: CanvasImageSource, sandTex: CanvasImageSource): PreRenderedImage {
         let waterTex = new CellularTextureGenerator(
             64, 64, Utils.randInt(16, 36),
-            "#3584CE",
-            "#3EB4EF",
+            "#3584CE", "#3EB4EF",
             CellularTextureType.Balls
         ).generateImage()
         let textures = [groundTex, sandTex, waterTex]
@@ -562,9 +561,9 @@ class WaterTurret extends Turret {
             let d1 = Utils.rand(d2 + 2, 24)
             let d0 = Utils.rand(d1, 24)
             let a = i * Angle.deg45
-            pts[0].push({ pt: Utils.ld(d0, a, 32, 32), pt_b: null, pt_a: null })
-            pts[1].push({ pt: Utils.ld(d1, a, 32, 32), pt_b: null, pt_a: null })
-            pts[2].push({ pt: Utils.ld(d2, a, 32, 32), pt_b: null, pt_a: null })
+            pts[0].push({ pt: Utils.ld(d0, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero })
+            pts[1].push({ pt: Utils.ld(d1, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero })
+            pts[2].push({ pt: Utils.ld(d2, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero })
         }
         for (let j = 0; j < 3; ++j) {
             let layer = pts[j]
@@ -595,7 +594,7 @@ class WaterTurret extends Turret {
                     o1.pt.x, o1.pt.y,
                 )
             }
-            ctx.fillStyle = ctx.createPattern(textures[j], "repeat")
+            ctx.fillStyle = ctx.createPattern(textures[j], "repeat") as CanvasPattern
             ctx.fill()
         }
         return c
@@ -624,7 +623,7 @@ class IceTurret extends Turret {
             return
         }
         let r = 24 + 2 * this.type.water() + 2 * this.type.air()
-        let i = Math.sign(this.type.water() - this.type.air()) + 1
+        let i = Utils.sign(this.type.water() - this.type.air()) + 1
         ctx.translate(this.center.x, this.center.y)
         ctx.rotate(this.angle)
         ctx.drawImage(IceTurret.images[i], -r, -r, r * 2, r * 2)
@@ -654,7 +653,7 @@ class IceTurret extends Turret {
         let c0 = new PreRenderedImage(64, 64)
         let c1 = new PreRenderedImage(64, 64)
         let c2 = new PreRenderedImage(64, 64)
-        let fill = c1.ctx.createPattern(tex.generateImage(), "no-repeat")
+        let fill = c1.ctx.createPattern(tex.generateImage(), "no-repeat") as CanvasPattern
         IceTurret.preRender(c1.ctx, fill, true)
         c0.ctx.drawImage(c1.image, 0, 0)
         IceTurret.preRender(c0.ctx, "#FFFFFF80")
@@ -815,7 +814,7 @@ class AcidTurret extends Turret {
             ctx.fillStyle = "#D0D0D0"
             ctx.fillRect(0, 1, w, w - 2)
             ctx.fillRect(1, 0, w - 2, w)
-            let pattern = ctx.createPattern(texture, "repeat")
+            let pattern = ctx.createPattern(texture, "repeat") as CanvasPattern
             pattern.setTransform(svg.createSVGMatrix().translate(-offset, 0))
             ctx.fillStyle = pattern
             ctx.fillRect(1, 1, w - 2, w - 2)
@@ -829,7 +828,7 @@ class AcidTurret extends Turret {
             ctx.rotate(Angle.deg90)
             ctx.drawImage(ca.image, 12, -4 - i)
             ctx.resetTransform()
-            pattern = ctx.createPattern(texture, "repeat")
+            pattern = ctx.createPattern(texture, "repeat") as CanvasPattern
             pattern.setTransform(svg.createSVGMatrix().translate(offset, offset))
             ctx.fillStyle = pattern
             ctx.beginPath()
@@ -1328,7 +1327,7 @@ class PlasmaTurret extends Turret {
                 new RotatingSource(64, 64, tex1, a, 32, 32),
                 new RotatingSource(64, 64, tex2, -a, 32, 32)
             )
-            ctx.fillStyle = ctx.createPattern(src.generateImage(), "repeat")
+            ctx.fillStyle = ctx.createPattern(src.generateImage(), "repeat") as CanvasPattern
             ctx.beginPath()
             ctx.arc(x + 32, y + 32, 30, 0, Angle.deg360)
             ctx.fill()

@@ -37,7 +37,7 @@
     <TypeScriptModuleKind>System</TypeScriptModuleKind>
     <TypeScriptCompileOnSaveEnabled>True</TypeScriptCompileOnSaveEnabled>
     <TypeScriptNoImplicitAny>True</TypeScriptNoImplicitAny>
-    <TypeScriptRemoveComments>False</TypeScriptRemoveComments>
+    <TypeScriptRemoveComments>True</TypeScriptRemoveComments>
     <TypeScriptOutFile>game.js</TypeScriptOutFile>
     <TypeScriptOutDir />
     <TypeScriptGeneratesDeclarations>False</TypeScriptGeneratesDeclarations>
@@ -71,6 +71,7 @@
   <ItemGroup>
     <Content Include="libman.json" />
     <None Include="packages.config" />
+    <Content Include="tsconfig.json" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
     </None>

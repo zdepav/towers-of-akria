@@ -1,24 +1,34 @@
-class Utils {
-    /**
-     * @param min min value (inclusive)
-     * @param max max value (inclusive)
-     */
-    static clamp(value, min, max) {
-        return value > max ? max : value < min ? min : value;
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var Utils = (function () {
+    function Utils() {
     }
-    /**
-     * @param min min value (inclusive)
-     * @param max max value (exclusive)
-     */
-    static wrap(value, min, max) {
+    Utils.sign = function (value) {
+        return value < 0 ? -1 : value > 0 ? 1 : 0;
+    };
+    Utils.clamp = function (value, min, max) {
+        return value > max ? max : value < min ? min : value;
+    };
+    Utils.wrap = function (value, min, max) {
         value -= min;
-        let range = max - min;
+        var range = max - min;
         if (value < 0) {
             value = range - (-value) % range;
         }
         return value % range + min;
-    }
-    static lerp(f1, f2, ammount) {
+    };
+    Utils.lerp = function (f1, f2, ammount) {
         if (ammount <= 0) {
             return f1;
         }
@@ -28,8 +38,8 @@ class Utils {
         else {
             return f1 + ammount * (f2 - f1);
         }
-    }
-    static lerpInt(f1, f2, ammount) {
+    };
+    Utils.lerpInt = function (f1, f2, ammount) {
         if (ammount <= 0) {
             return Math.floor(f1);
         }
@@ -39,8 +49,8 @@ class Utils {
         else {
             return Math.floor((1 - ammount) * Math.floor(f1) + ammount * (Math.floor(f2) + 0.9999));
         }
-    }
-    static interpolateSmooth(f1, f2, ammount) {
+    };
+    Utils.interpolateSmooth = function (f1, f2, ammount) {
         if (ammount <= 0) {
             return f1;
         }
@@ -50,85 +60,81 @@ class Utils {
         else {
             return f1 + (1 - Math.cos(ammount * Math.PI)) * 0.5 * (f2 - f1);
         }
-    }
-    static flatten(width, x, y) {
+    };
+    Utils.flatten = function (width, x, y) {
         return width * y + x;
-    }
-    // steps ~ number of values between 0 and 1
-    static granulate(value, steps) {
+    };
+    Utils.granulate = function (value, steps) {
         return Math.floor(value * steps) / steps + 1 / steps / 2;
-    }
-    static euclideanDistance(dx, dy) {
+    };
+    Utils.euclideanDistance = function (dx, dy) {
         return Math.sqrt(dx * dx + dy * dy);
-    }
-    static manhattanDistance(dx, dy) {
+    };
+    Utils.manhattanDistance = function (dx, dy) {
         return Math.abs(dx) + Math.abs(dy);
-    }
-    static chebyshevDistance(dx, dy) {
+    };
+    Utils.chebyshevDistance = function (dx, dy) {
         return Math.max(Math.abs(dx), Math.abs(dy));
-    }
-    static minkowskiDistance(dx, dy) {
-        let d = Math.sqrt(Math.abs(dx)) + Math.sqrt(Math.abs(dy));
+    };
+    Utils.minkowskiDistance = function (dx, dy) {
+        var d = Math.sqrt(Math.abs(dx)) + Math.sqrt(Math.abs(dy));
         return d * d;
-    }
-    static byteToHex(byte) {
+    };
+    Utils.byteToHex = function (byte) {
         byte = Utils.clamp(byte, 0, 255);
         return Utils.hex[Math.floor(byte / 16)] + Utils.hex[Math.floor(byte % 16)];
-    }
-    static ldx(distance, direction, startX = 0) {
+    };
+    Utils.ldx = function (distance, direction, startX) {
+        if (startX === void 0) { startX = 0; }
         return startX + distance * Math.cos(direction);
-    }
-    static ldy(distance, direction, startY = 0) {
+    };
+    Utils.ldy = function (distance, direction, startY) {
+        if (startY === void 0) { startY = 0; }
         return startY + distance * Math.sin(direction);
-    }
-    static ld(distance, direction, startX = 0, startY = 0) {
+    };
+    Utils.ld = function (distance, direction, startX, startY) {
+        if (startX === void 0) { startX = 0; }
+        if (startY === void 0) { startY = 0; }
         return new Vec2(startX + distance * Math.cos(direction), startY + distance * Math.sin(direction));
-    }
-    static rotatePoint(x, y, originX, originY, angle) {
+    };
+    Utils.rotatePoint = function (x, y, originX, originY, angle) {
         x -= originX;
         y -= originY;
-        let c = Math.cos(angle), s = Math.sin(angle);
+        var c = Math.cos(angle), s = Math.sin(angle);
         return new Vec2(x * c - y * s + originX, x * s + y * c + originY);
-    }
-    static getAngle(x1, y1, x2, y2) {
+    };
+    Utils.getAngle = function (x1, y1, x2, y2) {
         return Math.atan2(y2 - y1, x2 - x1);
-    }
-    static angleBetween(angle1, angle2) {
+    };
+    Utils.angleBetween = function (angle1, angle2) {
         angle1 %= Angle.deg360;
         angle2 %= Angle.deg360;
-        let diff = Math.abs(angle2 - angle1);
+        var diff = Math.abs(angle2 - angle1);
         if (diff <= Angle.deg180) {
             return (angle1 + angle2) / 2;
         }
         else {
             return ((angle1 + angle2) / 2 + Angle.deg180) % Angle.deg360;
         }
-    }
-    /**
-     * @param min min value (inclusive)
-     * @param max max value (exclusive)
-     */
-    static rand(min, max) {
+    };
+    Utils.rand = function (min, max) {
         if (max <= min) {
             return min;
         }
         return Math.random() * (max - min) + min;
-    }
-    /**
-     * @param min min value (inclusive)
-     * @param max max value (exclusive)
-     */
-    static randInt(min, max) {
+    };
+    Utils.randInt = function (min, max) {
         if (max <= min) {
             return min;
         }
         return Math.floor(Math.random() * (max - min) + min);
-    }
-    static isString(obj) {
+    };
+    Utils.isString = function (obj) {
         return typeof obj === 'string' || obj instanceof String;
-    }
-}
-Utils.hex = "0123456789abcdef";
+    };
+    Utils.hex = "0123456789abcdef";
+    return Utils;
+}());
 var MouseButton;
 (function (MouseButton) {
     MouseButton[MouseButton["Left"] = 0] = "Left";
@@ -137,138 +143,215 @@ var MouseButton;
     MouseButton[MouseButton["Back"] = 3] = "Back";
     MouseButton[MouseButton["Forward"] = 4] = "Forward";
 })(MouseButton || (MouseButton = {}));
-class RenderablePath {
-    constructor(path, fill) {
+var RenderablePath = (function () {
+    function RenderablePath(path, fill) {
         this.path = path;
         this.fill = fill;
     }
-    render(ctx) {
+    RenderablePath.prototype.render = function (ctx) {
         ctx.fillStyle = this.fill;
         ctx.fill(this.path);
+    };
+    return RenderablePath;
+}());
+var RenderablePathSet = (function () {
+    function RenderablePathSet(paths) {
+        this.paths = paths === undefined ? [] : paths;
     }
-}
-class RenderablePathSet {
-    constructor(paths = null) {
-        this.paths = paths == null ? [] : paths;
-    }
-    push(path) {
+    RenderablePathSet.prototype.push = function (path) {
         this.paths.push(path);
-    }
-    pushNew(path, fill) {
+    };
+    RenderablePathSet.prototype.pushNew = function (path, fill) {
+        if (fill === null) {
+            return;
+        }
         this.paths.push(new RenderablePath(path, fill));
-    }
-    render(ctx) {
-        for (let i = 0; i < this.paths.length; ++i) {
+    };
+    RenderablePathSet.prototype.render = function (ctx) {
+        for (var i = 0; i < this.paths.length; ++i) {
             this.paths[i].render(ctx);
         }
-    }
-}
-class PreRenderedImage {
-    constructor(width, height) {
-        let canvas = document.createElement("canvas");
+    };
+    RenderablePathSet.prototype.pushPolygon = function (points, fill, originX, originY) {
+        if (originX === void 0) { originX = 0; }
+        if (originY === void 0) { originY = 0; }
+        if (fill === null || points.length % 2 !== 0 || points.length < 6) {
+            return;
+        }
+        var path = new Path2D();
+        path.moveTo(originX + points[0], originY + points[1]);
+        for (var i = 2; i < points.length; i += 2) {
+            path.lineTo(originX + points[i], originY + points[i + 1]);
+        }
+        path.closePath();
+        this.paths.push(new RenderablePath(path, fill));
+    };
+    return RenderablePathSet;
+}());
+var PreRenderedImage = (function () {
+    function PreRenderedImage(width, height) {
+        var canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
         this.ctx = canvas.getContext("2d");
         this.image = canvas;
     }
-    saveImage(fileName) {
-        let a = document.createElement("a");
+    PreRenderedImage.prototype.saveImage = function (fileName) {
+        var a = document.createElement("a");
         a.setAttribute("download", fileName + ".png");
         a.setAttribute("href", this.image
             .toDataURL("image/png")
             .replace("image/png", "image/octet-stream"));
         a.setAttribute("target", "_blank");
         a.click();
-    }
-}
-class PerformanceMeter {
-    constructor() {
+    };
+    return PreRenderedImage;
+}());
+var PerformanceMeter = (function () {
+    function PerformanceMeter() {
         this.queue = [];
         this.sum = 0;
     }
-    add(fps) {
+    PerformanceMeter.prototype.add = function (fps) {
         this.queue.push(fps);
         this.sum += fps;
         if (this.queue.length > 100) {
             this.sum -= this.queue.shift();
         }
-    }
-    getFps() {
+    };
+    PerformanceMeter.prototype.getFps = function () {
         return this.queue.length > 0 ? this.sum / this.queue.length : NaN;
-    }
-}
-class Rect {
-    constructor(x, y, w, h) {
+    };
+    return PerformanceMeter;
+}());
+var Rect = (function () {
+    function Rect(x, y, w, h) {
         this.x = x;
         this.y = y;
         this.w = w;
         this.h = h;
     }
-}
-class Vec2 {
-    constructor(x, y) {
+    return Rect;
+}());
+var Vec2 = (function () {
+    function Vec2(x, y) {
         this.x = x;
         this.y = y;
         this.len = null;
     }
-    add(v) {
+    Vec2.prototype.add = function (v) {
         return new Vec2(this.x + v.x, this.y + v.y);
-    }
-    uadd(x, y) {
+    };
+    Vec2.prototype.uadd = function (x, y) {
         return new Vec2(this.x + x, this.y + y);
-    }
-    sub(v) {
+    };
+    Vec2.prototype.sub = function (v) {
         return new Vec2(this.x - v.x, this.y - v.y);
-    }
-    usub(x, y) {
+    };
+    Vec2.prototype.usub = function (x, y) {
         return new Vec2(this.x - x, this.y - y);
-    }
-    dot(v) {
+    };
+    Vec2.prototype.dot = function (v) {
         return this.x * v.x + this.y * v.y;
-    }
-    udot(x, y) {
+    };
+    Vec2.prototype.udot = function (x, y) {
         return this.x * x + this.y * y;
-    }
-    mul(f) {
+    };
+    Vec2.prototype.mul = function (f) {
         return new Vec2(this.x * f, this.y * f);
-    }
-    length() {
+    };
+    Vec2.prototype.length = function () {
         if (this.len === null) {
             this.len = Math.sqrt(this.x * this.x + this.y * this.y);
         }
         return this.len;
-    }
-    normalize() {
-        let l = 1 / this.length();
+    };
+    Vec2.prototype.normalize = function () {
+        var l = 1 / this.length();
         return new Vec2(this.x * l, this.y * l);
-    }
-    isZero() {
+    };
+    Vec2.prototype.isZero = function () {
         return this.x === 0 && this.y === 0;
-    }
-    static randUnit() {
-        let a = Angle.rand();
+    };
+    Vec2.prototype.equals = function (v) {
+        return this.x === v.x && this.y === v.y;
+    };
+    Vec2.prototype.toString = function () {
+        return this.x + ";" + this.y;
+    };
+    Vec2.randUnit = function () {
+        var a = Angle.rand();
         return new Vec2(Utils.ldx(1, a), Utils.ldy(1, a));
-    }
-    static init() {
+    };
+    Vec2.init = function () {
         Vec2.zero = new Vec2(0, 0);
-    }
-}
+    };
+    return Vec2;
+}());
 Vec2.init();
-class DijkstraNode {
-    constructor(x, y, previous) {
-        this.previous = previous;
-        this.distance = previous == null ? 0 : previous.distance + 1;
+var Vec2Set = (function () {
+    function Vec2Set() {
+        this.data = {};
+        this.size = 0;
+    }
+    Vec2Set.prototype.add = function (value) {
+        var s = value.toString();
+        if (this.data[s] !== undefined) {
+            return false;
+        }
+        else {
+            this.data[s] = value;
+            ++this.size;
+            return true;
+        }
+    };
+    Vec2Set.prototype.contains = function (value) {
+        return this.data[value.toString()] !== undefined;
+    };
+    Vec2Set.prototype.remove = function (value) {
+        var s = value.toString();
+        if (this.data[s] !== undefined) {
+            delete this.data[value.toString()];
+            --this.size;
+            return true;
+        }
+        else {
+            return false;
+        }
+    };
+    Vec2Set.prototype.values = function () {
+        var r = [];
+        for (var v in this.data) {
+            r.push(this.data[v]);
+        }
+        return r;
+    };
+    return Vec2Set;
+}());
+var DijkstraNode = (function () {
+    function DijkstraNode(x, y, previous) {
+        if (previous === undefined) {
+            this.previous = null;
+            this.distance = 0;
+        }
+        else {
+            this.previous = previous;
+            this.distance = previous.distance + 1;
+        }
         this.pos = new Vec2(x, y);
     }
-}
-class Angle {
-    static deg(radians) {
+    return DijkstraNode;
+}());
+var Angle = (function () {
+    function Angle() {
+    }
+    Angle.deg = function (radians) {
         return radians * Angle.rad2deg;
-    }
-    static rand() {
+    };
+    Angle.rand = function () {
         return Math.random() * Angle.deg360;
-    }
-    static init() {
+    };
+    Angle.init = function () {
         Angle.rad2deg = 180 / Math.PI;
         Angle.deg10 = Math.PI / 18;
         Angle.deg15 = Math.PI / 12;
@@ -292,31 +375,31 @@ class Angle {
         Angle.deg315 = Math.PI * 1.75;
         Angle.deg330 = Math.PI * 11 / 6;
         Angle.deg360 = Math.PI * 2;
-    }
-}
+    };
+    return Angle;
+}());
 Angle.init();
-/// <reference path="utils.ts"/>
-class ColorSource {
-    constructor(width, height) {
+var ColorSource = (function () {
+    function ColorSource(width, height) {
         this.width = Math.max(1, Math.floor(width));
         this.height = Math.max(1, Math.floor(height));
     }
-    getColor(x, y) {
+    ColorSource.prototype.getColor = function (x, y) {
         return this._getColor(Utils.wrap(x, 0, this.width), Utils.wrap(y, 0, this.height));
-    }
-    generateImage() {
-        let tex = new PreRenderedImage(this.width, this.height);
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
+    };
+    ColorSource.prototype.generateImage = function () {
+        var tex = new PreRenderedImage(this.width, this.height);
+        for (var x = 0; x < this.width; ++x) {
+            for (var y = 0; y < this.height; ++y) {
                 tex.ctx.fillStyle = this._getColor(x, y).toCss();
                 tex.ctx.fillRect(x, y, 1, 1);
             }
         }
         return tex.image;
-    }
-    static get(color) {
+    };
+    ColorSource.get = function (color) {
         if (color === null) {
-            return null;
+            return RgbaColor.transparent.source();
         }
         else if (color instanceof ColorSource) {
             return color;
@@ -328,65 +411,71 @@ class ColorSource {
             return RgbaColor.fromHex(color).source();
         }
         else {
-            return null;
+            return RgbaColor.transparent.source();
         }
+    };
+    return ColorSource;
+}());
+var CanvasColorSource = (function (_super) {
+    __extends(CanvasColorSource, _super);
+    function CanvasColorSource(canvas, ctx) {
+        var _this = _super.call(this, canvas.width, canvas.height) || this;
+        _this.ctx = ctx === undefined ? canvas.getContext("2d") : ctx;
+        return _this;
     }
-}
-class CanvasColorSource extends ColorSource {
-    constructor(canvas, ctx) {
-        super(canvas.width, canvas.height);
-        this.ctx = ctx === null ? canvas.getContext("2d") : ctx;
-    }
-    _getColor(x, y) {
+    CanvasColorSource.prototype._getColor = function (x, y) {
         var data = this.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
         return new RgbaColor(data[0], data[1], data[2], data[3]);
-    }
-    generateImage() {
-        let tex = new PreRenderedImage(this.width, this.height);
+    };
+    CanvasColorSource.prototype.generateImage = function () {
+        var tex = new PreRenderedImage(this.width, this.height);
         tex.ctx.putImageData(this.ctx.getImageData(0, 0, this.width, this.height), 0, 0);
         return tex.image;
-    }
-}
-class RgbaColor {
-    constructor(r, g, b, a = 255) {
+    };
+    return CanvasColorSource;
+}(ColorSource));
+var RgbaColor = (function () {
+    function RgbaColor(r, g, b, a) {
+        if (a === void 0) { a = 255; }
         this.r = Math.floor(Utils.clamp(r, 0, 255));
         this.g = Math.floor(Utils.clamp(g, 0, 255));
         this.b = Math.floor(Utils.clamp(b, 0, 255));
         this.a = Math.floor(Utils.clamp(a, 0, 255));
     }
-    static fromHex(color) {
+    RgbaColor.fromHex = function (color) {
         if (/^#[0-9a-f]{3}[0-9a-f]?$/i.test(color)) {
-            let a = color.length > 4 ? parseInt(color[4], 16) * 17 : 255;
+            var a = color.length > 4 ? parseInt(color[4], 16) * 17 : 255;
             return new RgbaColor(parseInt(color[1], 16) * 17, parseInt(color[2], 16) * 17, parseInt(color[3], 16) * 17, a);
         }
         else if (/^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(color)) {
-            let a = color.length > 7 ? parseInt(color.substr(7, 2), 16) : 255;
+            var a = color.length > 7 ? parseInt(color.substr(7, 2), 16) : 255;
             return new RgbaColor(parseInt(color.substr(1, 2), 16), parseInt(color.substr(3, 2), 16), parseInt(color.substr(5, 2), 16), a);
         }
         else
-            return null;
-    }
-    pr() { return this.r * this.a / 255; }
-    pg() { return this.g * this.a / 255; }
-    pb() { return this.b * this.a / 255; }
-    pa() { return this.a * this.a / 255; }
-    toCss() {
+            throw new Error("Invalid color format");
+    };
+    RgbaColor.prototype.pr = function () { return this.r * this.a / 255; };
+    RgbaColor.prototype.pg = function () { return this.g * this.a / 255; };
+    RgbaColor.prototype.pb = function () { return this.b * this.a / 255; };
+    RgbaColor.prototype.pa = function () { return this.a * this.a / 255; };
+    RgbaColor.prototype.toCss = function () {
         return "#"
             + Utils.byteToHex(this.r)
             + Utils.byteToHex(this.g)
             + Utils.byteToHex(this.b)
             + Utils.byteToHex(this.a);
-    }
-    multiplyFloat(ammount, multiplyAlpha = false) {
+    };
+    RgbaColor.prototype.multiplyFloat = function (ammount, multiplyAlpha) {
+        if (multiplyAlpha === void 0) { multiplyAlpha = false; }
         return new RgbaColor(this.r * ammount, this.g * ammount, this.b * ammount, multiplyAlpha ? this.a * ammount : this.a);
-    }
-    multiply(c) {
+    };
+    RgbaColor.prototype.multiply = function (c) {
         return new RgbaColor(this.r * c.r, this.g * c.g, this.b * c.b, this.a * c.a);
-    }
-    add(c) {
+    };
+    RgbaColor.prototype.add = function (c) {
         return new RgbaColor(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.pa());
-    }
-    blend(c) {
+    };
+    RgbaColor.prototype.blend = function (c) {
         if (this.a === 0) {
             return c.a === 0 ? this : c;
         }
@@ -396,12 +485,12 @@ class RgbaColor {
         else {
             return new RgbaColor(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.a * (255 - this.a) / 255);
         }
-    }
-    withRed(r) { return new RgbaColor(r, this.g, this.b, this.a); }
-    withGreen(g) { return new RgbaColor(this.r, g, this.b, this.a); }
-    withBlue(b) { return new RgbaColor(this.r, this.g, b, this.a); }
-    withAlpha(a) { return new RgbaColor(this.r, this.g, this.b, a); }
-    lerp(c, ammount) {
+    };
+    RgbaColor.prototype.withRed = function (r) { return new RgbaColor(r, this.g, this.b, this.a); };
+    RgbaColor.prototype.withGreen = function (g) { return new RgbaColor(this.r, g, this.b, this.a); };
+    RgbaColor.prototype.withBlue = function (b) { return new RgbaColor(this.r, this.g, b, this.a); };
+    RgbaColor.prototype.withAlpha = function (a) { return new RgbaColor(this.r, this.g, this.b, a); };
+    RgbaColor.prototype.lerp = function (c, ammount) {
         if (ammount >= 1) {
             return c;
         }
@@ -409,36 +498,38 @@ class RgbaColor {
             return this;
         }
         else {
-            let a2 = 1 - ammount;
+            var a2 = 1 - ammount;
             return new RgbaColor(this.r * a2 + c.r * ammount, this.g * a2 + c.g * ammount, this.b * a2 + c.b * ammount, this.a * a2 + c.a * ammount);
         }
-    }
-    addNoise(intensity, saturation, coverage) {
+    };
+    RgbaColor.prototype.addNoise = function (intensity, saturation, coverage) {
         if (Math.random() < coverage) {
             intensity *= 255;
             if (saturation <= 0) {
-                let n = Utils.rand(-intensity, intensity);
+                var n = Utils.rand(-intensity, intensity);
                 return new RgbaColor(this.r + n, this.g + n, this.b + n, this.a);
             }
             else if (saturation >= 1) {
                 return new RgbaColor(this.r + Utils.rand(-intensity, intensity), this.g + Utils.rand(-intensity, intensity), this.b + Utils.rand(-intensity, intensity), this.a);
             }
             else {
-                let s2 = 1 - saturation;
-                let rn = Utils.rand(-intensity, intensity);
-                let gn = saturation * Utils.rand(-intensity, intensity) + s2 * rn;
-                let bn = saturation * Utils.rand(-intensity, intensity) + s2 * rn;
+                var s2 = 1 - saturation;
+                var rn = Utils.rand(-intensity, intensity);
+                var gn = saturation * Utils.rand(-intensity, intensity) + s2 * rn;
+                var bn = saturation * Utils.rand(-intensity, intensity) + s2 * rn;
                 return new RgbaColor(this.r + rn, this.g + gn, this.b + bn, this.a);
             }
         }
         else {
             return this;
         }
-    }
-    source(width = 1, height = 1) {
+    };
+    RgbaColor.prototype.source = function (width, height) {
+        if (width === void 0) { width = 1; }
+        if (height === void 0) { height = 1; }
         return new RgbaColorSource(this, width, height);
-    }
-    static init() {
+    };
+    RgbaColor.init = function () {
         RgbaColor.transparent = new RgbaColor(0, 0, 0, 0);
         RgbaColor.black = new RgbaColor(0, 0, 0);
         RgbaColor.red = new RgbaColor(255, 0, 0);
@@ -448,28 +539,37 @@ class RgbaColor {
         RgbaColor.cyan = new RgbaColor(0, 255, 255);
         RgbaColor.magenta = new RgbaColor(255, 0, 255);
         RgbaColor.white = new RgbaColor(255, 255, 255);
-    }
-}
+    };
+    return RgbaColor;
+}());
 RgbaColor.init();
-class RgbaColorSource extends ColorSource {
-    constructor(color, width = 1, height = 1) {
-        super(width, height);
-        this.color = color;
+var RgbaColorSource = (function (_super) {
+    __extends(RgbaColorSource, _super);
+    function RgbaColorSource(color, width, height) {
+        if (width === void 0) { width = 1; }
+        if (height === void 0) { height = 1; }
+        var _this = _super.call(this, width, height) || this;
+        _this.color = color;
+        return _this;
     }
-    _getColor(x, y) { return this.color; }
-    generateImage() {
-        let tex = new PreRenderedImage(this.width, this.height);
+    RgbaColorSource.prototype._getColor = function (x, y) { return this.color; };
+    RgbaColorSource.prototype.generateImage = function () {
+        var tex = new PreRenderedImage(this.width, this.height);
         tex.ctx.fillStyle = this.color.toCss();
         tex.ctx.fillRect(0, 0, this.width, this.height);
         return tex.image;
+    };
+    return RgbaColorSource;
+}(ColorSource));
+var TextureGenerator = (function (_super) {
+    __extends(TextureGenerator, _super);
+    function TextureGenerator(width, height, color) {
+        var _this = _super.call(this, width, height) || this;
+        _this.color = ColorSource.get(color !== null ? color : RgbaColor.black);
+        return _this;
     }
-}
-class TextureGenerator extends ColorSource {
-    constructor(width, height, color) {
-        super(width, height);
-        this.color = ColorSource.get(color !== null ? color : RgbaColor.black);
-    }
-}
+    return TextureGenerator;
+}(ColorSource));
 var CellularTextureType;
 (function (CellularTextureType) {
     CellularTextureType[CellularTextureType["Lava"] = 0] = "Lava";
@@ -483,14 +583,15 @@ var CellularTextureDistanceMetric;
     CellularTextureDistanceMetric[CellularTextureDistanceMetric["Chebyshev"] = 2] = "Chebyshev";
     CellularTextureDistanceMetric[CellularTextureDistanceMetric["Minkowski"] = 3] = "Minkowski";
 })(CellularTextureDistanceMetric || (CellularTextureDistanceMetric = {}));
-// based on https://blackpawn.com/texts/cellular/default.html
-class CellularTextureGenerator extends TextureGenerator {
-    // density n => 1 point per n pixels
-    constructor(width, height, density, color1, color2, type = CellularTextureType.Lava, metric = CellularTextureDistanceMetric.Euclidean) {
-        super(width, height, color1);
-        this.color2 = ColorSource.get(color2 !== null ? color2 : RgbaColor.white);
-        this.type = type;
-        let distance;
+var CellularTextureGenerator = (function (_super) {
+    __extends(CellularTextureGenerator, _super);
+    function CellularTextureGenerator(width, height, density, color1, color2, type, metric) {
+        if (type === void 0) { type = CellularTextureType.Lava; }
+        if (metric === void 0) { metric = CellularTextureDistanceMetric.Euclidean; }
+        var _this = _super.call(this, width, height, color1) || this;
+        _this.color2 = ColorSource.get(color2 !== null ? color2 : RgbaColor.white);
+        _this.type = type;
+        var distance;
         switch (metric) {
             case CellularTextureDistanceMetric.Euclidean:
                 distance = Utils.euclideanDistance;
@@ -505,42 +606,43 @@ class CellularTextureGenerator extends TextureGenerator {
                 distance = Utils.minkowskiDistance;
                 break;
         }
-        this.density = Math.max(1, density);
-        let points = [];
-        let pointCount = this.width * this.height / this.density;
+        _this.density = Math.max(1, density);
+        var points = [];
+        var pointCount = _this.width * _this.height / _this.density;
         if (pointCount < 2) {
             pointCount = 2;
         }
-        for (let i = 0; i < pointCount; ++i) {
-            points[i] = new Vec2(Math.random() * this.width, Math.random() * this.height);
+        for (var i_1 = 0; i_1 < pointCount; ++i_1) {
+            points[i_1] = new Vec2(Math.random() * _this.width, Math.random() * _this.height);
         }
-        this.distances = [];
-        this.min = Infinity;
-        let max = 0, i, d;
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                let { min1, min2 } = CellularTextureGenerator.distancesTo2Nearest(x, y, this.width, this.height, points, distance);
-                switch (this.type) {
+        _this.distances = [];
+        _this.min = Infinity;
+        var max = 0, i, d;
+        for (var x = 0; x < _this.width; ++x) {
+            for (var y = 0; y < _this.height; ++y) {
+                var _a = CellularTextureGenerator.distancesTo2Nearest(x, y, _this.width, _this.height, points, distance), min1 = _a.min1, min2 = _a.min2;
+                switch (_this.type) {
                     case CellularTextureType.Net:
                         d = min2 - min1;
                         break;
                     case CellularTextureType.Balls:
                         d = min2 * min1;
                         break;
-                    default: // Lava
+                    default:
                         d = min1 * min1;
                         break;
                 }
-                this.min = Math.min(this.min, d);
+                _this.min = Math.min(_this.min, d);
                 max = Math.max(max, d);
-                this.distances[Utils.flatten(this.width, x, y)] = d;
+                _this.distances[Utils.flatten(_this.width, x, y)] = d;
             }
         }
-        this.range = max - this.min;
+        _this.range = max - _this.min;
+        return _this;
     }
-    static wrappedDistance(x, y, width, height, b, distance) {
-        let dx = Math.abs(x - b.x);
-        let dy = Math.abs(y - b.y);
+    CellularTextureGenerator.wrappedDistance = function (x, y, width, height, b, distance) {
+        var dx = Math.abs(x - b.x);
+        var dy = Math.abs(y - b.y);
         if (dx > width / 2) {
             dx = width - dx;
         }
@@ -548,12 +650,13 @@ class CellularTextureGenerator extends TextureGenerator {
             dy = height - dy;
         }
         return distance(dx, dy);
-    }
-    static distancesTo2Nearest(x, y, width, height, points, distance) {
-        let min1 = Infinity;
-        let min2 = Infinity;
-        for (const p of points) {
-            let d = CellularTextureGenerator.wrappedDistance(x, y, width, height, p, distance);
+    };
+    CellularTextureGenerator.distancesTo2Nearest = function (x, y, width, height, points, distance) {
+        var min1 = Infinity;
+        var min2 = Infinity;
+        for (var _i = 0, points_1 = points; _i < points_1.length; _i++) {
+            var p = points_1[_i];
+            var d = CellularTextureGenerator.wrappedDistance(x, y, width, height, p, distance);
             if (d < min1) {
                 min2 = min1;
                 min1 = d;
@@ -562,188 +665,227 @@ class CellularTextureGenerator extends TextureGenerator {
                 min2 = d;
             }
         }
-        return { min1, min2 };
-    }
-    _getColor(x, y) {
+        return { min1: min1, min2: min2 };
+    };
+    CellularTextureGenerator.prototype._getColor = function (x, y) {
         return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), (this.distances[Utils.flatten(this.width, x, y)] - this.min) / this.range);
+    };
+    return CellularTextureGenerator;
+}(TextureGenerator));
+var NoiseTextureGenerator = (function (_super) {
+    __extends(NoiseTextureGenerator, _super);
+    function NoiseTextureGenerator(width, height, color, intensity, saturation, coverage) {
+        var _this = _super.call(this, width, height, color) || this;
+        _this.intensity = Utils.clamp(intensity, 0, 1);
+        _this.saturation = Utils.clamp(saturation, 0, 1);
+        _this.coverage = Utils.clamp(coverage, 0, 1);
+        _this.cache = [];
+        return _this;
     }
-}
-class NoiseTextureGenerator extends TextureGenerator {
-    constructor(width, height, color, intensity, saturation, coverage) {
-        super(width, height, color);
-        this.intensity = Utils.clamp(intensity, 0, 1);
-        this.saturation = Utils.clamp(saturation, 0, 1);
-        this.coverage = Utils.clamp(coverage, 0, 1);
-        this.cache = [];
-    }
-    _getColor(x, y) {
-        let i = Utils.flatten(this.width, Math.floor(x), Math.floor(y));
+    NoiseTextureGenerator.prototype._getColor = function (x, y) {
+        var i = Utils.flatten(this.width, Math.floor(x), Math.floor(y));
         if (this.cache[i] === undefined) {
             this.cache[i] = this.color.getColor(x, y).addNoise(this.intensity, this.saturation, this.coverage);
         }
         return this.cache[i];
-    }
-}
-class PerlinGradient {
-    constructor(width, height) {
+    };
+    return NoiseTextureGenerator;
+}(TextureGenerator));
+var PerlinGradient = (function () {
+    function PerlinGradient(width, height) {
         this.width = Math.ceil(width);
         this.height = Math.ceil(height);
         this.data = [];
-        let c = this.width * this.height;
-        for (let i = 0; i < c; ++i) {
+        var c = this.width * this.height;
+        for (var i = 0; i < c; ++i) {
             this.data.push(Vec2.randUnit());
         }
     }
-    get(x, y) {
+    PerlinGradient.prototype.get = function (x, y) {
         return this.data[Utils.wrap(x, 0, this.width) +
             Utils.wrap(y, 0, this.height) * this.width];
+    };
+    return PerlinGradient;
+}());
+var PerlinTextureGenerator = (function (_super) {
+    __extends(PerlinTextureGenerator, _super);
+    function PerlinTextureGenerator(width, height, color1, color2, scale) {
+        if (scale === void 0) { scale = 1; }
+        var _this = _super.call(this, width, height, color1) || this;
+        _this.color2 = ColorSource.get(color2 !== null ? color2 : RgbaColor.white);
+        _this.scale = 1 / (scale * 32);
+        return _this;
     }
-}
-class PerlinTextureGenerator extends TextureGenerator {
-    constructor(width, height, color1, color2, scale = 1) {
-        super(width, height, color1);
-        this.color2 = ColorSource.get(color2 !== null ? color2 : RgbaColor.white);
-        this.scale = 1 / (scale * 32);
-    }
-    dotGridGradient(gradient, ix, iy, x, y) {
+    PerlinTextureGenerator.prototype.dotGridGradient = function (gradient, ix, iy, x, y) {
         return gradient.get(ix, iy).udot(x - ix, y - iy);
-    }
-    perlin(gradient, x, y) {
-        let x0 = Math.floor(x);
-        let x1 = x0 + 1;
-        let y0 = Math.floor(y);
-        let y1 = y0 + 1;
-        let sx = x - x0;
-        let sy = y - y0;
+    };
+    PerlinTextureGenerator.prototype.perlin = function (gradient, x, y) {
+        var x0 = Math.floor(x);
+        var x1 = x0 + 1;
+        var y0 = Math.floor(y);
+        var y1 = y0 + 1;
+        var sx = x - x0;
+        var sy = y - y0;
         return Utils.interpolateSmooth(Utils.interpolateSmooth(this.dotGridGradient(gradient, x0, y0, x, y), this.dotGridGradient(gradient, x1, y0, x, y), sx), Utils.interpolateSmooth(this.dotGridGradient(gradient, x0, y1, x, y), this.dotGridGradient(gradient, x1, y1, x, y), sx), sy);
+    };
+    return PerlinTextureGenerator;
+}(TextureGenerator));
+var PerlinNoiseTextureGenerator = (function (_super) {
+    __extends(PerlinNoiseTextureGenerator, _super);
+    function PerlinNoiseTextureGenerator(width, height, color1, color2, scale) {
+        if (scale === void 0) { scale = 1; }
+        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        _this.gradient = new PerlinGradient(_this.width * _this.scale, _this.height * _this.scale);
+        return _this;
     }
-}
-class PerlinNoiseTextureGenerator extends PerlinTextureGenerator {
-    constructor(width, height, color1, color2, scale = 1) {
-        super(width, height, color1, color2, scale);
-        this.gradient = new PerlinGradient(this.width * this.scale, this.height * this.scale);
-    }
-    _getColor(x, y) {
+    PerlinNoiseTextureGenerator.prototype._getColor = function (x, y) {
         return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.perlin(this.gradient, x * this.scale, y * this.scale) / 2 + 0.5);
-    }
-}
-class CloudsTextureGenerator extends PerlinTextureGenerator {
-    constructor(width, height, color1, color2, scale = 1) {
-        super(width, height, color1, color2, scale);
-        this.scales = [
-            this.scale / 4,
-            this.scale / 2,
-            this.scale,
-            this.scale * 2,
-            this.scale * 4,
-            this.scale * 8
+    };
+    return PerlinNoiseTextureGenerator;
+}(PerlinTextureGenerator));
+var CloudsTextureGenerator = (function (_super) {
+    __extends(CloudsTextureGenerator, _super);
+    function CloudsTextureGenerator(width, height, color1, color2, scale) {
+        if (scale === void 0) { scale = 1; }
+        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        _this.scales = [
+            _this.scale / 4,
+            _this.scale / 2,
+            _this.scale,
+            _this.scale * 2,
+            _this.scale * 4,
+            _this.scale * 8
         ];
-        this.coeficients = [0.5, 0.25, 0.125, 0.0625, 0.03125, 0.03125];
-        this.gradients = [];
-        for (let i = 0; i < 6; ++i) {
-            this.gradients.push(new PerlinGradient(this.width * this.scales[i], this.height * this.scales[i]));
+        _this.coeficients = [0.5, 0.25, 0.125, 0.0625, 0.03125, 0.03125];
+        _this.gradients = [];
+        for (var i = 0; i < 6; ++i) {
+            _this.gradients.push(new PerlinGradient(_this.width * _this.scales[i], _this.height * _this.scales[i]));
         }
+        return _this;
     }
-    _getColor(x, y) {
-        let v = 0;
-        for (let i = 0; i < 6; ++i) {
+    CloudsTextureGenerator.prototype._getColor = function (x, y) {
+        var v = 0;
+        for (var i = 0; i < 6; ++i) {
             v += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
         }
         return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), v / 2 + 0.5);
-    }
-}
-class VelvetTextureGenerator extends PerlinTextureGenerator {
-    constructor(width, height, color1, color2, scale = 1) {
-        super(width, height, color1, color2, scale);
-        this.gradients = [];
-        let w = this.width * this.scale, h = this.height * this.scale;
-        for (let i = 0; i < 3; ++i) {
-            this.gradients.push(new PerlinGradient(w, h));
+    };
+    return CloudsTextureGenerator;
+}(PerlinTextureGenerator));
+var VelvetTextureGenerator = (function (_super) {
+    __extends(VelvetTextureGenerator, _super);
+    function VelvetTextureGenerator(width, height, color1, color2, scale) {
+        if (scale === void 0) { scale = 1; }
+        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        _this.gradients = [];
+        var w = _this.width * _this.scale, h = _this.height * _this.scale;
+        for (var i = 0; i < 3; ++i) {
+            _this.gradients.push(new PerlinGradient(w, h));
         }
+        return _this;
     }
-    _getColor(x, y) {
+    VelvetTextureGenerator.prototype._getColor = function (x, y) {
         return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.perlin(this.gradients[0], x * this.scale + this.perlin(this.gradients[1], x * this.scale, y * this.scale), y * this.scale + this.perlin(this.gradients[2], x * this.scale, y * this.scale)) / 2 + 0.5);
-    }
-}
-class GlassTextureGenerator extends PerlinTextureGenerator {
-    constructor(width, height, color1, color2, scale = 1, turbulence = 1) {
-        super(width, height, color1, color2, scale);
-        this.turbulence = 0.125 * turbulence;
-        this.gradients = [];
-        let w = this.width * this.scale, h = this.height * this.scale;
-        for (let i = 0; i < 3; ++i) {
-            this.gradients.push(new PerlinGradient(w, h));
+    };
+    return VelvetTextureGenerator;
+}(PerlinTextureGenerator));
+var GlassTextureGenerator = (function (_super) {
+    __extends(GlassTextureGenerator, _super);
+    function GlassTextureGenerator(width, height, color1, color2, scale, turbulence) {
+        if (scale === void 0) { scale = 1; }
+        if (turbulence === void 0) { turbulence = 1; }
+        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        _this.turbulence = 0.125 * turbulence;
+        _this.gradients = [];
+        var w = _this.width * _this.scale, h = _this.height * _this.scale;
+        for (var i = 0; i < 3; ++i) {
+            _this.gradients.push(new PerlinGradient(w, h));
         }
+        return _this;
     }
-    _getColor(x, y) {
-        let _x = Math.cos((this.perlin(this.gradients[1], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence);
-        let _y = Math.sin((this.perlin(this.gradients[2], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence);
+    GlassTextureGenerator.prototype._getColor = function (x, y) {
+        var _x = Math.cos((this.perlin(this.gradients[1], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence);
+        var _y = Math.sin((this.perlin(this.gradients[2], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence);
         return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.perlin(this.gradients[0], x * this.scale + _x, y * this.scale + _y) / 2 + 0.5);
-    }
-}
-class FrostedGlassTextureGenerator extends PerlinTextureGenerator {
-    constructor(width, height, color1, color2, scale = 1) {
-        super(width, height, color1, color2, scale);
-        this.scales = [this.scale, this.scale * 2, this.scale * 4];
-        this.coeficients = [0.5, 0.25, 0.25];
-        this.gradients = [];
-        for (let i = 0; i < 7; ++i) {
-            this.gradients.push(new PerlinGradient(this.width * this.scales[i % 3], this.height * this.scales[i % 3]));
+    };
+    return GlassTextureGenerator;
+}(PerlinTextureGenerator));
+var FrostedGlassTextureGenerator = (function (_super) {
+    __extends(FrostedGlassTextureGenerator, _super);
+    function FrostedGlassTextureGenerator(width, height, color1, color2, scale) {
+        if (scale === void 0) { scale = 1; }
+        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        _this.scales = [_this.scale, _this.scale * 2, _this.scale * 4];
+        _this.coeficients = [0.5, 0.25, 0.25];
+        _this.gradients = [];
+        for (var i = 0; i < 7; ++i) {
+            _this.gradients.push(new PerlinGradient(_this.width * _this.scales[i % 3], _this.height * _this.scales[i % 3]));
         }
+        return _this;
     }
-    _getColor(x, y) {
-        let _x = x * this.scale, _y = y * this.scale;
-        for (let i = 0; i < 3; ++i) {
+    FrostedGlassTextureGenerator.prototype._getColor = function (x, y) {
+        var _x = x * this.scale, _y = y * this.scale;
+        for (var i = 0; i < 3; ++i) {
             _x += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
             _y += this.perlin(this.gradients[i + 3], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
         }
         return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.perlin(this.gradients[6], _x, _y) / 2 + 0.5);
-    }
-}
-class BarkTextureGenerator extends PerlinTextureGenerator {
-    constructor(width, height, color1, color2, scale = 1) {
-        super(width, height, color1, color2, scale);
-        this.scales = [this.scale, this.scale * 2, this.scale * 4, this.scale * 6];
-        this.coeficients = [0.5, 0.25, 0.25];
-        this.gradients = [];
-        for (let i = 0; i < 4; ++i) {
-            this.gradients.push(new PerlinGradient(this.width * this.scales[i], this.height * this.scales[i]));
+    };
+    return FrostedGlassTextureGenerator;
+}(PerlinTextureGenerator));
+var BarkTextureGenerator = (function (_super) {
+    __extends(BarkTextureGenerator, _super);
+    function BarkTextureGenerator(width, height, color1, color2, scale) {
+        if (scale === void 0) { scale = 1; }
+        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        _this.scales = [_this.scale, _this.scale * 2, _this.scale * 4, _this.scale * 6];
+        _this.coeficients = [0.5, 0.25, 0.25];
+        _this.gradients = [];
+        for (var i = 0; i < 4; ++i) {
+            _this.gradients.push(new PerlinGradient(_this.width * _this.scales[i], _this.height * _this.scales[i]));
         }
+        return _this;
     }
-    _getColor(x, y) {
-        let v = 0;
-        for (let i = 0; i < 3; ++i) {
+    BarkTextureGenerator.prototype._getColor = function (x, y) {
+        var v = 0;
+        for (var i = 0; i < 3; ++i) {
             v += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
         }
         v = Utils.granulate(Math.sin(2 * x * this.scale * Math.PI + 8 * v), 2);
         v += Utils.granulate(this.perlin(this.gradients[3], x * this.scales[3], y * this.scales[3]), 5);
         return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), v / 4 + 0.5);
-    }
-}
-class CirclesTextureGenerator extends PerlinTextureGenerator {
-    constructor(width, height, color1, color2, background, scale = 1, ringCount = Infinity, turbulence = 1) {
-        super(width, height, color1, color2, scale);
-        this.ringCount = ringCount;
-        this.ringCountL = this.ringCount - 0.25;
-        this.turbulence = turbulence / 2;
-        this.background = ColorSource.get(background !== null ? background : RgbaColor.transparent);
-        this.gradients = [];
-        this.scale2 = this.scale * 2;
-        for (let i = 0; i < 2; ++i) {
-            this.gradients.push(new PerlinGradient(this.width * this.scale2, this.height * this.scale2));
+    };
+    return BarkTextureGenerator;
+}(PerlinTextureGenerator));
+var CirclesTextureGenerator = (function (_super) {
+    __extends(CirclesTextureGenerator, _super);
+    function CirclesTextureGenerator(width, height, color1, color2, background, scale, ringCount, turbulence) {
+        if (scale === void 0) { scale = 1; }
+        if (ringCount === void 0) { ringCount = Infinity; }
+        if (turbulence === void 0) { turbulence = 1; }
+        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        _this.ringCount = ringCount;
+        _this.ringCountL = _this.ringCount - 0.25;
+        _this.turbulence = turbulence / 2;
+        _this.background = ColorSource.get(background !== null ? background : RgbaColor.transparent);
+        _this.gradients = [];
+        _this.scale2 = _this.scale * 2;
+        for (var i = 0; i < 2; ++i) {
+            _this.gradients.push(new PerlinGradient(_this.width * _this.scale2, _this.height * _this.scale2));
         }
-        this.cx = this.width * this.scale / 2;
-        this.cy = this.height * this.scale / 2;
+        _this.cx = _this.width * _this.scale / 2;
+        _this.cy = _this.height * _this.scale / 2;
+        return _this;
     }
-    _getColor(x, y) {
-        let _x = x * this.scale + this.perlin(this.gradients[0], x * this.scale2, y * this.scale2) * this.turbulence - this.cx;
-        let _y = y * this.scale + this.perlin(this.gradients[1], x * this.scale2, y * this.scale2) * this.turbulence - this.cy;
-        let d = Math.sqrt(_x * _x + _y * _y);
+    CirclesTextureGenerator.prototype._getColor = function (x, y) {
+        var _x = x * this.scale + this.perlin(this.gradients[0], x * this.scale2, y * this.scale2) * this.turbulence - this.cx;
+        var _y = y * this.scale + this.perlin(this.gradients[1], x * this.scale2, y * this.scale2) * this.turbulence - this.cy;
+        var d = Math.sqrt(_x * _x + _y * _y);
         if (d > this.ringCount) {
             return this.background.getColor(x, y);
         }
         else {
-            let c = this.color.getColor(x, y).lerp(this.color2.getColor(x, y), Utils.interpolateSmooth(0, 1, 1 - Math.abs(1 - d % 1 * 2)));
+            var c = this.color.getColor(x, y).lerp(this.color2.getColor(x, y), Utils.interpolateSmooth(0, 1, 1 - Math.abs(1 - d % 1 * 2)));
             if (d > this.ringCountL) {
                 return c.lerp(this.background.getColor(x, y), Utils.interpolateSmooth(0, 1, (d - this.ringCountL) * 4));
             }
@@ -751,39 +893,46 @@ class CirclesTextureGenerator extends PerlinTextureGenerator {
                 return c;
             }
         }
-    }
-}
-class CamouflageTextureGenerator extends PerlinTextureGenerator {
-    constructor(width, height, color1, color2, scale = 1) {
-        super(width, height, color1, color2, scale);
-        this.scales = [this.scale, this.scale * 2, this.scale * 4];
-        this.coeficients = [1.5, 0.75, 0.75];
-        this.gradients = [];
-        for (let i = 0; i < 9; ++i) {
-            this.gradients.push(new PerlinGradient(this.width * this.scales[i % 3], this.height * this.scales[i % 3]));
+    };
+    return CirclesTextureGenerator;
+}(PerlinTextureGenerator));
+var CamouflageTextureGenerator = (function (_super) {
+    __extends(CamouflageTextureGenerator, _super);
+    function CamouflageTextureGenerator(width, height, color1, color2, scale) {
+        if (scale === void 0) { scale = 1; }
+        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        _this.scales = [_this.scale, _this.scale * 2, _this.scale * 4];
+        _this.coeficients = [1.5, 0.75, 0.75];
+        _this.gradients = [];
+        for (var i = 0; i < 9; ++i) {
+            _this.gradients.push(new PerlinGradient(_this.width * _this.scales[i % 3], _this.height * _this.scales[i % 3]));
         }
+        return _this;
     }
-    _getColor(x, y) {
-        let _x = x * this.scale, _y = y * this.scale;
-        for (let i = 0; i < 3; ++i) {
+    CamouflageTextureGenerator.prototype._getColor = function (x, y) {
+        var _x = x * this.scale, _y = y * this.scale;
+        for (var i = 0; i < 3; ++i) {
             _x += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
             _y += this.perlin(this.gradients[i + 3], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
         }
         return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), (Utils.granulate(this.perlin(this.gradients[6], _x, _y), 4) * 0.7 +
             Utils.granulate(this.perlin(this.gradients[7], _x * 2, _y * 2), 5) * 0.2 +
             Utils.granulate(this.perlin(this.gradients[8], _x * 4, _y * 4), 6) * 0.1) / 2 + 0.5);
+    };
+    return CamouflageTextureGenerator;
+}(PerlinTextureGenerator));
+var GradientSource = (function (_super) {
+    __extends(GradientSource, _super);
+    function GradientSource(width, height) {
+        var _this = _super.call(this, width, height) || this;
+        _this.colorStops = [];
+        return _this;
     }
-}
-class GradientSource extends ColorSource {
-    constructor(width, height) {
-        super(width, height);
-        this.colorStops = [];
-    }
-    addColorStop(pos, color) {
+    GradientSource.prototype.addColorStop = function (pos, color) {
         this.colorStops.push({ pos: pos, color: ColorSource.get(color) });
-        this.colorStops.sort((a, b) => a.pos - b.pos);
-    }
-    getColorAtPosition(x, y, position) {
+        this.colorStops.sort(function (a, b) { return a.pos - b.pos; });
+    };
+    GradientSource.prototype.getColorAtPosition = function (x, y, position) {
         if (this.colorStops.length == 0) {
             return RgbaColor.black;
         }
@@ -797,223 +946,272 @@ class GradientSource extends ColorSource {
             return this.colorStops[this.colorStops.length - 1].color.getColor(x, y);
         }
         else {
-            let i = 1;
+            var i = 1;
             while (position > this.colorStops[i].pos) {
                 ++i;
             }
             return this.colorStops[i - 1].color.getColor(x, y).lerp(this.colorStops[i].color.getColor(x, y), (position - this.colorStops[i - 1].pos) / (this.colorStops[i].pos - this.colorStops[i - 1].pos));
         }
+    };
+    return GradientSource;
+}(ColorSource));
+var LinearGradientSource = (function (_super) {
+    __extends(LinearGradientSource, _super);
+    function LinearGradientSource(width, height, x1, y1, x2, y2) {
+        var _this = _super.call(this, width, height) || this;
+        _this.a = x2 - x1;
+        _this.b = y2 - y1;
+        _this.c = -_this.a * x1 - _this.b * y1;
+        _this.d = Math.sqrt(_this.a * _this.a + _this.b * _this.b);
+        _this.d *= _this.d;
+        return _this;
     }
-}
-class LinearGradientSource extends GradientSource {
-    constructor(width, height, x1, y1, x2, y2) {
-        super(width, height);
-        this.a = x2 - x1;
-        this.b = y2 - y1;
-        this.c = -this.a * x1 - this.b * y1;
-        this.d = Math.sqrt(this.a * this.a + this.b * this.b);
-        this.d *= this.d;
-    }
-    _getColor(x, y) {
+    LinearGradientSource.prototype._getColor = function (x, y) {
         return this.getColorAtPosition(x, y, (this.a * x + this.b * y + this.c) / this.d);
+    };
+    return LinearGradientSource;
+}(GradientSource));
+var RadialGradientSource = (function (_super) {
+    __extends(RadialGradientSource, _super);
+    function RadialGradientSource(width, height, x, y, r1, r2) {
+        var _this = _super.call(this, width, height) || this;
+        _this.x = x;
+        _this.y = y;
+        _this.r1 = r1;
+        _this.dr = r2 - r1;
+        return _this;
     }
-}
-class RadialGradientSource extends GradientSource {
-    constructor(width, height, x, y, r1, r2) {
-        super(width, height);
-        this.x = x;
-        this.y = y;
-        this.r1 = r1;
-        this.dr = r2 - r1;
-    }
-    _getColor(x, y) {
-        let dx = x - this.x, dy = y - this.y;
+    RadialGradientSource.prototype._getColor = function (x, y) {
+        var dx = x - this.x, dy = y - this.y;
         return this.getColorAtPosition(x, y, (Math.sqrt(dx * dx + dy * dy) - this.r1) / this.dr);
+    };
+    return RadialGradientSource;
+}(GradientSource));
+var ShapeSource = (function (_super) {
+    __extends(ShapeSource, _super);
+    function ShapeSource(width, height, color, background) {
+        var _this = _super.call(this, width, height) || this;
+        _this.color = ColorSource.get(color !== null ? color : RgbaColor.white);
+        _this.background = ColorSource.get(background !== null ? background : RgbaColor.black);
+        return _this;
     }
-}
-class ShapeSource extends ColorSource {
-    constructor(width, height, color, background) {
-        super(width, height);
-        this.color = ColorSource.get(color !== null ? color : RgbaColor.white);
-        this.background = ColorSource.get(background !== null ? background : RgbaColor.black);
+    return ShapeSource;
+}(ColorSource));
+var RectangleSource = (function (_super) {
+    __extends(RectangleSource, _super);
+    function RectangleSource(width, height, x, y, w, h, color, background) {
+        var _this = _super.call(this, width, height, color, background) || this;
+        _this.x = x;
+        _this.y = y;
+        _this.w = w;
+        _this.h = h;
+        return _this;
     }
-}
-class RectangleSource extends ShapeSource {
-    constructor(width, height, x, y, w, h, color, background) {
-        super(width, height, color, background);
-        this.x = x;
-        this.y = y;
-        this.w = w;
-        this.h = h;
-    }
-    _getColor(x, y) {
-        let _x = (x - this.x) / this.w, _y = (y - this.y) / this.h;
+    RectangleSource.prototype._getColor = function (x, y) {
+        var _x = (x - this.x) / this.w, _y = (y - this.y) / this.h;
         return (_x >= 0 || _x < 1 || _y >= 0 || _y < 1) ? this.color.getColor(x, y) : this.background.getColor(x, y);
+    };
+    return RectangleSource;
+}(ShapeSource));
+var EllipseSource = (function (_super) {
+    __extends(EllipseSource, _super);
+    function EllipseSource(width, height, x, y, r1, r2, color, background) {
+        var _this = _super.call(this, width, height, color, background) || this;
+        _this.x = x;
+        _this.y = y;
+        _this.r1 = r1;
+        _this.r2 = r2;
+        return _this;
     }
-}
-class EllipseSource extends ShapeSource {
-    constructor(width, height, x, y, r1, r2, color, background) {
-        super(width, height, color, background);
-        this.x = x;
-        this.y = y;
-        this.r1 = r1;
-        this.r2 = r2;
-    }
-    _getColor(x, y) {
-        let _x = (x - this.x) / this.r1, _y = (y - this.y) / this.r2;
+    EllipseSource.prototype._getColor = function (x, y) {
+        var _x = (x - this.x) / this.r1, _y = (y - this.y) / this.r2;
         return Math.sqrt(_x * _x + _y * _y) <= 1 ? this.color.getColor(x, y) : this.background.getColor(x, y);
+    };
+    return EllipseSource;
+}(ShapeSource));
+var PathSource = (function (_super) {
+    __extends(PathSource, _super);
+    function PathSource(width, height, path, color, background, fillRule) {
+        if (fillRule === void 0) { fillRule = "nonzero"; }
+        var _this = _super.call(this, width, height, color, background) || this;
+        _this.path = path;
+        _this.fillRule = fillRule;
+        _this.ctx = new PreRenderedImage(1, 1).ctx;
+        return _this;
     }
-}
-class PathSource extends ShapeSource {
-    constructor(width, height, path, color, background, fillRule = "nonzero") {
-        super(width, height, color, background);
-        this.path = path;
-        this.fillRule = fillRule;
-        this.ctx = new PreRenderedImage(1, 1).ctx;
-    }
-    _getColor(x, y) {
+    PathSource.prototype._getColor = function (x, y) {
         return this.ctx.isPointInPath(this.path, x, y, this.fillRule) ? this.color.getColor(x, y) : this.background.getColor(x, y);
+    };
+    return PathSource;
+}(ShapeSource));
+var CombiningSource = (function (_super) {
+    __extends(CombiningSource, _super);
+    function CombiningSource(width, height, color1, color2) {
+        var _this = _super.call(this, width, height) || this;
+        _this.color1 = ColorSource.get(color1 !== null ? color1 : RgbaColor.black);
+        _this.color2 = ColorSource.get(color2 !== null ? color2 : RgbaColor.white);
+        return _this;
     }
-}
-class CombiningSource extends ColorSource {
-    constructor(width, height, color1, color2) {
-        super(width, height);
-        this.color1 = ColorSource.get(color1 !== null ? color1 : RgbaColor.black);
-        this.color2 = ColorSource.get(color2 !== null ? color2 : RgbaColor.white);
-    }
-    _getColor(x, y) {
+    CombiningSource.prototype._getColor = function (x, y) {
         return this.combine(this.color1.getColor(x, y), this.color2.getColor(x, y));
+    };
+    return CombiningSource;
+}(ColorSource));
+var AddingSource = (function (_super) {
+    __extends(AddingSource, _super);
+    function AddingSource(width, height, color1, color2) {
+        return _super.call(this, width, height, color1, color2) || this;
     }
-}
-class AddingSource extends CombiningSource {
-    constructor(width, height, color1, color2) {
-        super(width, height, color1, color2);
-    }
-    combine(a, b) {
+    AddingSource.prototype.combine = function (a, b) {
         return a.add(b);
+    };
+    return AddingSource;
+}(CombiningSource));
+var MultiplyingSource = (function (_super) {
+    __extends(MultiplyingSource, _super);
+    function MultiplyingSource(width, height, color1, color2) {
+        return _super.call(this, width, height, color1, color2) || this;
     }
-}
-class MultiplyingSource extends CombiningSource {
-    constructor(width, height, color1, color2) {
-        super(width, height, color1, color2);
-    }
-    combine(a, b) {
+    MultiplyingSource.prototype.combine = function (a, b) {
         return a.multiply(b);
+    };
+    return MultiplyingSource;
+}(CombiningSource));
+var BlendingSource = (function (_super) {
+    __extends(BlendingSource, _super);
+    function BlendingSource(width, height, color1, color2) {
+        return _super.call(this, width, height, color1, color2) || this;
     }
-}
-class BlendingSource extends CombiningSource {
-    constructor(width, height, color1, color2) {
-        super(width, height, color1, color2);
-    }
-    combine(a, b) {
+    BlendingSource.prototype.combine = function (a, b) {
         return a.blend(b);
+    };
+    return BlendingSource;
+}(CombiningSource));
+var LerpingSource = (function (_super) {
+    __extends(LerpingSource, _super);
+    function LerpingSource(width, height, color1, color2, coeficient) {
+        var _this = _super.call(this, width, height, color1, color2) || this;
+        _this.coeficient = coeficient;
+        return _this;
     }
-}
-class LerpingSource extends CombiningSource {
-    constructor(width, height, color1, color2, coeficient) {
-        super(width, height, color1, color2);
-        this.coeficient = coeficient;
-    }
-    combine(a, b) {
+    LerpingSource.prototype.combine = function (a, b) {
         return a.lerp(b, this.coeficient);
+    };
+    return LerpingSource;
+}(CombiningSource));
+var TransformingSource = (function (_super) {
+    __extends(TransformingSource, _super);
+    function TransformingSource(width, height, source) {
+        var _this = _super.call(this, width, height) || this;
+        _this.source = source;
+        return _this;
     }
-}
-class TransformingSource extends ColorSource {
-    constructor(width, height, source) {
-        super(width, height);
-        this.source = source;
-    }
-    _getColor(x, y) {
-        let v = this.reverseTransform(x, y);
+    TransformingSource.prototype._getColor = function (x, y) {
+        var v = this.reverseTransform(x, y);
         return this.source.getColor(v.x, v.y);
+    };
+    return TransformingSource;
+}(ColorSource));
+var TranslatingSource = (function (_super) {
+    __extends(TranslatingSource, _super);
+    function TranslatingSource(width, height, source, xd, yd) {
+        var _this = _super.call(this, width, height, source) || this;
+        _this.xd = xd;
+        _this.yd = yd;
+        return _this;
     }
-}
-class TranslatingSource extends TransformingSource {
-    constructor(width, height, source, xd, yd) {
-        super(width, height, source);
-        this.xd = xd;
-        this.yd = yd;
-    }
-    reverseTransform(x, y) {
+    TranslatingSource.prototype.reverseTransform = function (x, y) {
         return new Vec2(x - this.xd, y - this.yd);
+    };
+    return TranslatingSource;
+}(TransformingSource));
+var RotatingSource = (function (_super) {
+    __extends(RotatingSource, _super);
+    function RotatingSource(width, height, source, angle, originX, originY) {
+        var _this = _super.call(this, width, height, source) || this;
+        _this.angle = angle;
+        _this.originX = originX;
+        _this.originY = originY;
+        return _this;
     }
-}
-class RotatingSource extends TransformingSource {
-    constructor(width, height, source, angle, originX, originY) {
-        super(width, height, source);
-        this.angle = angle;
-        this.originX = originX;
-        this.originY = originY;
-    }
-    reverseTransform(x, y) {
+    RotatingSource.prototype.reverseTransform = function (x, y) {
         return Utils.rotatePoint(x, y, this.originX, this.originY, -this.angle);
+    };
+    return RotatingSource;
+}(TransformingSource));
+var ScalingSource = (function (_super) {
+    __extends(ScalingSource, _super);
+    function ScalingSource(width, height, source, scale, originX, originY) {
+        var _this = _super.call(this, width, height, source) || this;
+        _this.scale = scale;
+        _this.origin = new Vec2(originX, originY);
+        return _this;
     }
-}
-class ScalingSource extends TransformingSource {
-    constructor(width, height, source, scale, originX, originY) {
-        super(width, height, source);
-        this.scale = scale;
-        this.origin = new Vec2(originX, originY);
-    }
-    reverseTransform(x, y) {
-        let v = new Vec2(x, y), dv = v.sub(this.origin);
+    ScalingSource.prototype.reverseTransform = function (x, y) {
+        var v = new Vec2(x, y), dv = v.sub(this.origin);
         if (dv.isZero()) {
             return v;
         }
         return v.add(dv.mul(1 / this.scale));
+    };
+    return ScalingSource;
+}(TransformingSource));
+var Particle = (function () {
+    function Particle() {
     }
-}
-/// <reference path='utils.ts'/>
-class Particle {
-    step(time) { }
-    render(ctx) { }
-    isDead() { return true; }
-}
-class SmokeParticle extends Particle {
-    constructor(x, y, startSize) {
-        super();
-        this.x = x;
-        this.y = y;
-        this.life = 0;
-        let lightness = Utils.randInt(112, 176);
-        let h = Utils.byteToHex(lightness);
-        this.rgb = `#${h}${h}${h}`;
-        this.startSize = startSize;
+    Particle.prototype.step = function (time) { };
+    Particle.prototype.render = function (ctx) { };
+    Particle.prototype.isDead = function () { return true; };
+    return Particle;
+}());
+var SmokeParticle = (function (_super) {
+    __extends(SmokeParticle, _super);
+    function SmokeParticle(x, y, startSize) {
+        var _this = _super.call(this) || this;
+        _this.x = x;
+        _this.y = y;
+        _this.life = 0;
+        var lightness = Utils.randInt(112, 176);
+        var h = Utils.byteToHex(lightness);
+        _this.rgb = "#" + h + h + h;
+        _this.startSize = startSize;
+        return _this;
     }
-    step(time) {
+    SmokeParticle.prototype.step = function (time) {
         this.life += time;
-    }
-    render(ctx) {
+    };
+    SmokeParticle.prototype.render = function (ctx) {
         if (this.life >= 1) {
             return;
         }
-        let r = this.life * 8 + this.startSize;
+        var r = this.life * 8 + this.startSize;
         ctx.fillStyle = this.rgb + Utils.byteToHex(255 * (1 - this.life));
         ctx.beginPath();
         ctx.arc(this.x, this.y, r, 0, Angle.deg360);
         ctx.fill();
-    }
-    isDead() {
+    };
+    SmokeParticle.prototype.isDead = function () {
         return this.life >= 1;
-    }
-}
-class ParticleSystem {
-    constructor(game) {
+    };
+    return SmokeParticle;
+}(Particle));
+var ParticleSystem = (function () {
+    function ParticleSystem(game) {
         this.game = game;
         this.parts = [];
         this.count = 0;
     }
-    add(p) {
+    ParticleSystem.prototype.add = function (p) {
         this.parts[this.count] = p;
         ++this.count;
-    }
-    step(time) {
+    };
+    ParticleSystem.prototype.step = function (time) {
         if (this.count === 0) {
             return;
         }
-        let j = this.count;
-        for (let i = 0; i < j; ++i) {
-            let p = this.parts[i];
+        var j = this.count;
+        for (var i = 0; i < j; ++i) {
+            var p = this.parts[i];
             p.step(time);
             if (p.isDead()) {
                 --j;
@@ -1023,16 +1221,18 @@ class ParticleSystem {
             }
         }
         this.count = j;
-    }
-    render(ctx, preRender) {
+    };
+    ParticleSystem.prototype.render = function (ctx, preRender) {
         if (preRender) {
             return;
         }
-        for (const p of this.parts) {
+        for (var _i = 0, _a = this.parts; _i < _a.length; _i++) {
+            var p = _a[_i];
             p.render(ctx);
         }
-    }
-}
+    };
+    return ParticleSystem;
+}());
 var TurretElement;
 (function (TurretElement) {
     TurretElement[TurretElement["Air"] = 0] = "Air";
@@ -1040,86 +1240,78 @@ var TurretElement;
     TurretElement[TurretElement["Fire"] = 2] = "Fire";
     TurretElement[TurretElement["Water"] = 3] = "Water";
 })(TurretElement || (TurretElement = {}));
-class TurretType {
-    constructor(type = null) {
-        this.type = type === null ? [0, 0, 0, 0] : type;
+var TurretType = (function () {
+    function TurretType(type) {
+        this.type = type === undefined ? [0, 0, 0, 0] : type;
     }
-    copy() { return new TurretType(this.type.slice()); }
-    add(elem) {
+    TurretType.prototype.copy = function () { return new TurretType(this.type.slice()); };
+    TurretType.prototype.add = function (elem) {
         ++this.type[elem];
         return this;
-    }
-    air() { return this.type[TurretElement.Air]; }
-    earth() { return this.type[TurretElement.Earth]; }
-    fire() { return this.type[TurretElement.Fire]; }
-    water() { return this.type[TurretElement.Water]; }
-    count() {
-        let c = 0;
-        for (let i = 0; i < 4; ++i) {
+    };
+    TurretType.prototype.air = function () { return this.type[TurretElement.Air]; };
+    TurretType.prototype.earth = function () { return this.type[TurretElement.Earth]; };
+    TurretType.prototype.fire = function () { return this.type[TurretElement.Fire]; };
+    TurretType.prototype.water = function () { return this.type[TurretElement.Water]; };
+    TurretType.prototype.count = function () {
+        var c = 0;
+        for (var i = 0; i < 4; ++i) {
             c += this.type[i];
         }
         return c;
-    }
-    contains(type) { return this.type[type] > 0; }
-    toArray() {
-        let arr = [];
-        for (let i = 0; i < this.type[TurretElement.Air]; ++i) {
+    };
+    TurretType.prototype.contains = function (type) { return this.type[type] > 0; };
+    TurretType.prototype.toArray = function () {
+        var arr = [];
+        for (var i = 0; i < this.type[TurretElement.Air]; ++i) {
             arr.push(TurretElement.Air);
         }
-        for (let i = 0; i < this.type[TurretElement.Earth]; ++i) {
+        for (var i = 0; i < this.type[TurretElement.Earth]; ++i) {
             arr.push(TurretElement.Earth);
         }
-        for (let i = 0; i < this.type[TurretElement.Fire]; ++i) {
+        for (var i = 0; i < this.type[TurretElement.Fire]; ++i) {
             arr.push(TurretElement.Fire);
         }
-        for (let i = 0; i < this.type[TurretElement.Water]; ++i) {
+        for (var i = 0; i < this.type[TurretElement.Water]; ++i) {
             arr.push(TurretElement.Water);
         }
         return arr;
-    }
-    toColorArray() {
-        let arr = [];
-        for (let i = 0; i < this.type[TurretElement.Air]; ++i) {
+    };
+    TurretType.prototype.toColorArray = function () {
+        var arr = [];
+        for (var i = 0; i < this.type[TurretElement.Air]; ++i) {
             arr.push("#d8d1ff");
         }
-        for (let i = 0; i < this.type[TurretElement.Earth]; ++i) {
+        for (var i = 0; i < this.type[TurretElement.Earth]; ++i) {
             arr.push("#6dd13e");
         }
-        for (let i = 0; i < this.type[TurretElement.Fire]; ++i) {
+        for (var i = 0; i < this.type[TurretElement.Fire]; ++i) {
             arr.push("#f7854c");
         }
-        for (let i = 0; i < this.type[TurretElement.Water]; ++i) {
+        for (var i = 0; i < this.type[TurretElement.Water]; ++i) {
             arr.push("#79b4f2");
         }
         return arr;
-    }
-}
-/// <reference path='utils.ts'/>
-/// <reference path='Game.ts'/>
-/// <reference path="generators.ts"/>
-/// <reference path="particles.ts"/>
-/// <reference path="TurretType.ts"/>
-class Turret {
-    constructor(tile, type = null) {
+    };
+    return TurretType;
+}());
+var Turret = (function () {
+    function Turret(tile, type) {
         this.game = tile.game;
         this.tile = tile;
         this.center = new Vec2(tile.pos.x + 32, tile.pos.y + 32);
         this.hp = 100;
-        this.type = type === null ? new TurretType() : type;
+        this.type = type === undefined ? new TurretType() : type;
         this.cooldown = 0;
     }
-    step(time) {
+    Turret.prototype.step = function (time) {
         if (this.cooldown > 0) {
             this.cooldown -= time;
         }
-    }
-    render(ctx, preRender) { }
-    getType() { return this.type.copy(); }
-    /**
-     * returns multiplier for upgrade cost if upgrade is possible or -1 if not
-     * @param type upgrade type
-     */
-    upgradeCostMultiplier(type) {
+    };
+    Turret.prototype.render = function (ctx, preRender) { };
+    Turret.prototype.getType = function () { return this.type.copy(); };
+    Turret.prototype.upgradeCostMultiplier = function (type) {
         switch (this.type.count()) {
             case 0: return 1;
             case 1: return this.type.contains(type) ? 1 : 2;
@@ -1127,8 +1319,8 @@ class Turret {
             case 3: return this.type.contains(type) ? 4 : 8;
             default: return -1;
         }
-    }
-    addType(type) {
+    };
+    Turret.prototype.addType = function (type) {
         switch (type) {
             case TurretElement.Air:
                 this.tile.turret = new AirTurret(this.tile, this.type.add(type));
@@ -1143,8 +1335,8 @@ class Turret {
                 this.tile.turret = new WaterTurret(this.tile, this.type.add(type));
                 break;
         }
-    }
-    static init() {
+    };
+    Turret.init = function () {
         AirTurret.init();
         FireTurret.init();
         EarthTurret.init();
@@ -1160,19 +1352,22 @@ class Turret {
         PlasmaTurret.init();
         EarthquakeTurret.init();
         ArcaneTurret.init();
+    };
+    return Turret;
+}());
+var AirTurret = (function (_super) {
+    __extends(AirTurret, _super);
+    function AirTurret(tile, type) {
+        var _this = _super.call(this, tile, type) || this;
+        _this.angle = 0;
+        return _this;
     }
-}
-class AirTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-        this.angle = 0;
-    }
-    step(time) {
-        super.step(time);
+    AirTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
         this.angle = (this.angle + Angle.deg360 - time * Angle.deg120) % Angle.deg360;
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    };
+    AirTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
@@ -1210,8 +1405,8 @@ class AirTurret extends Turret {
                 break;
         }
         ctx.resetTransform();
-    }
-    addType(type) {
+    };
+    AirTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -1229,13 +1424,13 @@ class AirTurret extends Turret {
                 this.tile.turret = new IceTurret(this.tile, this.type.add(type));
                 break;
         }
-    }
-    static init() {
-        let c = new PreRenderedImage(64, 64);
-        let renderable = new RenderablePathSet();
-        let path = new Path2D();
+    };
+    AirTurret.init = function () {
+        var c = new PreRenderedImage(64, 64);
+        var renderable = new RenderablePathSet();
+        var path = new Path2D();
         path.ellipse(44, 32, 12, 8, 0, 0, Angle.deg180);
-        let grad = c.ctx.createLinearGradient(32, 32, 32, 40);
+        var grad = c.ctx.createLinearGradient(32, 32, 32, 40);
         renderable.pushNew(path, grad);
         path = new Path2D();
         path.ellipse(20, 32, 12, 8, 0, Angle.deg180, 0);
@@ -1245,31 +1440,34 @@ class AirTurret extends Turret {
         path.arc(32, 32, 8, 0, Angle.deg360);
         grad = c.ctx.createRadialGradient(32, 32, 8, 32, 32, 4);
         renderable.pushNew(path, grad);
-        for (const rp of renderable.paths) {
+        for (var _i = 0, _a = renderable.paths; _i < _a.length; _i++) {
+            var rp = _a[_i];
             rp.path.closePath();
-            const gr = rp.fill;
+            var gr = rp.fill;
             gr.addColorStop(0, "#B2A5FF");
             gr.addColorStop(1, "#A0A0A0");
         }
         renderable.render(c.ctx);
         AirTurret.image = c.image;
+    };
+    return AirTurret;
+}(Turret));
+var EarthTurret = (function (_super) {
+    __extends(EarthTurret, _super);
+    function EarthTurret(tile, type) {
+        return _super.call(this, tile, type) || this;
     }
-}
-class EarthTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-    }
-    step(time) {
-        super.step(time);
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    EarthTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
+    };
+    EarthTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
         ctx.drawImage(EarthTurret.images[this.type.earth()], this.tile.pos.x, this.tile.pos.y);
-    }
-    addType(type) {
+    };
+    EarthTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -1287,21 +1485,22 @@ class EarthTurret extends Turret {
                 this.tile.turret = new AcidTurret(this.tile, this.type.add(type));
                 break;
         }
-    }
-    static init() {
+    };
+    EarthTurret.init = function () {
         EarthTurret.images = [];
         EarthTurret.preRender1();
         EarthTurret.preRender2();
         EarthTurret.preRender3();
         EarthTurret.preRender4();
-    }
-    static preRender1() {
-        let c = new PreRenderedImage(64, 64);
-        let renderable = new RenderablePathSet();
-        let path;
-        let grad;
-        let corners = [{ x: 22, y: 22 }, { x: 42, y: 22 }, { x: 22, y: 42 }, { x: 42, y: 42 }];
-        for (const corner of corners) {
+    };
+    EarthTurret.preRender1 = function () {
+        var c = new PreRenderedImage(64, 64);
+        var renderable = new RenderablePathSet();
+        var path;
+        var grad;
+        var corners = [{ x: 22, y: 22 }, { x: 42, y: 22 }, { x: 22, y: 42 }, { x: 42, y: 42 }];
+        for (var _i = 0, corners_1 = corners; _i < corners_1.length; _i++) {
+            var corner = corners_1[_i];
             path = new Path2D();
             path.arc(corner.x, corner.y, 10, 0, Angle.deg360);
             grad = c.ctx.createRadialGradient(corner.x, corner.y, 5, corner.x, corner.y, 10);
@@ -1329,14 +1528,15 @@ class EarthTurret extends Turret {
         renderable.pushNew(path, grad);
         renderable.render(c.ctx);
         EarthTurret.images[1] = c.image;
-    }
-    static preRender2() {
-        let c = new PreRenderedImage(64, 64);
-        let renderable = new RenderablePathSet();
-        let path;
-        let grad;
-        let corners = [{ x: 21, y: 21 }, { x: 43, y: 21 }, { x: 21, y: 43 }, { x: 43, y: 43 }];
-        for (const corner of corners) {
+    };
+    EarthTurret.preRender2 = function () {
+        var c = new PreRenderedImage(64, 64);
+        var renderable = new RenderablePathSet();
+        var path;
+        var grad;
+        var corners = [{ x: 21, y: 21 }, { x: 43, y: 21 }, { x: 21, y: 43 }, { x: 43, y: 43 }];
+        for (var _i = 0, corners_2 = corners; _i < corners_2.length; _i++) {
+            var corner = corners_2[_i];
             path = new Path2D();
             path.arc(corner.x, corner.y, 10, 0, Angle.deg360);
             grad = c.ctx.createRadialGradient(corner.x, corner.y, 5, corner.x, corner.y, 10);
@@ -1364,14 +1564,15 @@ class EarthTurret extends Turret {
         renderable.pushNew(path, grad);
         renderable.render(c.ctx);
         EarthTurret.images[2] = c.image;
-    }
-    static preRender3() {
-        let c = new PreRenderedImage(64, 64);
-        let renderable = new RenderablePathSet();
-        let path;
-        let grad;
-        let corners = [{ x: 20, y: 20 }, { x: 44, y: 20 }, { x: 20, y: 44 }, { x: 44, y: 44 }];
-        for (const corner of corners) {
+    };
+    EarthTurret.preRender3 = function () {
+        var c = new PreRenderedImage(64, 64);
+        var renderable = new RenderablePathSet();
+        var path;
+        var grad;
+        var corners = [{ x: 20, y: 20 }, { x: 44, y: 20 }, { x: 20, y: 44 }, { x: 44, y: 44 }];
+        for (var _i = 0, corners_3 = corners; _i < corners_3.length; _i++) {
+            var corner = corners_3[_i];
             path = new Path2D();
             path.arc(corner.x, corner.y, 11, 0, Angle.deg360);
             grad = c.ctx.createRadialGradient(corner.x, corner.y, 5, corner.x, corner.y, 10);
@@ -1399,26 +1600,27 @@ class EarthTurret extends Turret {
         renderable.pushNew(path, grad);
         renderable.render(c.ctx);
         EarthTurret.images[3] = c.image;
-    }
-    static preRender4() {
-        let grad;
-        let tex1 = new CamouflageTextureGenerator(64, 64, "#825D30", "#308236", 0.5);
-        let tex2 = new CamouflageTextureGenerator(64, 64, "#92A33C", "#4ED314", 0.5);
-        let src = RgbaColor.transparent.source();
-        let corners = [
+    };
+    EarthTurret.preRender4 = function () {
+        var grad;
+        var tex1 = new CamouflageTextureGenerator(64, 64, "#825D30", "#308236", 0.5);
+        var tex2 = new CamouflageTextureGenerator(64, 64, "#92A33C", "#4ED314", 0.5);
+        var src = RgbaColor.transparent.source();
+        var corners = [
             { x: 20, y: 20 },
             { x: 44, y: 20 },
             { x: 20, y: 44 },
             { x: 44, y: 44 }
         ];
-        for (const corner of corners) {
+        for (var _i = 0, corners_4 = corners; _i < corners_4.length; _i++) {
+            var corner = corners_4[_i];
             grad = new RadialGradientSource(64, 64, corner.x, corner.y, 12, 6);
             grad.addColorStop(0, "#825D3000");
             grad.addColorStop(0.2, tex1);
             grad.addColorStop(1, tex2);
             src = new EllipseSource(64, 64, corner.x, corner.y, 12, 12, grad, src);
         }
-        let path = new Path2D;
+        var path = new Path2D;
         path.moveTo(18, 26);
         path.lineTo(26, 18);
         path.lineTo(46, 38);
@@ -1434,44 +1636,47 @@ class EarthTurret extends Turret {
         grad.addColorStop(0, tex2);
         grad.addColorStop(1, "#B6FF00");
         EarthTurret.images[4] = new EllipseSource(64, 64, 32, 32, 10.5, 10.5, grad, src).generateImage();
+    };
+    return EarthTurret;
+}(Turret));
+var FireTurret = (function (_super) {
+    __extends(FireTurret, _super);
+    function FireTurret(tile, type) {
+        var _this = _super.call(this, tile, type) || this;
+        _this.angle = Angle.rand();
+        _this.smokeTimer = Utils.randInt(0.5, 4);
+        return _this;
     }
-}
-class FireTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-        this.angle = Angle.rand();
-        this.smokeTimer = Utils.randInt(0.5, 4);
-    }
-    spawnSmoke() {
-        let x;
-        let y;
-        let r = 5 + this.type.fire();
+    FireTurret.prototype.spawnSmoke = function () {
+        var x;
+        var y;
+        var r = 5 + this.type.fire();
         do {
             x = Math.random() * r * 2 - r;
             y = Math.random() * r * 2 - r;
         } while (x * x + y * y > 100);
         this.smokeTimer = Utils.randInt(0.5, 6 - this.type.fire());
         this.game.particles.add(new SmokeParticle(this.center.x + x, this.center.y + y, 0));
-    }
-    step(time) {
-        super.step(time);
+    };
+    FireTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
         this.smokeTimer -= time;
         if (this.smokeTimer <= 0) {
             this.spawnSmoke();
         }
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    };
+    FireTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
-        let r = 20 + 3 * this.type.fire();
+        var r = 20 + 3 * this.type.fire();
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
         ctx.drawImage(FireTurret.image, -r, -r, r * 2, r * 2);
         ctx.resetTransform();
-    }
-    addType(type) {
+    };
+    FireTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -1489,16 +1694,16 @@ class FireTurret extends Turret {
                 this.tile.turret = new FlamethrowerTurret(this.tile, this.type.add(type));
                 break;
         }
-    }
-    static init() {
-        let c = new PreRenderedImage(64, 64);
-        let texLava = new CellularTextureGenerator(64, 64, 36, "#FF5020", "#C00000", CellularTextureType.Balls);
-        let texRock = new CellularTextureGenerator(64, 64, 144, "#662D22", "#44150D", CellularTextureType.Balls);
-        let renderable = new RenderablePathSet();
-        let path = new Path2D();
-        for (let k = 0; k < 36; ++k) {
-            let radius = 20 + 4 * Math.random();
-            let a = k * Angle.deg10;
+    };
+    FireTurret.init = function () {
+        var c = new PreRenderedImage(64, 64);
+        var texLava = new CellularTextureGenerator(64, 64, 36, "#FF5020", "#C00000", CellularTextureType.Balls);
+        var texRock = new CellularTextureGenerator(64, 64, 144, "#662D22", "#44150D", CellularTextureType.Balls);
+        var renderable = new RenderablePathSet();
+        var path = new Path2D();
+        for (var k = 0; k < 36; ++k) {
+            var radius = 20 + 4 * Math.random();
+            var a = k * Angle.deg10;
             if (k === 0) {
                 path.moveTo(Utils.ldx(radius, a, 32), Utils.ldy(radius, a, 32));
             }
@@ -1508,14 +1713,14 @@ class FireTurret extends Turret {
         }
         path.closePath();
         renderable.pushNew(path, c.ctx.createPattern(texRock.generateImage(), "no-repeat"));
-        let grad = c.ctx.createRadialGradient(32, 32, 24, 32, 32, 10);
+        var grad = c.ctx.createRadialGradient(32, 32, 24, 32, 32, 10);
         grad.addColorStop(0, "#300000");
         grad.addColorStop(1, "#30000000");
         renderable.pushNew(path, grad);
         path = new Path2D();
-        for (let k = 0; k < 18; ++k) {
-            let radius = 9 + 2 * Math.random();
-            let a = k * Angle.deg20;
+        for (var k = 0; k < 18; ++k) {
+            var radius = 9 + 2 * Math.random();
+            var a = k * Angle.deg20;
             if (k === 0) {
                 path.moveTo(Utils.ldx(radius, a, 32), Utils.ldy(radius, a, 32));
             }
@@ -1527,18 +1732,21 @@ class FireTurret extends Turret {
         renderable.pushNew(path, c.ctx.createPattern(texLava.generateImage(), "no-repeat"));
         renderable.render(c.ctx);
         FireTurret.image = c.image;
+    };
+    return FireTurret;
+}(Turret));
+var WaterTurret = (function (_super) {
+    __extends(WaterTurret, _super);
+    function WaterTurret(tile, type) {
+        var _this = _super.call(this, tile, type) || this;
+        _this.angle = Angle.rand();
+        return _this;
     }
-}
-class WaterTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-        this.angle = Angle.rand();
-    }
-    step(time) {
-        super.step(time);
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    WaterTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
+    };
+    WaterTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
@@ -1546,8 +1754,8 @@ class WaterTurret extends Turret {
         ctx.rotate(this.angle);
         ctx.drawImage(WaterTurret.images[this.type.count() - 1], -32, -32);
         ctx.resetTransform();
-    }
-    addType(type) {
+    };
+    WaterTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -1565,81 +1773,84 @@ class WaterTurret extends Turret {
                 this.type.add(type);
                 break;
         }
-    }
-    static init() {
-        let sandTex = new NoiseTextureGenerator(64, 64, "#F2EBC1", 0.08, 0, 1).generateImage();
-        let groundTex = new NoiseTextureGenerator(64, 64, "#B9B5A0", 0.05, 0, 1).generateImage();
-        let c0 = new PreRenderedImage(64, 64);
-        let c1 = new PreRenderedImage(64, 64);
-        let c2 = new PreRenderedImage(64, 64);
-        let c3 = WaterTurret.preRender(groundTex, sandTex);
+    };
+    WaterTurret.init = function () {
+        var sandTex = new NoiseTextureGenerator(64, 64, "#F2EBC1", 0.08, 0, 1).generateImage();
+        var groundTex = new NoiseTextureGenerator(64, 64, "#B9B5A0", 0.05, 0, 1).generateImage();
+        var c0 = new PreRenderedImage(64, 64);
+        var c1 = new PreRenderedImage(64, 64);
+        var c2 = new PreRenderedImage(64, 64);
+        var c3 = WaterTurret.preRender(groundTex, sandTex);
         c0.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex).image, 9, 9, 46, 46);
         c1.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex).image, 6, 6, 52, 52);
         c2.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex).image, 3, 3, 58, 58);
         WaterTurret.images = [c0.image, c1.image, c2.image, c3.image];
-    }
-    static preRender(groundTex, sandTex) {
-        let waterTex = new CellularTextureGenerator(64, 64, Utils.randInt(16, 36), "#3584CE", "#3EB4EF", CellularTextureType.Balls).generateImage();
-        let textures = [groundTex, sandTex, waterTex];
-        let pts = [[], [], []];
-        for (let i = 0; i < 8; ++i) {
-            let d2 = Utils.rand(16, 20);
-            let d1 = Utils.rand(d2 + 2, 24);
-            let d0 = Utils.rand(d1, 24);
-            let a = i * Angle.deg45;
-            pts[0].push({ pt: Utils.ld(d0, a, 32, 32), pt_b: null, pt_a: null });
-            pts[1].push({ pt: Utils.ld(d1, a, 32, 32), pt_b: null, pt_a: null });
-            pts[2].push({ pt: Utils.ld(d2, a, 32, 32), pt_b: null, pt_a: null });
+    };
+    WaterTurret.preRender = function (groundTex, sandTex) {
+        var waterTex = new CellularTextureGenerator(64, 64, Utils.randInt(16, 36), "#3584CE", "#3EB4EF", CellularTextureType.Balls).generateImage();
+        var textures = [groundTex, sandTex, waterTex];
+        var pts = [[], [], []];
+        for (var i = 0; i < 8; ++i) {
+            var d2 = Utils.rand(16, 20);
+            var d1 = Utils.rand(d2 + 2, 24);
+            var d0 = Utils.rand(d1, 24);
+            var a = i * Angle.deg45;
+            pts[0].push({ pt: Utils.ld(d0, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero });
+            pts[1].push({ pt: Utils.ld(d1, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero });
+            pts[2].push({ pt: Utils.ld(d2, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero });
         }
-        for (let j = 0; j < 3; ++j) {
-            let layer = pts[j];
-            for (let i = 0; i < 8; ++i) {
-                let ob = layer[(i + 7) % 8];
-                let o = layer[i];
-                let oa = layer[(i + 1) % 8];
-                let angle = Utils.angleBetween(Utils.getAngle(ob.pt.x, ob.pt.y, o.pt.x, o.pt.y), Utils.getAngle(o.pt.x, o.pt.y, oa.pt.x, oa.pt.y));
+        for (var j = 0; j < 3; ++j) {
+            var layer = pts[j];
+            for (var i = 0; i < 8; ++i) {
+                var ob = layer[(i + 7) % 8];
+                var o = layer[i];
+                var oa = layer[(i + 1) % 8];
+                var angle = Utils.angleBetween(Utils.getAngle(ob.pt.x, ob.pt.y, o.pt.x, o.pt.y), Utils.getAngle(o.pt.x, o.pt.y, oa.pt.x, oa.pt.y));
                 o.pt_a = Utils.ld(5, angle, o.pt.x, o.pt.y);
                 o.pt_b = Utils.ld(5, angle + Angle.deg180, o.pt.x, o.pt.y);
             }
         }
-        let c = new PreRenderedImage(64, 64);
-        let ctx = c.ctx;
-        for (let j = 0; j < 3; ++j) {
-            let layer = pts[j];
+        var c = new PreRenderedImage(64, 64);
+        var ctx = c.ctx;
+        for (var j = 0; j < 3; ++j) {
+            var layer = pts[j];
             ctx.beginPath();
             ctx.moveTo(layer[0].pt.x, layer[0].pt.y);
-            for (let i = 0; i < 8; ++i) {
-                let o0 = layer[i];
-                let o1 = layer[(i + 1) % 8];
+            for (var i = 0; i < 8; ++i) {
+                var o0 = layer[i];
+                var o1 = layer[(i + 1) % 8];
                 ctx.bezierCurveTo(o0.pt_a.x, o0.pt_a.y, o1.pt_b.x, o1.pt_b.y, o1.pt.x, o1.pt.y);
             }
             ctx.fillStyle = ctx.createPattern(textures[j], "repeat");
             ctx.fill();
         }
         return c;
+    };
+    return WaterTurret;
+}(Turret));
+var IceTurret = (function (_super) {
+    __extends(IceTurret, _super);
+    function IceTurret(tile, type) {
+        var _this = _super.call(this, tile, type) || this;
+        _this.angle = Angle.rand();
+        return _this;
     }
-}
-class IceTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-        this.angle = Angle.rand();
-    }
-    step(time) {
-        super.step(time);
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    IceTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
+    };
+    IceTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
-        let r = 24 + 2 * this.type.water() + 2 * this.type.air();
-        let i = Math.sign(this.type.water() - this.type.air()) + 1;
+        var r = 24 + 2 * this.type.water() + 2 * this.type.air();
+        var i = Utils.sign(this.type.water() - this.type.air()) + 1;
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
         ctx.drawImage(IceTurret.images[i], -r, -r, r * 2, r * 2);
         ctx.resetTransform();
-    }
-    addType(type) {
+    };
+    IceTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -1655,26 +1866,26 @@ class IceTurret extends Turret {
                 this.type.add(type);
                 break;
         }
-    }
-    static init() {
-        let tex = new CellularTextureGenerator(64, 64, 64, "#D1EFFF", "#70BECC", CellularTextureType.Lava);
-        let c0 = new PreRenderedImage(64, 64);
-        let c1 = new PreRenderedImage(64, 64);
-        let c2 = new PreRenderedImage(64, 64);
-        let fill = c1.ctx.createPattern(tex.generateImage(), "no-repeat");
+    };
+    IceTurret.init = function () {
+        var tex = new CellularTextureGenerator(64, 64, 64, "#D1EFFF", "#70BECC", CellularTextureType.Lava);
+        var c0 = new PreRenderedImage(64, 64);
+        var c1 = new PreRenderedImage(64, 64);
+        var c2 = new PreRenderedImage(64, 64);
+        var fill = c1.ctx.createPattern(tex.generateImage(), "no-repeat");
         IceTurret.preRender(c1.ctx, fill, true);
         c0.ctx.drawImage(c1.image, 0, 0);
         IceTurret.preRender(c0.ctx, "#FFFFFF80");
         c2.ctx.drawImage(c1.image, 0, 0);
         IceTurret.preRender(c2.ctx, "#51AFCC80");
         IceTurret.images = [c0.image, c1.image, c2.image];
-    }
-    static mkBranch(ctx, x, y, angle, size) {
+    };
+    IceTurret.mkBranch = function (ctx, x, y, angle, size) {
         if (size >= 2.5) {
             ctx.beginPath();
             ctx.moveTo(x, y);
-            let x2 = Utils.ldx(8, angle, x);
-            let y2 = Utils.ldy(8, angle, y);
+            var x2 = Utils.ldx(8, angle, x);
+            var y2 = Utils.ldy(8, angle, y);
             ctx.lineTo(x2, y2);
             ctx.lineWidth = 3;
             ctx.stroke();
@@ -1685,8 +1896,8 @@ class IceTurret extends Turret {
         else if (size >= 1.5) {
             ctx.beginPath();
             ctx.moveTo(x, y);
-            let x2 = Utils.ldx(6, angle, x);
-            let y2 = Utils.ldy(6, angle, y);
+            var x2 = Utils.ldx(6, angle, x);
+            var y2 = Utils.ldy(6, angle, y);
             ctx.lineTo(x2, y2);
             ctx.lineWidth = 2;
             ctx.stroke();
@@ -1697,20 +1908,21 @@ class IceTurret extends Turret {
         else if (size >= 0.5) {
             ctx.beginPath();
             ctx.moveTo(x, y);
-            let x2 = Utils.ldx(4, angle, x);
-            let y2 = Utils.ldy(4, angle, y);
+            var x2 = Utils.ldx(4, angle, x);
+            var y2 = Utils.ldy(4, angle, y);
             ctx.lineTo(x2, y2);
             ctx.lineWidth = 1;
             ctx.stroke();
         }
-    }
-    static preRender(ctx, fill, drawCenter = false) {
+    };
+    IceTurret.preRender = function (ctx, fill, drawCenter) {
+        if (drawCenter === void 0) { drawCenter = false; }
         ctx.save();
         ctx.lineCap = "round";
         ctx.strokeStyle = fill;
-        let centerPath = new Path2D();
-        for (let k = 0; k < 6; ++k) {
-            let a = k * Angle.deg60;
+        var centerPath = new Path2D();
+        for (var k = 0; k < 6; ++k) {
+            var a = k * Angle.deg60;
             if (k === 0) {
                 centerPath.moveTo(Utils.ldx(8, a, 32), Utils.ldy(8, a, 32));
             }
@@ -1724,32 +1936,35 @@ class IceTurret extends Turret {
         ctx.fillStyle = fill;
         ctx.fill(centerPath);
         if (drawCenter) {
-            let grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 6);
+            var grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 6);
             grad.addColorStop(0, "#FFFFFF");
             grad.addColorStop(1, "#D1EFFF00");
             ctx.fillStyle = grad;
             ctx.fill(centerPath);
         }
+    };
+    return IceTurret;
+}(Turret));
+var AcidTurret = (function (_super) {
+    __extends(AcidTurret, _super);
+    function AcidTurret(tile, type) {
+        var _this = _super.call(this, tile, type) || this;
+        _this.frame = 0;
+        return _this;
     }
-}
-class AcidTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-        this.frame = 0;
-    }
-    step(time) {
-        super.step(time);
+    AcidTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
         this.frame = (this.frame + time * 25) % AcidTurret.frameCount;
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    };
+    AcidTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
-        let f = AcidTurret.images[Math.floor(this.frame)][this.type.water() + this.type.earth() - 2];
+        var f = AcidTurret.images[Math.floor(this.frame)][this.type.water() + this.type.earth() - 2];
         ctx.drawImage(f, this.center.x - 32, this.center.y - 32);
-    }
-    addType(type) {
+    };
+    AcidTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -1765,23 +1980,23 @@ class AcidTurret extends Turret {
                 this.type.add(type);
                 break;
         }
-    }
-    static init() {
-        let acidTex = new CellularTextureGenerator(64, 64, 9, "#E0FF00", "#5B7F00", CellularTextureType.Balls).generateImage();
+    };
+    AcidTurret.init = function () {
+        var acidTex = new CellularTextureGenerator(64, 64, 9, "#E0FF00", "#5B7F00", CellularTextureType.Balls).generateImage();
         AcidTurret.images = [];
         AcidTurret.frameCount = 100;
-        for (let i = 0; i < AcidTurret.frameCount; ++i) {
+        for (var i = 0; i < AcidTurret.frameCount; ++i) {
             AcidTurret.images.push(AcidTurret.preRenderFrame(acidTex, i));
         }
-    }
-    static preRenderFrame(texture, frame) {
-        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        let offset = frame / AcidTurret.frameCount * 64;
-        let c0 = new PreRenderedImage(64, 64);
-        let c1 = new PreRenderedImage(64, 64);
-        let c2 = new PreRenderedImage(64, 64);
-        let c = [c0, c1, c2];
-        let ctx = c0.ctx;
+    };
+    AcidTurret.preRenderFrame = function (texture, frame) {
+        var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        var offset = frame / AcidTurret.frameCount * 64;
+        var c0 = new PreRenderedImage(64, 64);
+        var c1 = new PreRenderedImage(64, 64);
+        var c2 = new PreRenderedImage(64, 64);
+        var c = [c0, c1, c2];
+        var ctx = c0.ctx;
         ctx.beginPath();
         ctx.moveTo(26, 20);
         ctx.arcTo(44, 20, 44, 26, 6);
@@ -1796,16 +2011,16 @@ class AcidTurret extends Turret {
         ctx.stroke();
         c1.ctx.drawImage(c0.image, 0, 0);
         c2.ctx.drawImage(c0.image, 0, 0);
-        for (let i = 0; i < 3; ++i) {
-            let w = 8 + 2 * i;
-            let ca = new PreRenderedImage(w, w);
+        for (var i = 0; i < 3; ++i) {
+            var w = 8 + 2 * i;
+            var ca = new PreRenderedImage(w, w);
             ctx = ca.ctx;
             ctx.fillStyle = "#D0D0D060";
             ctx.fillRect(0, 0, w, w);
             ctx.fillStyle = "#D0D0D0";
             ctx.fillRect(0, 1, w, w - 2);
             ctx.fillRect(1, 0, w - 2, w);
-            let pattern = ctx.createPattern(texture, "repeat");
+            var pattern = ctx.createPattern(texture, "repeat");
             pattern.setTransform(svg.createSVGMatrix().translate(-offset, 0));
             ctx.fillStyle = pattern;
             ctx.fillRect(1, 1, w - 2, w - 2);
@@ -1828,7 +2043,7 @@ class AcidTurret extends Turret {
             ctx.fill();
             ctx.fillStyle = "#60606080";
             ctx.fill();
-            let grad = ctx.createLinearGradient(25 - i / 2, 25 - i / 2, 38 + i / 2, 38 + i / 2);
+            var grad = ctx.createLinearGradient(25 - i / 2, 25 - i / 2, 38 + i / 2, 38 + i / 2);
             grad.addColorStop(0, "#808080");
             grad.addColorStop(1, "#404040");
             ctx.strokeStyle = grad;
@@ -1836,32 +2051,35 @@ class AcidTurret extends Turret {
             ctx.stroke();
         }
         return [c0.image, c1.image, c2.image];
+    };
+    return AcidTurret;
+}(Turret));
+var CannonTurret = (function (_super) {
+    __extends(CannonTurret, _super);
+    function CannonTurret(tile, type) {
+        var _this = _super.call(this, tile, type) || this;
+        _this.angle = Angle.rand();
+        return _this;
     }
-}
-class CannonTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-        this.angle = Angle.rand();
-    }
-    step(time) {
-        super.step(time);
+    CannonTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
         if (this.cooldown <= 0) {
             this.cooldown = 2;
         }
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    };
+    CannonTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
-        let r = 24 + 2 * this.type.earth() + 2 * this.type.fire();
+        var r = 24 + 2 * this.type.earth() + 2 * this.type.fire();
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
         ctx.translate(-2 * this.cooldown, 0);
         ctx.drawImage(CannonTurret.image, -r, -r, r * 2, r * 2);
         ctx.resetTransform();
-    }
-    addType(type) {
+    };
+    CannonTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -1877,11 +2095,11 @@ class CannonTurret extends Turret {
                 this.tile.turret = new EarthquakeTurret(this.tile, this.type.add(type));
                 break;
         }
-    }
-    static init() {
-        let c = new PreRenderedImage(64, 64);
-        let ctx = c.ctx;
-        let grad = ctx.createLinearGradient(20, 32, 40, 32);
+    };
+    CannonTurret.init = function () {
+        var c = new PreRenderedImage(64, 64);
+        var ctx = c.ctx;
+        var grad = ctx.createLinearGradient(20, 32, 40, 32);
         grad.addColorStop(0.000, "#543B2C");
         grad.addColorStop(0.125, "#664936");
         grad.addColorStop(0.250, "#6C4D38");
@@ -1912,23 +2130,25 @@ class CannonTurret extends Turret {
         ctx.lineWidth = 1;
         ctx.stroke();
         CannonTurret.image = c.image;
+    };
+    return CannonTurret;
+}(Turret));
+var ArcherTurret = (function (_super) {
+    __extends(ArcherTurret, _super);
+    function ArcherTurret(tile, type) {
+        return _super.call(this, tile, type) || this;
     }
-}
-class ArcherTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-    }
-    step(time) {
-        super.step(time);
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    ArcherTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
+    };
+    ArcherTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
         ctx.drawImage(ArcherTurret.image, this.tile.pos.x, this.tile.pos.y);
-    }
-    addType(type) {
+    };
+    ArcherTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -1944,29 +2164,32 @@ class ArcherTurret extends Turret {
                 this.tile.turret = new MoonTurret(this.tile, this.type.add(type));
                 break;
         }
-    }
-    static init() {
-        let c = new PreRenderedImage(64, 64);
+    };
+    ArcherTurret.init = function () {
+        var c = new PreRenderedImage(64, 64);
         ArcherTurret.image = c.image;
+    };
+    return ArcherTurret;
+}(Turret));
+var LightningTurret = (function (_super) {
+    __extends(LightningTurret, _super);
+    function LightningTurret(tile, type) {
+        var _this = _super.call(this, tile, type) || this;
+        _this.animationTimer = Math.random();
+        return _this;
     }
-}
-class LightningTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-        this.animationTimer = Math.random();
-    }
-    step(time) {
-        super.step(time);
+    LightningTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
         this.animationTimer = (this.animationTimer + time * (this.type.air() + this.type.fire() - 1) * 0.5) % 1;
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    };
+    LightningTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
         ctx.drawImage(LightningTurret.images[Math.floor(this.animationTimer * 8)], this.tile.pos.x, this.tile.pos.y);
-    }
-    addType(type) {
+    };
+    LightningTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -1982,23 +2205,23 @@ class LightningTurret extends Turret {
                 this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type));
                 break;
         }
-    }
-    static init() {
-        let c = [];
-        for (let i = 0; i < 8; ++i) {
+    };
+    LightningTurret.init = function () {
+        var c = [];
+        for (var i = 0; i < 8; ++i) {
             c[i] = new PreRenderedImage(64, 64);
         }
-        let ctx = c[0].ctx;
-        let grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 18);
+        var ctx = c[0].ctx;
+        var grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 18);
         grad.addColorStop(0, "#FFFFFF");
         grad.addColorStop(0.33, "#A97FFF");
         grad.addColorStop(1, "#D6BFFF");
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.moveTo(50, 32);
-        for (let i = 1; i < 16; ++i) {
-            let r = i % 2 == 0 ? 21 : 7;
-            let a = i * Angle.deg45 / 2;
+        for (var i = 1; i < 16; ++i) {
+            var r = i % 2 == 0 ? 21 : 7;
+            var a = i * Angle.deg45 / 2;
             ctx.lineTo(Utils.ldx(r, a, 32), Utils.ldy(r, a, 32));
         }
         ctx.closePath();
@@ -2007,9 +2230,9 @@ class LightningTurret extends Turret {
         grad.addColorStop(0, "#F8F2FF");
         grad.addColorStop(1, "#C199FF");
         ctx.fillStyle = grad;
-        let j = true;
-        for (let i = 0; i < 8; ++i, j = !j) {
-            let a = i * Angle.deg45;
+        var j = true;
+        for (var i = 0; i < 8; ++i, j = !j) {
+            var a = i * Angle.deg45;
             ctx.translate(Utils.ldx(18, a, 32), Utils.ldy(18, a, 32));
             if (j) {
                 ctx.rotate(Angle.deg45);
@@ -2017,16 +2240,16 @@ class LightningTurret extends Turret {
             ctx.fillRect(-3, -3, 6, 6);
             ctx.resetTransform();
         }
-        for (let i = 1; i < 8; ++i) {
+        for (var i = 1; i < 8; ++i) {
             c[i].ctx.drawImage(c[0].image, 0, 0);
         }
-        for (let i = 0; i < 8; ++i, j = !j) {
+        for (var i = 0; i < 8; ++i, j = !j) {
             ctx = c[7 - i].ctx;
             grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 8);
             grad.addColorStop(0, "#FFFFFFC0");
             grad.addColorStop(1, "#F8F2FF00");
             ctx.fillStyle = grad;
-            let a = i * Angle.deg45;
+            var a = i * Angle.deg45;
             ctx.translate(Utils.ldx(18, a, 32), Utils.ldy(18, a, 32));
             ctx.beginPath();
             ctx.arc(0, 0, 8, 0, Angle.deg360);
@@ -2035,26 +2258,28 @@ class LightningTurret extends Turret {
             ctx.resetTransform();
         }
         LightningTurret.images = [];
-        for (let i = 0; i < 8; ++i) {
+        for (var i = 0; i < 8; ++i) {
             LightningTurret.images.push(c[i].image);
         }
+    };
+    return LightningTurret;
+}(Turret));
+var FlamethrowerTurret = (function (_super) {
+    __extends(FlamethrowerTurret, _super);
+    function FlamethrowerTurret(tile, type) {
+        return _super.call(this, tile, type) || this;
     }
-}
-class FlamethrowerTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-    }
-    step(time) {
-        super.step(time);
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    FlamethrowerTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
+    };
+    FlamethrowerTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
         ctx.drawImage(FlamethrowerTurret.image, this.tile.pos.x, this.tile.pos.y);
-    }
-    addType(type) {
+    };
+    FlamethrowerTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -2070,30 +2295,33 @@ class FlamethrowerTurret extends Turret {
                 this.type.add(type);
                 break;
         }
-    }
-    static init() {
-        let c = new PreRenderedImage(64, 64);
+    };
+    FlamethrowerTurret.init = function () {
+        var c = new PreRenderedImage(64, 64);
         FlamethrowerTurret.image = c.image;
+    };
+    return FlamethrowerTurret;
+}(Turret));
+var SunTurret = (function (_super) {
+    __extends(SunTurret, _super);
+    function SunTurret(tile, type) {
+        var _this = _super.call(this, tile, type) || this;
+        _this.frame = 0;
+        return _this;
     }
-}
-class SunTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-        this.frame = 0;
-    }
-    step(time) {
-        super.step(time);
+    SunTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
         this.frame = (this.frame + time * 25) % SunTurret.frameCount;
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    };
+    SunTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
-        let r = 16 + 4 * this.type.count();
+        var r = 16 + 4 * this.type.count();
         ctx.drawImage(SunTurret.images[Math.floor(this.frame)], this.center.x - r, this.center.y - r, r * 2, r * 2);
-    }
-    addType(type) {
+    };
+    SunTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -2107,63 +2335,65 @@ class SunTurret extends Turret {
                 this.tile.turret = new ArcaneTurret(this.tile, this.type.add(type));
                 break;
         }
-    }
-    static init() {
+    };
+    SunTurret.init = function () {
         SunTurret.images = [];
         SunTurret.frameCount = 90;
-        let c = new PreRenderedImage(64, 64);
-        let ctx = c.ctx;
-        let grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-        grad.addColorStop(0.00000, "#FFFF40"); //  0
-        grad.addColorStop(0.09375, "#FFFD3D"); //  3
-        grad.addColorStop(0.18750, "#FFFA37"); //  6
-        grad.addColorStop(0.28125, "#FFF42A"); //  9
-        grad.addColorStop(0.37500, "#FFE000"); // 12
-        grad.addColorStop(0.40625, "#FFFFC0"); // 13
-        grad.addColorStop(1.00000, "#FFFFC000"); // 32
+        var c = new PreRenderedImage(64, 64);
+        var ctx = c.ctx;
+        var grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        grad.addColorStop(0.00000, "#FFFF40");
+        grad.addColorStop(0.09375, "#FFFD3D");
+        grad.addColorStop(0.18750, "#FFFA37");
+        grad.addColorStop(0.28125, "#FFF42A");
+        grad.addColorStop(0.37500, "#FFE000");
+        grad.addColorStop(0.40625, "#FFFFC0");
+        grad.addColorStop(1.00000, "#FFFFC000");
         ctx.fillStyle = grad;
         ctx.beginPath();
-        for (let i = 0; i < 12; ++i) {
-            let a0 = i * Angle.deg30;
-            let a1 = a0 + Angle.deg10;
-            let a2 = a0 + Angle.deg30;
+        for (var i = 0; i < 12; ++i) {
+            var a0 = i * Angle.deg30;
+            var a1 = a0 + Angle.deg10;
+            var a2 = a0 + Angle.deg30;
             ctx.arc(32, 32, 32, a0, a1);
             ctx.lineTo(Utils.ldx(12, a1, 32), Utils.ldy(12, a1, 32));
             ctx.arc(32, 32, 12, a1, a2);
             ctx.lineTo(Utils.ldx(32, a2, 32), Utils.ldy(32, a2, 32));
         }
         ctx.fill();
-        for (let i = 0; i < SunTurret.frameCount; ++i) {
+        for (var i = 0; i < SunTurret.frameCount; ++i) {
             SunTurret.images.push(SunTurret.preRenderFrame(c.image, i));
         }
-    }
-    static preRenderFrame(texture, frame) {
-        let offset = frame / SunTurret.frameCount * Angle.deg30;
-        let c = new PreRenderedImage(64, 64);
-        let ctx = c.ctx;
+    };
+    SunTurret.preRenderFrame = function (texture, frame) {
+        var offset = frame / SunTurret.frameCount * Angle.deg30;
+        var c = new PreRenderedImage(64, 64);
+        var ctx = c.ctx;
         ctx.translate(32, 32);
         ctx.drawImage(texture, -32, -32);
         ctx.rotate(offset);
         ctx.drawImage(texture, -32, -32);
         ctx.resetTransform();
         return c.image;
+    };
+    return SunTurret;
+}(Turret));
+var MoonTurret = (function (_super) {
+    __extends(MoonTurret, _super);
+    function MoonTurret(tile, type) {
+        return _super.call(this, tile, type) || this;
     }
-}
-class MoonTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-    }
-    step(time) {
-        super.step(time);
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    MoonTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
+    };
+    MoonTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
         ctx.drawImage(MoonTurret.image, this.tile.pos.x, this.tile.pos.y);
-    }
-    addType(type) {
+    };
+    MoonTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -2177,29 +2407,32 @@ class MoonTurret extends Turret {
                 this.tile.turret = new ArcaneTurret(this.tile, this.type.add(type));
                 break;
         }
-    }
-    static init() {
-        let c = new PreRenderedImage(64, 64);
+    };
+    MoonTurret.init = function () {
+        var c = new PreRenderedImage(64, 64);
         MoonTurret.image = c.image;
+    };
+    return MoonTurret;
+}(Turret));
+var PlasmaTurret = (function (_super) {
+    __extends(PlasmaTurret, _super);
+    function PlasmaTurret(tile, type) {
+        var _this = _super.call(this, tile, type) || this;
+        _this.frame = 0;
+        return _this;
     }
-}
-class PlasmaTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-        this.frame = 0;
-    }
-    step(time) {
-        super.step(time);
+    PlasmaTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
         this.frame = (this.frame + time * 25) % PlasmaTurret.frameCount;
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    };
+    PlasmaTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
         ctx.drawImage(PlasmaTurret.images, Math.floor(this.frame) * 64, (this.type.count() - 3) * 64, 64, 64, this.tile.pos.x, this.tile.pos.y, 64, 64);
-    }
-    addType(type) {
+    };
+    PlasmaTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -2213,48 +2446,50 @@ class PlasmaTurret extends Turret {
                 this.tile.turret = new ArcaneTurret(this.tile, this.type.add(type));
                 break;
         }
-    }
-    static init() {
+    };
+    PlasmaTurret.init = function () {
         PlasmaTurret.frameCount = 100;
-        let background = "#889FFF00";
-        let color1 = new PerlinNoiseTextureGenerator(64, 64, "#8C8CFF", "#A3C6FF", 0.5);
-        let tex1a = new CirclesTextureGenerator(64, 64, "#889FFF40", color1, background, 0.4, 2, 0.7);
-        let tex1b = new CirclesTextureGenerator(64, 64, "#889FFF40", color1, background, 0.28, 3, 0.7);
-        let color2 = new PerlinNoiseTextureGenerator(64, 64, "#B28CFF80", "#DAC6FF", 0.5);
-        let tex2a = new CirclesTextureGenerator(64, 64, color2, background, background, 0.4, 2, 0.1);
-        let tex2b = new CirclesTextureGenerator(64, 64, color2, background, background, 0.28, 3, 0.1);
-        let c = new PreRenderedImage(64 * PlasmaTurret.frameCount, 128);
+        var background = "#889FFF00";
+        var color1 = new PerlinNoiseTextureGenerator(64, 64, "#8C8CFF", "#A3C6FF", 0.5);
+        var tex1a = new CirclesTextureGenerator(64, 64, "#889FFF40", color1, background, 0.4, 2, 0.7);
+        var tex1b = new CirclesTextureGenerator(64, 64, "#889FFF40", color1, background, 0.28, 3, 0.7);
+        var color2 = new PerlinNoiseTextureGenerator(64, 64, "#B28CFF80", "#DAC6FF", 0.5);
+        var tex2a = new CirclesTextureGenerator(64, 64, color2, background, background, 0.4, 2, 0.1);
+        var tex2b = new CirclesTextureGenerator(64, 64, color2, background, background, 0.28, 3, 0.1);
+        var c = new PreRenderedImage(64 * PlasmaTurret.frameCount, 128);
         PlasmaTurret.preRender(c.ctx, tex1a, tex2a, 0);
         PlasmaTurret.preRender(c.ctx, tex1b, tex2b, 64);
         c.saveImage("plasma");
         PlasmaTurret.images = c.image;
-    }
-    static preRender(ctx, tex1, tex2, y) {
-        for (let i = 0; i < PlasmaTurret.frameCount; ++i) {
-            let a = i * Angle.deg360 / PlasmaTurret.frameCount, x = i * 64;
-            let src = new AddingSource(64, 64, new RotatingSource(64, 64, tex1, a, 32, 32), new RotatingSource(64, 64, tex2, -a, 32, 32));
+    };
+    PlasmaTurret.preRender = function (ctx, tex1, tex2, y) {
+        for (var i = 0; i < PlasmaTurret.frameCount; ++i) {
+            var a = i * Angle.deg360 / PlasmaTurret.frameCount, x = i * 64;
+            var src = new AddingSource(64, 64, new RotatingSource(64, 64, tex1, a, 32, 32), new RotatingSource(64, 64, tex2, -a, 32, 32));
             ctx.fillStyle = ctx.createPattern(src.generateImage(), "repeat");
             ctx.beginPath();
             ctx.arc(x + 32, y + 32, 30, 0, Angle.deg360);
             ctx.fill();
         }
+    };
+    return PlasmaTurret;
+}(Turret));
+var EarthquakeTurret = (function (_super) {
+    __extends(EarthquakeTurret, _super);
+    function EarthquakeTurret(tile, type) {
+        return _super.call(this, tile, type) || this;
     }
-}
-class EarthquakeTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-    }
-    step(time) {
-        super.step(time);
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    EarthquakeTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
+    };
+    EarthquakeTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
         ctx.drawImage(EarthquakeTurret.image, this.tile.pos.x, this.tile.pos.y);
-    }
-    addType(type) {
+    };
+    EarthquakeTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
             return;
         }
@@ -2268,41 +2503,36 @@ class EarthquakeTurret extends Turret {
                 this.type.add(type);
                 break;
         }
-    }
-    static init() {
-        let c = new PreRenderedImage(64, 64);
+    };
+    EarthquakeTurret.init = function () {
+        var c = new PreRenderedImage(64, 64);
         EarthquakeTurret.image = c.image;
+    };
+    return EarthquakeTurret;
+}(Turret));
+var ArcaneTurret = (function (_super) {
+    __extends(ArcaneTurret, _super);
+    function ArcaneTurret(tile, type) {
+        return _super.call(this, tile, type) || this;
     }
-}
-class ArcaneTurret extends Turret {
-    constructor(tile, type) {
-        super(tile, type);
-    }
-    step(time) {
-        super.step(time);
-    }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
+    ArcaneTurret.prototype.step = function (time) {
+        _super.prototype.step.call(this, time);
+    };
+    ArcaneTurret.prototype.render = function (ctx, preRender) {
+        _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
         ctx.drawImage(ArcaneTurret.image, this.tile.pos.x, this.tile.pos.y);
-    }
-    addType(type) { }
-    static init() {
-        let c = new PreRenderedImage(64, 64);
+    };
+    ArcaneTurret.prototype.addType = function (type) { };
+    ArcaneTurret.init = function () {
+        var c = new PreRenderedImage(64, 64);
         ArcaneTurret.image = c.image;
-    }
-}
-/// <reference path='turrets.ts'/>
-/// <reference path='utils.ts'/>
-/// <reference path="TurretType.ts"/>
-/// <reference path="particles.ts"/>
+    };
+    return ArcaneTurret;
+}(Turret));
 var TileType;
-/// <reference path='turrets.ts'/>
-/// <reference path='utils.ts'/>
-/// <reference path="TurretType.ts"/>
-/// <reference path="particles.ts"/>
 (function (TileType) {
     TileType[TileType["Unknown"] = 0] = "Unknown";
     TileType[TileType["Empty"] = 1] = "Empty";
@@ -2312,45 +2542,23 @@ var TileType;
     TileType[TileType["Spawn"] = 5] = "Spawn";
     TileType[TileType["HQ"] = 6] = "HQ";
 })(TileType || (TileType = {}));
-class Tile {
-    constructor(game, x, y, type, ctx) {
+var Tile = (function () {
+    function Tile(game, x, y, type, ctx) {
         this.game = game;
         this.type = type;
         this.turret = null;
         this.pos = new Vec2(x, y);
         this.decor = new RenderablePathSet();
-        switch (type) {
-            case TileType.Empty:
-                this.groundFill = ctx.createPattern(Tile.grassTex, "repeat"); // "#5BA346"
-                break;
-            case TileType.Path:
-                this.groundFill = ctx.createPattern(Tile.pathTex, "repeat"); // "#B5947E"
-                break;
-            case TileType.Spawn:
-                this.groundFill = ctx.createPattern(Tile.spawnTex, "repeat");
-                /*  let spawnGradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32)
-                    spawnGradient.addColorStop(0, "#E77B65")
-                    spawnGradient.addColorStop(1, "#B5947E")
-                    this.groundFill = spawnGradient */
-                break;
-            case TileType.HQ:
-                this.groundFill = ctx.createPattern(Tile.pathTex, "repeat"); // "#B5947E"
-                break;
-            case TileType.Tower:
-                this.groundFill = "#808080";
-                this.turret = new Turret(this);
-                break;
-        }
-        if (this.type === TileType.Path || this.type === TileType.Spawn || this.type === TileType.HQ) {
-            let path = new Path2D();
-            for (let i = 0; i < 4; ++i) {
-                for (let j = 0; j < 4; ++j) {
+        if (type === TileType.Path || type === TileType.Spawn || type === TileType.HQ) {
+            var path = new Path2D();
+            for (var i = 0; i < 4; ++i) {
+                for (var j = 0; j < 4; ++j) {
                     if (Math.random() < 0.25) {
-                        let _x = x + i * 16 + 4 + Math.random() * 8;
-                        let _y = y + j * 16 + 4 + Math.random() * 8;
-                        let radius = 2 + 2 * Math.random();
-                        for (let k = 0; k < 4; ++k) {
-                            let a = -Angle.deg45 + Angle.deg90 * (k + 0.25 + 0.5 * Math.random());
+                        var _x = x + i * 16 + 4 + Math.random() * 8;
+                        var _y = y + j * 16 + 4 + Math.random() * 8;
+                        var radius = 2 + 2 * Math.random();
+                        for (var k = 0; k < 4; ++k) {
+                            var a = -Angle.deg45 + Angle.deg90 * (k + 0.25 + 0.5 * Math.random());
                             if (k === 0) {
                                 path.moveTo(Utils.ldx(radius, a, _x), Utils.ldy(radius, a, _y));
                             }
@@ -2362,8 +2570,8 @@ class Tile {
                     }
                 }
             }
-            if (this.type === TileType.Spawn) {
-                let gradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32);
+            if (type === TileType.Spawn) {
+                var gradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32);
                 gradient.addColorStop(0, "#CB5E48");
                 gradient.addColorStop(1, "#997761");
                 this.decor.pushNew(path, gradient);
@@ -2372,13 +2580,13 @@ class Tile {
                 this.decor.pushNew(path, "#997761");
             }
         }
-        else if (this.type === TileType.Empty) {
-            let path1 = new Path2D();
-            let path2 = new Path2D();
-            for (let i = 0; i < 3; ++i) {
-                for (let j = 0; j < 3; ++j) {
+        else if (type === TileType.Empty) {
+            var path1 = new Path2D();
+            var path2 = new Path2D();
+            for (var i = 0; i < 3; ++i) {
+                for (var j = 0; j < 3; ++j) {
                     if (Math.random() < 0.25) {
-                        let path = Math.random() < 0.5 ? path1 : path2;
+                        var path = Math.random() < 0.5 ? path1 : path2;
                         path.arc(x + 6 + 21 * i + Math.random() * 10, y + 6 + 21 * j + Math.random() * 10, 4 + 2 * Math.random(), 0, Angle.deg360);
                         path.closePath();
                     }
@@ -2387,54 +2595,39 @@ class Tile {
             this.decor.pushNew(path1, "#337F1C");
             this.decor.pushNew(path2, "#479131");
         }
-        else if (this.type === TileType.Tower) {
-            let path1 = new Path2D();
-            path1.moveTo(x, y);
-            path1.lineTo(x + 62, y);
-            path1.lineTo(x + 62, y + 2);
-            path1.lineTo(x + 2, y + 2);
-            path1.lineTo(x + 2, y + 62);
-            path1.lineTo(x, y + 62);
-            path1.closePath();
-            this.decor.pushNew(path1, "#A0A0A0");
-            let path2 = new Path2D();
-            path2.moveTo(x + 62, y + 2);
-            path2.lineTo(x + 64, y + 2);
-            path2.lineTo(x + 64, y + 64);
-            path2.lineTo(x + 2, y + 64);
-            path2.lineTo(x + 2, y + 62);
-            path2.lineTo(x + 62, y + 62);
-            path2.closePath();
-            this.decor.pushNew(path2, "#606060");
-            let path3 = new Path2D();
-            path3.moveTo(x + 56, y + 8);
-            path3.lineTo(x + 58, y + 8);
-            path3.lineTo(x + 58, y + 58);
-            path3.lineTo(x + 8, y + 58);
-            path3.lineTo(x + 8, y + 56);
-            path3.lineTo(x + 56, y + 56);
-            path3.closePath();
-            this.decor.pushNew(path3, "#909090");
-            let path4 = new Path2D();
-            path4.moveTo(x + 6, y + 6);
-            path4.lineTo(x + 56, y + 6);
-            path4.lineTo(x + 56, y + 8);
-            path4.lineTo(x + 8, y + 8);
-            path4.lineTo(x + 8, y + 56);
-            path4.lineTo(x + 6, y + 56);
-            path4.closePath();
-            this.decor.pushNew(path4, "#707070");
+        else if (type === TileType.Tower) {
+            this.decor.pushPolygon([0, 0, 62, 0, 62, 2, 2, 2, 2, 62, 0, 62], "#A0A0A0", x, y);
+            this.decor.pushPolygon([62, 2, 64, 2, 64, 64, 2, 64, 2, 62, 62, 62], "#606060", x, y);
+            this.decor.pushPolygon([56, 8, 58, 8, 58, 58, 8, 58, 8, 56, 56, 56], "#909090", x, y);
+            this.decor.pushPolygon([6, 6, 56, 6, 56, 8, 8, 8, 8, 56, 6, 56], "#707070", x, y);
+            this.turret = new Turret(this);
         }
     }
-    step(time) {
+    Tile.prototype.step = function (time) {
         if (this.type === TileType.Tower && this.turret != null) {
             this.turret.step(time);
         }
-    }
-    render(ctx, preRender) {
+    };
+    Tile.prototype.render = function (ctx, preRender) {
         if (preRender) {
-            ctx.fillStyle = this.groundFill;
-            ctx.fillRect(this.pos.x, this.pos.y, 64, 64);
+            switch (this.type) {
+                case TileType.Empty:
+                    ctx.drawImage(Tile.grassTex, this.pos.x, this.pos.y);
+                    break;
+                case TileType.Path:
+                    ctx.drawImage(Tile.pathTex, this.pos.x, this.pos.y);
+                    break;
+                case TileType.Spawn:
+                    ctx.drawImage(Tile.spawnTex, this.pos.x, this.pos.y);
+                    break;
+                case TileType.HQ:
+                    ctx.drawImage(Tile.pathTex, this.pos.x, this.pos.y);
+                    break;
+                case TileType.Tower:
+                    ctx.fillStyle = "#808080";
+                    ctx.fillRect(this.pos.x, this.pos.y, 64, 64);
+                    break;
+            }
             this.decor.render(ctx);
         }
         else if (this.type === TileType.Tower && this.turret != null) {
@@ -2442,26 +2635,67 @@ class Tile {
             var elems = this.turret.getType().toColorArray();
             var x = this.pos.x + 2;
             var y = this.pos.y + 2;
-            for (const c of elems) {
+            for (var _i = 0, elems_1 = elems; _i < elems_1.length; _i++) {
+                var c = elems_1[_i];
                 ctx.fillStyle = c;
                 ctx.fillRect(x, y, 4, 4);
                 x += 6;
             }
         }
-    }
-    static init() {
+    };
+    Tile.init = function () {
         Tile.grassTex = new NoiseTextureGenerator(64, 64, "#5BA346", 0.075, 0, 0.25).generateImage();
-        let pathTex = new NoiseTextureGenerator(64, 64, "#B5947E", 0.04, 0, 0.2);
+        var pathTex = new NoiseTextureGenerator(64, 64, "#B5947E", 0.04, 0, 0.2);
         Tile.pathTex = pathTex.generateImage();
-        let grad = new LinearGradientSource(64, 64, 0, 32, 64, 32);
+        var grad = new LinearGradientSource(64, 64, 0, 32, 64, 32);
         grad.addColorStop(0, "#E77B65");
         grad.addColorStop(1, pathTex);
         Tile.spawnTex = grad.generateImage();
-    }
-    onClick(button, x, y) { }
-}
-class Game {
-    constructor(canvas) {
+    };
+    Tile.prototype.onClick = function (button, x, y) {
+    };
+    return Tile;
+}());
+var Game = (function () {
+    function Game(canvas) {
+        var _this = this;
+        this.onMouseMove = function (e) {
+            _this.setMousePosition(e);
+            if (_this.selectedTile == null) {
+                return;
+            }
+            var tp = new Vec2(Math.floor(_this.mousePosition.x / 64), Math.floor(_this.mousePosition.y / 64));
+            if (!tp.equals(_this.selectedTile)) {
+                _this.selectedTile = null;
+            }
+        };
+        this.onMouseDown = function (e) {
+            _this.setMousePosition(e);
+            var tp = new Vec2(Math.floor(_this.mousePosition.x / 64), Math.floor(_this.mousePosition.y / 64));
+            if (tp.x < _this.mapWidth && tp.y < _this.mapHeight) {
+                _this.selectedTile = tp;
+            }
+        };
+        this.onMouseUp = function (e) {
+            _this.setMousePosition(e);
+        };
+        this.onKeyDown = function (e) {
+            switch (e.key.toUpperCase()) {
+                case 'Q':
+                    _this.selectedTurretElement = TurretElement.Air;
+                    break;
+                case 'W':
+                    _this.selectedTurretElement = TurretElement.Earth;
+                    break;
+                case 'E':
+                    _this.selectedTurretElement = TurretElement.Fire;
+                    break;
+                case 'R':
+                    _this.selectedTurretElement = TurretElement.Water;
+                    break;
+            }
+        };
+        this.onKeyUp = function (e) { };
         this.ctx = canvas.getContext("2d");
         this.canvas = canvas;
         this.prevTime = new Date().getTime();
@@ -2470,45 +2704,46 @@ class Game {
         this.performanceMeter = new PerformanceMeter();
         this.particles = new ParticleSystem(this);
         this.selectedTurretElement = null;
-        let canvasWidth = canvas.width;
-        let mapWidth = Math.floor(canvasWidth / 64) - 3;
+        this.selectedTile = null;
+        this.mouseButton = null;
+        var canvasWidth = canvas.width;
+        var mapWidth = Math.floor(canvasWidth / 64) - 3;
         mapWidth = mapWidth % 2 === 0 ? mapWidth - 1 : mapWidth;
         this.mapWidth = mapWidth < 3 ? 3 : mapWidth;
         this.width = (mapWidth + 3) * 64;
-        let canvasHeight = canvas.height;
-        let mapHeight = Math.floor(canvasHeight / 64);
+        var canvasHeight = canvas.height;
+        var mapHeight = Math.floor(canvasHeight / 64);
         mapHeight = mapHeight % 2 === 0 ? mapHeight - 1 : mapHeight;
         this.mapHeight = mapHeight < 3 ? 3 : mapHeight;
         this.height = mapHeight * 64;
         this.guiPanel = new Rect(this.width - 192, 0, 192, this.height - 192);
     }
-    init() {
+    Game.prototype.init = function () {
         Tile.init();
         Turret.init();
         this.generateMap();
         this.generateCastle();
         this.preRender();
-        this.canvas.addEventListener("contextmenu", (e) => {
+        this.canvas.addEventListener("contextmenu", function (e) {
             e.preventDefault();
             return false;
         }, false);
-        let g = this;
-        this.canvas.addEventListener("mousemove", (e) => g.onMouseMove(e), false);
-        this.canvas.addEventListener("mousedown", (e) => g.onMouseDown(e), false);
-        this.canvas.addEventListener("mouseup", (e) => g.onMouseUp(e), false);
-        this.canvas.addEventListener("keydown", (e) => g.onKeyDown(e), false);
-        this.canvas.addEventListener("keyup", (e) => g.onKeyUp(e), false);
-    }
-    generateMap() {
-        let mapGen = [];
-        this.map = [];
-        let dijkstraMap = [];
-        let wallGens = new Set();
-        for (let x = 0; x < this.mapWidth; ++x) {
+        this.canvas.addEventListener("mousemove", this.onMouseMove, false);
+        this.canvas.addEventListener("mousedown", this.onMouseDown, false);
+        this.canvas.addEventListener("mouseup", this.onMouseUp, false);
+        this.canvas.addEventListener("keydown", this.onKeyDown, false);
+        this.canvas.addEventListener("keyup", this.onKeyUp, false);
+    };
+    Game.prototype.generateMap = function () {
+        var mapGen = [];
+        var map = [];
+        var dijkstraMap = [];
+        var wallGens = new Vec2Set();
+        for (var x = 0; x < this.mapWidth; ++x) {
             var columnDijkstra = [];
             var columnGen = [];
             var column = [];
-            for (let y = 0; y < this.mapHeight; ++y) {
+            for (var y = 0; y < this.mapHeight; ++y) {
                 if (x === 0 || x === this.mapWidth - 1 || y === 0 || y === this.mapHeight - 1) {
                     columnGen.push(TileType.Empty);
                 }
@@ -2524,12 +2759,13 @@ class Game {
             }
             mapGen.push(columnGen);
             dijkstraMap.push(columnDijkstra);
-            this.map.push(column);
+            map.push(column);
         }
         while (wallGens.size > 0) {
-            let wg;
-            let i = Math.random() * wallGens.size;
-            for (const _wg of wallGens.values()) {
+            var wg = Vec2.zero;
+            var i = Math.random() * wallGens.size;
+            for (var _i = 0, _a = wallGens.values(); _i < _a.length; _i++) {
+                var _wg = _a[_i];
                 if (i < 1) {
                     wg = _wg;
                     break;
@@ -2538,12 +2774,12 @@ class Game {
                     i -= 1;
                 }
             }
-            wallGens.delete(wg);
+            wallGens.remove(wg);
             if (mapGen[wg.x][wg.y] !== TileType.WallGen) {
                 continue;
             }
-            let x = wg.x;
-            let y = wg.y;
+            var x = wg.x;
+            var y = wg.y;
             switch (Math.floor(Math.random() * 4)) {
                 case 0:
                     for (; x < this.mapWidth && mapGen[x][y] !== TileType.Empty; ++x) {
@@ -2567,15 +2803,15 @@ class Game {
                     break;
             }
         }
-        let startY = 1 + 2 * Math.floor((this.mapHeight - 1) / 2 * Math.random());
-        let endY = this.mapHeight - 2;
-        let startNode = new DijkstraNode(1, startY, null);
+        var startY = 1 + 2 * Math.floor((this.mapHeight - 1) / 2 * Math.random());
+        var endY = this.mapHeight - 2;
+        var startNode = new DijkstraNode(1, startY);
         dijkstraMap[1][0] = startNode;
-        let queue = [dijkstraMap[1][0]];
+        var queue = [dijkstraMap[1][0]];
         while (queue.length > 0) {
-            let dn = queue.shift();
-            let x = dn.pos.x;
-            let y = dn.pos.y;
+            var dn = queue.shift();
+            var x = dn.pos.x;
+            var y = dn.pos.y;
             if (x === this.mapWidth - 2 && y === endY) {
                 do {
                     mapGen[dn.pos.x][dn.pos.y] = TileType.Path;
@@ -2584,38 +2820,38 @@ class Game {
                 break;
             }
             if (x > 1 && dijkstraMap[x - 1][y] === null && mapGen[x - 1][y] === TileType.Unknown) {
-                let node = new DijkstraNode(x - 1, y, dn);
+                var node = new DijkstraNode(x - 1, y, dn);
                 dijkstraMap[x - 1][y] = node;
                 queue.push(node);
             }
             if (y > 0 && dijkstraMap[x][y - 1] === null && mapGen[x][y - 1] === TileType.Unknown) {
-                let node = new DijkstraNode(x, y - 1, dn);
+                var node = new DijkstraNode(x, y - 1, dn);
                 dijkstraMap[x][y - 1] = node;
                 queue.push(node);
             }
             if (x < this.mapWidth - 2 && dijkstraMap[x + 1][y] === null && mapGen[x + 1][y] === TileType.Unknown) {
-                let node = new DijkstraNode(x + 1, y, dn);
+                var node = new DijkstraNode(x + 1, y, dn);
                 dijkstraMap[x + 1][y] = node;
                 queue.push(node);
             }
             if (y < this.mapHeight - 1 && dijkstraMap[x][y + 1] === null && mapGen[x][y + 1] === TileType.Unknown) {
-                let node = new DijkstraNode(x, y + 1, dn);
+                var node = new DijkstraNode(x, y + 1, dn);
                 dijkstraMap[x][y + 1] = node;
                 queue.push(node);
             }
         }
         mapGen[0][startY] = TileType.Spawn;
         mapGen[this.mapWidth - 1][endY] = TileType.HQ;
-        for (let x = 0; x < this.mapWidth; ++x) {
-            for (let y = 0; y < this.mapHeight; ++y) {
+        for (var x = 0; x < this.mapWidth; ++x) {
+            for (var y = 0; y < this.mapHeight; ++y) {
                 if (mapGen[x][y] === TileType.Spawn) {
-                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Spawn, this.ctx);
+                    map[x][y] = new Tile(this, x * 64, y * 64, TileType.Spawn, this.ctx);
                 }
                 else if (mapGen[x][y] === TileType.HQ) {
-                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.HQ, this.ctx);
+                    map[x][y] = new Tile(this, x * 64, y * 64, TileType.HQ, this.ctx);
                 }
                 else if (mapGen[x][y] === TileType.Path) {
-                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Path, this.ctx);
+                    map[x][y] = new Tile(this, x * 64, y * 64, TileType.Path, this.ctx);
                 }
                 else if ((x > 0 && mapGen[x - 1][y] === TileType.Path) ||
                     (y > 0 && mapGen[x][y - 1] === TileType.Path) ||
@@ -2625,224 +2861,106 @@ class Game {
                     (x < this.mapWidth - 1 && y > 0 && mapGen[x + 1][y - 1] === TileType.Path) ||
                     (x > 0 && y < this.mapHeight - 1 && mapGen[x - 1][y + 1] === TileType.Path) ||
                     (x < this.mapWidth - 1 && y < this.mapHeight - 1 && mapGen[x + 1][y + 1] === TileType.Path)) {
-                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Tower, this.ctx);
-                    let r = Math.random();
-                    /*if (r < 0.8) {
-                        this.map[x][y].turret.addType(TurretElement.Earth)
-                    }
-                    if (r < 0.6) {
-                        this.map[x][y].turret.addType(TurretElement.Earth)
-                    }
-                    if (r < 0.4) {
-                        this.map[x][y].turret.addType(TurretElement.Earth)
-                    }
-                    if (r < 0.2) {
-                        this.map[x][y].turret.addType(TurretElement.Earth)
-                    }*/
-                    let t = this.map[x][y].turret;
-                    if (r < 0.2) {
-                        t.addType(TurretElement.Air);
-                    }
-                    else if (r < 0.4) {
-                        t.addType(TurretElement.Earth);
-                    }
-                    else if (r < 0.6) {
-                        t.addType(TurretElement.Fire);
-                    }
-                    else if (r < 0.8) {
-                        t.addType(TurretElement.Water);
-                    }
-                    r = Math.random();
-                    t = this.map[x][y].turret;
-                    if (r < 0.15) {
-                        t.addType(TurretElement.Air);
-                    }
-                    else if (r < 0.3) {
-                        t.addType(TurretElement.Earth);
-                    }
-                    else if (r < 0.45) {
-                        t.addType(TurretElement.Fire);
-                    }
-                    else if (r < 0.6) {
-                        t.addType(TurretElement.Water);
-                    }
-                    r = Math.random();
-                    t = this.map[x][y].turret;
-                    if (r < 0.1) {
-                        t.addType(TurretElement.Air);
-                    }
-                    else if (r < 0.2) {
-                        t.addType(TurretElement.Earth);
-                    }
-                    else if (r < 0.3) {
-                        t.addType(TurretElement.Fire);
-                    }
-                    else if (r < 0.4) {
-                        t.addType(TurretElement.Water);
-                    }
-                    r = Math.random();
-                    t = this.map[x][y].turret;
-                    if (r < 0.05) {
-                        t.addType(TurretElement.Air);
-                    }
-                    else if (r < 0.1) {
-                        t.addType(TurretElement.Earth);
-                    }
-                    else if (r < 0.15) {
-                        t.addType(TurretElement.Fire);
-                    }
-                    else if (r < 0.2) {
-                        t.addType(TurretElement.Water);
-                    }
+                    map[x][y] = new Tile(this, x * 64, y * 64, TileType.Tower, this.ctx);
                 }
                 else {
-                    this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Empty, this.ctx);
+                    map[x][y] = new Tile(this, x * 64, y * 64, TileType.Empty, this.ctx);
                 }
             }
         }
-    }
-    generateCastle() {
+        this.map = map;
+    };
+    Game.prototype.generateCastle = function () {
         this.castle = new RenderablePathSet();
-        let x = this.guiPanel.x;
-        let y = this.height - 192;
-        let path1 = new Path2D();
-        path1.rect(x + 36, y + 36, 120, 120);
-        let tex = new FrostedGlassTextureGenerator(192, 192, "#82614F", "#997663", 0.5);
-        this.castle.pushNew(path1, this.ctx.createPattern(tex.generateImage(), "repeat"));
-        let path2 = new Path2D();
-        path2.rect(x + 6, y + 6, 60, 60);
-        path2.rect(x + 126, y + 6, 60, 60);
-        path2.rect(x + 6, y + 126, 60, 60);
-        path2.rect(x + 126, y + 126, 60, 60);
-        path2.rect(x + 30, y + 66, 12, 60);
-        path2.rect(x + 66, y + 30, 60, 12);
-        path2.rect(x + 150, y + 66, 12, 60);
-        path2.rect(x + 66, y + 150, 60, 12);
-        this.castle.pushNew(path2, "#505050");
-        let path3 = new Path2D();
-        path3.rect(x + 18, y + 18, 36, 36);
-        path3.rect(x + 138, y + 18, 36, 36);
-        path3.rect(x + 18, y + 138, 36, 36);
-        path3.rect(x + 138, y + 138, 36, 36);
-        this.castle.pushNew(path3, "#404040");
-        let path4 = new Path2D();
-        path4.rect(x + 6, y + 6, 12, 12);
-        path4.rect(x + 30, y + 6, 12, 12);
-        path4.rect(x + 54, y + 6, 12, 12);
-        path4.rect(x + 126, y + 6, 12, 12);
-        path4.rect(x + 150, y + 6, 12, 12);
-        path4.rect(x + 174, y + 6, 12, 12);
-        path4.rect(x + 6, y + 30, 12, 12);
-        path4.rect(x + 54, y + 30, 12, 12);
-        path4.rect(x + 78, y + 30, 12, 12);
-        path4.rect(x + 102, y + 30, 12, 12);
-        path4.rect(x + 126, y + 30, 12, 12);
-        path4.rect(x + 174, y + 30, 12, 12);
-        path4.rect(x + 6, y + 54, 12, 12);
-        path4.rect(x + 30, y + 54, 12, 12);
-        path4.rect(x + 54, y + 54, 12, 12);
-        path4.rect(x + 126, y + 54, 12, 12);
-        path4.rect(x + 150, y + 54, 12, 12);
-        path4.rect(x + 174, y + 54, 12, 12);
-        path4.rect(x + 30, y + 78, 12, 12);
-        path4.rect(x + 150, y + 78, 12, 12);
-        path4.rect(x + 30, y + 102, 12, 12);
-        path4.rect(x + 150, y + 102, 12, 12);
-        path4.rect(x + 6, y + 126, 12, 12);
-        path4.rect(x + 30, y + 126, 12, 12);
-        path4.rect(x + 54, y + 126, 12, 12);
-        path4.rect(x + 126, y + 126, 12, 12);
-        path4.rect(x + 150, y + 126, 12, 12);
-        path4.rect(x + 174, y + 126, 12, 12);
-        path4.rect(x + 6, y + 150, 12, 12);
-        path4.rect(x + 54, y + 150, 12, 12);
-        path4.rect(x + 78, y + 150, 12, 12);
-        path4.rect(x + 102, y + 150, 12, 12);
-        path4.rect(x + 126, y + 150, 12, 12);
-        path4.rect(x + 174, y + 150, 12, 12);
-        path4.rect(x + 6, y + 174, 12, 12);
-        path4.rect(x + 30, y + 174, 12, 12);
-        path4.rect(x + 54, y + 174, 12, 12);
-        path4.rect(x + 126, y + 174, 12, 12);
-        path4.rect(x + 150, y + 174, 12, 12);
-        path4.rect(x + 174, y + 174, 12, 12);
-        this.castle.pushNew(path4, "#606060");
-    }
-    run() {
+        var x = this.guiPanel.x;
+        var y = this.height - 192;
+        var path = new Path2D();
+        path.rect(x + 36, y + 36, 120, 120);
+        var tex = new FrostedGlassTextureGenerator(192, 192, "#82614F", "#997663", 0.5);
+        this.castle.pushNew(path, this.ctx.createPattern(tex.generateImage(), "repeat"));
+        var points = [
+            [6, 6, 60, 60], [126, 6, 60, 60], [6, 126, 60, 60], [126, 126, 60, 60],
+            [30, 66, 12, 60], [66, 30, 60, 12], [150, 66, 12, 60], [66, 150, 60, 12]
+        ];
+        path = new Path2D();
+        for (var _i = 0, points_2 = points; _i < points_2.length; _i++) {
+            var p = points_2[_i];
+            path.rect(x + p[0], y + p[1], p[2], p[3]);
+        }
+        this.castle.pushNew(path, "#505050");
+        points = [[18, 18, 36, 36], [138, 18, 36, 36], [18, 138, 36, 36], [138, 138, 36, 36]];
+        path = new Path2D();
+        for (var _a = 0, points_3 = points; _a < points_3.length; _a++) {
+            var p = points_3[_a];
+            path.rect(x + p[0], y + p[1], p[2], p[3]);
+        }
+        this.castle.pushNew(path, "#404040");
+        points = [
+            [6, 6, 12, 12], [30, 6, 12, 12], [54, 6, 12, 12], [126, 6, 12, 12], [150, 6, 12, 12], [174, 6, 12, 12],
+            [6, 30, 12, 12], [54, 30, 12, 12], [78, 30, 12, 12], [102, 30, 12, 12], [126, 30, 12, 12], [174, 30, 12, 12],
+            [6, 54, 12, 12], [30, 54, 12, 12], [54, 54, 12, 12], [126, 54, 12, 12], [150, 54, 12, 12], [174, 54, 12, 12],
+            [30, 78, 12, 12], [150, 78, 12, 12], [30, 102, 12, 12], [150, 102, 12, 12],
+            [6, 126, 12, 12], [30, 126, 12, 12], [54, 126, 12, 12], [126, 126, 12, 12], [150, 126, 12, 12], [174, 126, 12, 12],
+            [6, 150, 12, 12], [54, 150, 12, 12], [78, 150, 12, 12], [102, 150, 12, 12], [126, 150, 12, 12], [174, 150, 12, 12],
+            [6, 174, 12, 12], [30, 174, 12, 12], [54, 174, 12, 12], [126, 174, 12, 12], [150, 174, 12, 12], [174, 174, 12, 12]
+        ];
+        path = new Path2D();
+        for (var _b = 0, points_4 = points; _b < points_4.length; _b++) {
+            var p = points_4[_b];
+            path.rect(x + p[0], y + p[1], p[2], p[3]);
+        }
+        this.castle.pushNew(path, "#606060");
+    };
+    Game.prototype.run = function () {
         this.step();
         this.render();
-    }
-    step() {
-        let time = new Date().getTime();
-        let timeDiff = (time - this.prevTime) / 1000;
+    };
+    Game.prototype.step = function () {
+        var time = new Date().getTime();
+        var timeDiff = (time - this.prevTime) / 1000;
         this.performanceMeter.add(1 / timeDiff);
-        for (let x = 0; x < this.mapWidth; ++x) {
-            for (let y = 0; y < this.mapHeight; ++y) {
+        for (var x = 0; x < this.mapWidth; ++x) {
+            for (var y = 0; y < this.mapHeight; ++y) {
                 this.map[x][y].step(timeDiff);
             }
         }
         this.particles.step(timeDiff);
         this.prevTime = time;
         this.time += timeDiff;
-    }
-    onMouseMove(e) {
+    };
+    Game.prototype.setMousePosition = function (e) {
         var rect = this.canvas.getBoundingClientRect();
         this.mousePosition = new Vec2(Utils.clamp(Math.floor(e.clientX - rect.left), 0, this.width - 1), Utils.clamp(Math.floor(e.clientY - rect.top), 0, this.width - 1));
-    }
-    onMouseDown(e) {
-        this.onMouseMove(e);
-    }
-    onMouseUp(e) {
-        this.onMouseMove(e);
-    }
-    onKeyDown(e) {
-        switch (e.key.toUpperCase()) {
-            case 'Q':
-                this.selectedTurretElement = TurretElement.Air;
-                break;
-            case 'W':
-                this.selectedTurretElement = TurretElement.Earth;
-                break;
-            case 'E':
-                this.selectedTurretElement = TurretElement.Fire;
-                break;
-            case 'R':
-                this.selectedTurretElement = TurretElement.Water;
-                break;
-        }
-    }
-    onKeyUp(e) {
-    }
-    preRender() {
-        let c = new PreRenderedImage(this.width, this.height);
+    };
+    Game.prototype.preRender = function () {
+        var c = new PreRenderedImage(this.width, this.height);
         c.ctx.fillStyle = "#C0C0C0";
         c.ctx.fillRect(0, 0, this.width, this.height);
-        for (let x = 0; x < this.mapWidth; ++x) {
-            for (let y = 0; y < this.mapHeight; ++y) {
-                this.map[x][y].render(c.ctx, true);
+        for (var x_1 = 0; x_1 < this.mapWidth; ++x_1) {
+            for (var y_1 = 0; y_1 < this.mapHeight; ++y_1) {
+                this.map[x_1][y_1].render(c.ctx, true);
             }
         }
         c.ctx.fillStyle = "#B5947E";
-        let x = this.guiPanel.x, y = this.height - 192;
-        for (let i = 0; i < 9; ++i) {
+        var x = this.guiPanel.x, y = this.height - 192;
+        for (var i = 0; i < 9; ++i) {
             c.ctx.drawImage(Tile.pathTex, x + i % 3 * 64, y + Math.floor(i / 3) * 64);
         }
         c.ctx.fillStyle = "#606060";
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h);
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2);
         this.castle.render(c.ctx);
-        //c.saveImage("textures")
         this.preRendered = c.image;
-    }
-    render() {
+    };
+    Game.prototype.render = function () {
         this.ctx.drawImage(this.preRendered, 0, 0);
-        for (let x = 0; x < this.mapWidth; ++x) {
-            for (let y = 0; y < this.mapHeight; ++y) {
+        for (var x = 0; x < this.mapWidth; ++x) {
+            for (var y = 0; y < this.mapHeight; ++y) {
                 this.map[x][y].render(this.ctx, false);
             }
         }
         this.particles.render(this.ctx, false);
-        let fps = this.performanceMeter.getFps();
+        var fps = this.performanceMeter.getFps();
         this.ctx.fillStyle = "#000000";
         this.ctx.textAlign = "right";
         this.ctx.textBaseline = "top";
@@ -2852,17 +2970,16 @@ class Game {
         }
         this.ctx.fillText(this.mousePosition.x.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 32);
         this.ctx.fillText(this.mousePosition.y.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 48);
-    }
-}
-/// <reference path='Game.ts'/>
-let game = null;
-function gameLoop() {
-    window.requestAnimationFrame(gameLoop);
-    game.run();
-}
-window.onload = () => {
-    game = new Game($("#game-canvas").get(0));
+    };
+    return Game;
+}());
+window.onload = function () {
+    var game = new Game($("#game-canvas").get(0));
     game.init();
+    function gameLoop() {
+        window.requestAnimationFrame(gameLoop);
+        game.run();
+    }
     gameLoop();
 };
 //# sourceMappingURL=game.js.map
