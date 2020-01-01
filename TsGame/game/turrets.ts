@@ -886,7 +886,7 @@ class CannonTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
-                this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type))
+                this.tile.turret = new SunTurret(this.tile, this.type.add(type))
                 break
             case TurretElement.Earth:
             case TurretElement.Fire:
@@ -1108,7 +1108,7 @@ class FlamethrowerTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
-                this.tile.turret = new SunTurret(this.tile, this.type.add(type))
+                this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type))
                 break
             case TurretElement.Earth:
                 this.tile.turret = new EarthquakeTurret(this.tile, this.type.add(type))
@@ -1305,13 +1305,14 @@ class PlasmaTurret extends Turret {
 
     static init() {
         PlasmaTurret.frameCount = 100
-        let background = "#889FFF00"
-        let color1 = new PerlinNoiseTextureGenerator(64, 64, "#8C8CFF", "#A3C6FF", 0.5)
-        let tex1a = new CirclesTextureGenerator(64, 64, "#889FFF40", color1, background, 0.4, 2, 0.7)
-        let tex1b = new CirclesTextureGenerator(64, 64, "#889FFF40", color1, background, 0.28, 3, 0.7)
-        let color2 = new PerlinNoiseTextureGenerator(64, 64, "#B28CFF80", "#DAC6FF", 0.5)
-        let tex2a = new CirclesTextureGenerator(64, 64, color2, background, background, 0.4, 2, 0.1)
-        let tex2b = new CirclesTextureGenerator(64, 64, color2, background, background, 0.28, 3, 0.1)
+        let background = "#552BA800"
+        let color1 = new PerlinNoiseTextureGenerator(64, 64, /*BA8CFF*/"#4B007A00", "#FFFFFF", 0.5)
+        let tex1a = new CirclesTextureGenerator(64, 64, "#A389FFC0", color1, background, 0.4, 2, 0.7)
+        let tex1b = new CirclesTextureGenerator(64, 64, "#A389FFC0", color1, background, 0.28, 3, 0.7)
+        let color2 = new PerlinNoiseTextureGenerator(64, 64, "#552BA800", "#AF84FF", 0.5)
+        let back2 = new LerpingSource(64, 64, background, color2, 0.5)
+        let tex2a = new CirclesTextureGenerator(64, 64, color2, back2, background, 0.4, 2, 0.1)
+        let tex2b = new CirclesTextureGenerator(64, 64, color2, back2, background, 0.28, 3, 0.1)
         let c = new PreRenderedImage(64 * PlasmaTurret.frameCount, 128)
         PlasmaTurret.preRender(c.ctx, tex1a, tex2a, 0)
         PlasmaTurret.preRender(c.ctx, tex1b, tex2b, 64)
@@ -1320,8 +1321,9 @@ class PlasmaTurret extends Turret {
     }
 
     private static preRender(ctx: CanvasRenderingContext2D, tex1: ColorSource, tex2: ColorSource, y: number) {
+        y += 32
         for (let i = 0; i < PlasmaTurret.frameCount; ++i) {
-            let a = i * Angle.deg360 / PlasmaTurret.frameCount, x = i * 64
+            let a = i * Angle.deg360 / PlasmaTurret.frameCount, x = i * 64 + 32
             let src = new AddingSource(
                 64, 64,
                 new RotatingSource(64, 64, tex1, a, 32, 32),
@@ -1329,7 +1331,7 @@ class PlasmaTurret extends Turret {
             )
             ctx.fillStyle = ctx.createPattern(src.generateImage(), "repeat") as CanvasPattern
             ctx.beginPath()
-            ctx.arc(x + 32, y + 32, 30, 0, Angle.deg360)
+            ctx.arc(x, y, 30, 0, Angle.deg360)
             ctx.fill()
         }
     }

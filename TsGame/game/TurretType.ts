@@ -57,19 +57,27 @@ class TurretType {
 
     toColorArray(): string[] {
         let arr: string[] = []
-        for (let i = 0; i < this.type[TurretElement.Air]; ++i) {
-            arr.push("#d8d1ff")
-        }
-        for (let i = 0; i < this.type[TurretElement.Earth]; ++i) {
-            arr.push("#6dd13e")
-        }
-        for (let i = 0; i < this.type[TurretElement.Fire]; ++i) {
-            arr.push("#f7854c")
-        }
-        for (let i = 0; i < this.type[TurretElement.Water]; ++i) {
-            arr.push("#79b4f2")
+        for (let e = TurretElement.Air; e <= TurretElement.Water; ++e) {
+            for (let i = 0; i < this.type[e]; ++i) {
+                arr.push(TurretType.getColor(e))
+            }
         }
         return arr
+    }
+
+    static getColor(type: TurretElement): string {
+        switch (type) {
+            case TurretElement.Air:
+                return "#d8d1ff"
+            case TurretElement.Earth:
+                return "#6dd13e"
+            case TurretElement.Fire:
+                return "#f7854c"
+            case TurretElement.Water:
+                return "#79b4f2"
+            default:
+                return "#000000"
+        }
     }
 
 }

@@ -120,14 +120,6 @@ class RgbaColor {
 
     private pa(): number { return this.a * this.a / 255 }
 
-    toCss(): string {
-        return "#"
-            + Utils.byteToHex(this.r)
-            + Utils.byteToHex(this.g)
-            + Utils.byteToHex(this.b)
-            + Utils.byteToHex(this.a)
-    }
-
     multiplyFloat(ammount: number, multiplyAlpha: boolean = false): RgbaColor {
         return new RgbaColor(
             this.r * ammount,
@@ -142,6 +134,10 @@ class RgbaColor {
     }
 
     add(c: RgbaColor): RgbaColor {
+        let a = false
+        if (a) {
+            console.log(`${this} + ${c} = ${new RgbaColor(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.pa())}`)
+        }
         return new RgbaColor(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.pa())
     }
 
@@ -213,6 +209,18 @@ class RgbaColor {
         return new RgbaColorSource(this, width, height)
     }
 
+    toCss(): string {
+        return "#"
+            + Utils.byteToHex(this.r)
+            + Utils.byteToHex(this.g)
+            + Utils.byteToHex(this.b)
+            + Utils.byteToHex(this.a)
+    }
+
+    toString(): string {
+        return `rgba(${this.r},${this.g},${this.b},${this.a / 255})`
+    }
+
     static init() {
         RgbaColor.transparent = new RgbaColor(0, 0, 0, 0)
         RgbaColor.black = new RgbaColor(0, 0, 0)
@@ -255,7 +263,7 @@ abstract class TextureGenerator extends ColorSource {
 
     constructor(width: number, height: number, color: ColorSource | string | null) {
         super(width, height)
-        this.color = ColorSource.get(color !== null ? color : RgbaColor.black)
+        this.color = ColorSource.get(color ?? RgbaColor.black)
     }
 
 }
@@ -294,7 +302,7 @@ class CellularTextureGenerator extends TextureGenerator {
         metric: CellularTextureDistanceMetric = CellularTextureDistanceMetric.Euclidean
     ) {
         super(width, height, color1)
-        this.color2 = ColorSource.get(color2 !== null ? color2 : RgbaColor.white)
+        this.color2 = ColorSource.get(color2 ?? RgbaColor.white)
         this.type = type
         let distance: (dx: number, dy: number) => number
         switch (metric) {
@@ -462,7 +470,7 @@ abstract class PerlinTextureGenerator extends TextureGenerator {
         scale: number = 1
     ) {
         super(width, height, color1)
-        this.color2 = ColorSource.get(color2 !== null ? color2 : RgbaColor.white)
+        this.color2 = ColorSource.get(color2 ?? RgbaColor.white)
         this.scale = 1 / (scale * 32)
     }
 
@@ -714,7 +722,7 @@ class CirclesTextureGenerator extends PerlinTextureGenerator {
         this.ringCount = ringCount
         this.ringCountL = this.ringCount - 0.25
         this.turbulence = turbulence / 2
-        this.background = ColorSource.get(background !== null ? background : RgbaColor.transparent)
+        this.background = ColorSource.get(background ?? RgbaColor.transparent)
         this.gradients = []
         this.scale2 = this.scale * 2
         for (let i = 0; i < 2; ++i) {
@@ -879,8 +887,8 @@ abstract class ShapeSource extends ColorSource {
         background: ColorSource | string | null
     ) {
         super(width, height)
-        this.color = ColorSource.get(color !== null ? color : RgbaColor.white)
-        this.background = ColorSource.get(background !== null ? background : RgbaColor.black)
+        this.color = ColorSource.get(color ?? RgbaColor.white)
+        this.background = ColorSource.get(background ?? RgbaColor.black)
     }
 
 }
@@ -977,8 +985,8 @@ abstract class CombiningSource extends ColorSource {
         color2: ColorSource | string | null
     ) {
         super(width, height)
-        this.color1 = ColorSource.get(color1 !== null ? color1 : RgbaColor.black)
-        this.color2 = ColorSource.get(color2 !== null ? color2 : RgbaColor.white)
+        this.color1 = ColorSource.get(color1 ?? RgbaColor.black)
+        this.color2 = ColorSource.get(color2 ?? RgbaColor.white)
     }
 
     protected _getColor(x: number, y: number): RgbaColor {
@@ -999,9 +1007,7 @@ class AddingSource extends CombiningSource {
         super(width, height, color1, color2)
     }
 
-    protected combine(a: RgbaColor, b: RgbaColor): RgbaColor {
-        return a.add(b)
-    }
+    protected combine(a: RgbaColor, b: RgbaColor): RgbaColor { return a.add(b) }
 
 }
 
@@ -1015,9 +1021,7 @@ class MultiplyingSource extends CombiningSource {
         super(width, height, color1, color2)
     }
 
-    protected combine(a: RgbaColor, b: RgbaColor): RgbaColor {
-        return a.multiply(b)
-    }
+    protected combine(a: RgbaColor, b: RgbaColor): RgbaColor { return a.multiply(b) }
 
 }
 
@@ -1031,9 +1035,7 @@ class BlendingSource extends CombiningSource {
         super(width, height, color1, color2)
     }
 
-    protected combine(a: RgbaColor, b: RgbaColor): RgbaColor {
-        return a.blend(b)
-    }
+    protected combine(a: RgbaColor, b: RgbaColor): RgbaColor { return a.blend(b) }
 
 }
 
@@ -1051,9 +1053,7 @@ class LerpingSource extends CombiningSource {
         this.coeficient = coeficient
     }
 
-    protected combine(a: RgbaColor, b: RgbaColor): RgbaColor {
-        return a.lerp(b, this.coeficient)
-    }
+    protected combine(a: RgbaColor, b: RgbaColor): RgbaColor { return a.lerp(b, this.coeficient) }
 
 }
 

@@ -140,7 +140,18 @@ class Tile {
     }
 
     onClick(button: MouseButton, x: number, y: number) {
-
+        if (this.type == TileType.Tower && this.turret != null && this.game.selectedTurretElement != null) {
+            switch (button) {
+                case MouseButton.Left:
+                    if (this.turret.upgradeCostMultiplier(this.game.selectedTurretElement) > 0) {
+                        this.turret.addType(this.game.selectedTurretElement)
+                    }
+                    break;
+                case MouseButton.Right:
+                    this.turret = new Turret(this)
+                    break;
+            }
+        }
     }
 
 }
@@ -158,8 +169,12 @@ class Game {
     private time: number
     private performanceMeter: PerformanceMeter
     private mousePosition: Vec2
-    private selectedTile: Vec2 | null
+    private selectedTilePos: Vec2 | null
     private mouseButton: MouseButton | null
+
+    private get selectedTile(): Tile | null {
+        return this.selectedTilePos !== null ? this.map[this.selectedTilePos.x][this.selectedTilePos.y] : null
+    }
 
     mapWidth: number
     mapHeight: number
@@ -177,7 +192,7 @@ class Game {
         this.performanceMeter = new PerformanceMeter()
         this.particles = new ParticleSystem(this)
         this.selectedTurretElement = null
-        this.selectedTile = null
+        this.selectedTilePos = null
         this.mouseButton = null
 
         let canvasWidth = canvas.width
@@ -201,15 +216,18 @@ class Game {
         this.generateMap()
         this.generateCastle()
         this.preRender()
+        this.canvas.setAttribute("tabindex", "0")
+        this.canvas.focus()
         this.canvas.addEventListener("contextmenu", (e: MouseEvent) => {
             e.preventDefault()
             return false;
         }, false)
-        this.canvas.addEventListener("mousemove", this.onMouseMove, false)
-        this.canvas.addEventListener("mousedown", this.onMouseDown, false)
-        this.canvas.addEventListener("mouseup", this.onMouseUp, false)
-        this.canvas.addEventListener("keydown", this.onKeyDown, false)
-        this.canvas.addEventListener("keyup", this.onKeyUp, false)
+        let g = this
+        this.canvas.addEventListener("mousemove", (e: MouseEvent) => g.onMouseMove(e))
+        this.canvas.addEventListener("mousedown", (e: MouseEvent) => g.onMouseDown(e))
+        this.canvas.addEventListener("mouseup", (e: MouseEvent) => g.onMouseUp(e))
+        this.canvas.addEventListener("keydown", (e: KeyboardEvent) => g.onKeyDown(e))
+        this.canvas.addEventListener("keyup", (e: KeyboardEvent) => g.onKeyUp(e))
     }
 
     private generateMap() {
@@ -397,6 +415,13 @@ class Game {
             }
         }
         this.particles.step(timeDiff)
+        if (this.selectedTurretElement !== null) {
+            this.particles.add(new ElementSparkParticle(
+                this.mousePosition.x,
+                this.mousePosition.y,
+                this.selectedTurretElement
+            ))
+        }
         this.prevTime = time
         this.time += timeDiff
     }
@@ -409,31 +434,40 @@ class Game {
         )
     }
 
-    private onMouseMove = (e: MouseEvent) => {
+    private onMouseMove(e: MouseEvent) {
         this.setMousePosition(e)
-        if (this.selectedTile == null) {
+        if (this.selectedTilePos === null) {
             return
         }
         let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64))
-        if (!tp.equals(this.selectedTile)) {
-            this.selectedTile = null
+        if (!tp.equals(this.selectedTilePos)) {
+            this.selectedTilePos = null
         }
-
     }
 
-    private onMouseDown = (e: MouseEvent) => {
+    private onMouseDown(e: MouseEvent) {
         this.setMousePosition(e)
         let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64))
         if (tp.x < this.mapWidth && tp.y < this.mapHeight) {
-            this.selectedTile = tp
+            this.selectedTilePos = tp
+            this.mouseButton = e.button
         }
     }
 
-    private onMouseUp = (e: MouseEvent) => {
+    private onMouseUp(e: MouseEvent) {
         this.setMousePosition(e)
+        if (this.selectedTilePos != null) {
+            this.selectedTile?.onClick(
+                this.mouseButton as MouseButton,
+                this.mousePosition.x % 64,
+                this.mousePosition.y % 64
+            )
+            this.selectedTilePos = null
+        }
+        this.mouseButton = null
     }
 
-    private onKeyDown = (e: KeyboardEvent) => {
+    private onKeyDown(e: KeyboardEvent) {
         switch (e.key.toUpperCase()) {
             case 'Q':
                 this.selectedTurretElement = TurretElement.Air
@@ -447,10 +481,13 @@ class Game {
             case 'R':
                 this.selectedTurretElement = TurretElement.Water
                 break
+            case 'T':
+                this.selectedTurretElement = null
+                break
         }
     }
 
-    private onKeyUp = (e: KeyboardEvent) => { }
+    private onKeyUp(e: KeyboardEvent) { }
 
     private preRender() {
         let c = new PreRenderedImage(this.width, this.height)

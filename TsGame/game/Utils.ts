@@ -357,6 +357,12 @@ class Vec2 {
         return new Vec2(Utils.ldx(1, a), Utils.ldy(1, a))
     }
 
+    static randUnit3d(): Vec2 {
+        let a = Angle.rand(), a2 = Angle.rand()
+        let len = Utils.ldx(1, a2)
+        return new Vec2(Utils.ldx(len, a), Utils.ldy(len, a))
+    }
+
     static init() {
         Vec2.zero = new Vec2(0, 0)
     }
