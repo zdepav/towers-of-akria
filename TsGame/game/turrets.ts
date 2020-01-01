@@ -1,21 +1,23 @@
-/// <reference path='Utils.ts'/>
-/// <reference path='GameItem.ts'/>
-/// <reference path="TextureGenerator.ts"/>
-/// <reference path="ParticleSystem.ts"/>
+/// <reference path='utils.ts'/>
+/// <reference path='Game.ts'/>
+/// <reference path="generators.ts"/>
+/// <reference path="particles.ts"/>
 /// <reference path="TurretType.ts"/>
 
-class Turret extends GameItem {
+class Turret {
 
-    protected center: Coords
+    protected center: Vec2
     protected tile: Tile
     protected hp: number
     protected cooldown: number
     protected type: TurretType
 
+    game: Game
+
     constructor(tile: Tile, type: TurretType = null) {
-        super(tile.game)
+        this.game = tile.game
         this.tile = tile
-        this.center = new Coords(tile.pos.x + 32, tile.pos.y + 32)
+        this.center = new Vec2(tile.pos.x + 32, tile.pos.y + 32)
         this.hp = 100
         this.type = type === null ? new TurretType() : type
         this.cooldown = 0
@@ -30,6 +32,20 @@ class Turret extends GameItem {
     render(ctx: CanvasRenderingContext2D, preRender: boolean) { }
 
     getType(): TurretType { return this.type.copy() }
+
+    /**
+     * returns multiplier for upgrade cost if upgrade is possible or -1 if not
+     * @param type upgrade type
+     */
+    upgradeCostMultiplier(type: TurretElement): number {
+        switch (this.type.count()) {
+            case 0: return 1
+            case 1: return this.type.contains(type) ? 1 : 2
+            case 2: return this.type.contains(type) ? 2 : 4
+            case 3: return this.type.contains(type) ? 4 : 8
+            default: return -1
+        }
+    }
 
     addType(type: TurretElement) {
         switch (type) {
@@ -228,12 +244,7 @@ class EarthTurret extends Turret {
         let renderable = new RenderablePathSet()
         let path: Path2D
         let grad: CanvasGradient
-        let corners = [
-            { x: 22, y: 22 },
-            { x: 42, y: 22 },
-            { x: 22, y: 42 },
-            { x: 42, y: 42 }
-        ]
+        let corners = [{ x: 22, y: 22 }, { x: 42, y: 22 }, { x: 22, y: 42 }, { x: 42, y: 42 }]
         for (const corner of corners) {
             path = new Path2D()
             path.arc(corner.x, corner.y, 10, 0, Angle.deg360)
@@ -269,12 +280,7 @@ class EarthTurret extends Turret {
         let renderable = new RenderablePathSet()
         let path: Path2D
         let grad: CanvasGradient
-        let corners = [
-            { x: 21, y: 21 },
-            { x: 43, y: 21 },
-            { x: 21, y: 43 },
-            { x: 43, y: 43 }
-        ]
+        let corners = [{ x: 21, y: 21 }, { x: 43, y: 21 }, { x: 21, y: 43 }, { x: 43, y: 43 }]
         for (const corner of corners) {
             path = new Path2D()
             path.arc(corner.x, corner.y, 10, 0, Angle.deg360)
@@ -310,12 +316,7 @@ class EarthTurret extends Turret {
         let renderable = new RenderablePathSet()
         let path: Path2D
         let grad: CanvasGradient
-        let corners = [
-            { x: 20, y: 20 },
-            { x: 44, y: 20 },
-            { x: 20, y: 44 },
-            { x: 44, y: 44 }
-        ]
+        let corners = [{ x: 20, y: 20 }, { x: 44, y: 20 }, { x: 20, y: 44 }, { x: 44, y: 44 }]
         for (const corner of corners) {
             path = new Path2D()
             path.arc(corner.x, corner.y, 11, 0, Angle.deg360)
@@ -347,10 +348,10 @@ class EarthTurret extends Turret {
     }
 
     private static preRender4() {
-        let c = new PreRenderedImage(64, 64)
-        let renderable = new RenderablePathSet()
-        let path: Path2D
-        let grad: CanvasGradient
+        let grad: RadialGradientSource
+        let tex1 = new CamouflageTextureGenerator(64, 64, "#825D30", "#308236", 0.5)
+        let tex2 = new CamouflageTextureGenerator(64, 64, "#92A33C", "#4ED314", 0.5)
+        let src: ColorSource = RgbaColor.transparent.source()
         let corners = [
             { x: 20, y: 20 },
             { x: 44, y: 20 },
@@ -358,14 +359,13 @@ class EarthTurret extends Turret {
             { x: 44, y: 44 }
         ]
         for (const corner of corners) {
-            path = new Path2D()
-            path.arc(corner.x, corner.y, 11, 0, Angle.deg360)
-            grad = c.ctx.createRadialGradient(corner.x, corner.y, 6, corner.x, corner.y, 10)
-            grad.addColorStop(0, "#4ed314")
-            grad.addColorStop(1, "#3da547")
-            renderable.pushNew(path, grad)
+            grad = new RadialGradientSource(64, 64, corner.x, corner.y, 12, 6)
+            grad.addColorStop(0, "#825D3000")
+            grad.addColorStop(0.2, tex1)
+            grad.addColorStop(1, tex2)
+            src = new EllipseSource(64, 64, corner.x, corner.y, 12, 12, grad, src)
         }
-        path = new Path2D()
+        let path = new Path2D
         path.moveTo(18, 26)
         path.lineTo(26, 18)
         path.lineTo(46, 38)
@@ -376,15 +376,11 @@ class EarthTurret extends Turret {
         path.lineTo(18, 38)
         path.lineTo(26, 46)
         path.closePath()
-        renderable.pushNew(path, "#4ed314")
-        path = new Path2D()
-        path.arc(32, 32, 10, 0, Angle.deg360)
-        grad = c.ctx.createRadialGradient(32, 32, 4, 32, 32, 10)
-        grad.addColorStop(0, "#b6ff00")
-        grad.addColorStop(1, "#4ed314")
-        renderable.pushNew(path, grad)
-        renderable.render(c.ctx)
-        EarthTurret.images[4] = c.image
+        src = new PathSource(64, 64, path, tex2, src)
+        grad = new RadialGradientSource(64, 64, 32, 32, 10, 4)
+        grad.addColorStop(0, tex2)
+        grad.addColorStop(1, "#B6FF00")
+        EarthTurret.images[4] = new EllipseSource(64, 64, 32, 32, 10.5, 10.5, grad, src).generateImage()
     }
 
 }
@@ -456,18 +452,8 @@ class FireTurret extends Turret {
 
     static init() {
         let c = new PreRenderedImage(64, 64)
-        let texLava = new CellularTextureGenerator(
-            64, 64, 36,
-            RgbaColor.fromHex("#FF5020").source(),
-            RgbaColor.fromHex("#C00000").source(),
-            CellularTextureType.Balls
-        )
-        let texRock = new CellularTextureGenerator(
-            64, 64, 144,
-            RgbaColor.fromHex("#662D22").source(),
-            RgbaColor.fromHex("#44150D").source(),
-            CellularTextureType.Balls
-        )
+        let texLava = new CellularTextureGenerator(64, 64, 36, "#FF5020", "#C00000", CellularTextureType.Balls)
+        let texRock = new CellularTextureGenerator(64, 64, 144, "#662D22", "#44150D", CellularTextureType.Balls)
         let renderable = new RenderablePathSet()
         let path = new Path2D()
         for (let k = 0; k < 36; ++k) {
@@ -550,14 +536,8 @@ class WaterTurret extends Turret {
     }
 
     static init() {
-        let sandTex = new NoiseTextureGenerator(
-            64, 64, RgbaColor.fromHex("#F2EBC1").source(),
-            0.08, 0, 1
-        ).generateImage()
-        let groundTex = new NoiseTextureGenerator(
-            64, 64, RgbaColor.fromHex("#B9B5A0").source(),
-            0.05, 0, 1
-        ).generateImage()
+        let sandTex = new NoiseTextureGenerator(64, 64, "#F2EBC1", 0.08, 0, 1).generateImage()
+        let groundTex = new NoiseTextureGenerator(64, 64, "#B9B5A0", 0.05, 0, 1).generateImage()
         let c0 = new PreRenderedImage(64, 64)
         let c1 = new PreRenderedImage(64, 64)
         let c2 = new PreRenderedImage(64, 64)
@@ -571,12 +551,12 @@ class WaterTurret extends Turret {
     private static preRender(groundTex: CanvasImageSource, sandTex: CanvasImageSource): PreRenderedImage {
         let waterTex = new CellularTextureGenerator(
             64, 64, Utils.randInt(16, 36),
-            RgbaColor.fromHex("#3584CE").source(),
-            RgbaColor.fromHex("#3EB4EF").source(),
+            "#3584CE",
+            "#3EB4EF",
             CellularTextureType.Balls
         ).generateImage()
         let textures = [groundTex, sandTex, waterTex]
-        let pts: { pt_b: Coords, pt: Coords, pt_a: Coords }[][] = [[], [], []]
+        let pts: { pt_b: Vec2, pt: Vec2, pt_a: Vec2 }[][] = [[], [], []]
         for (let i = 0; i < 8; ++i) {
             let d2 = Utils.rand(16, 20)
             let d1 = Utils.rand(d2 + 2, 24)
@@ -670,12 +650,7 @@ class IceTurret extends Turret {
     }
 
     static init() {
-        let tex = new CellularTextureGenerator(
-            64, 64, 64,
-            RgbaColor.fromHex("#D1EFFF").source(),
-            RgbaColor.fromHex("#70BECC").source(),
-            CellularTextureType.Lava
-        )
+        let tex = new CellularTextureGenerator(64, 64, 64, "#D1EFFF", "#70BECC", CellularTextureType.Lava)
         let c0 = new PreRenderedImage(64, 64)
         let c1 = new PreRenderedImage(64, 64)
         let c2 = new PreRenderedImage(64, 64)
@@ -798,8 +773,8 @@ class AcidTurret extends Turret {
     static init() {
         let acidTex = new CellularTextureGenerator(
             64, 64, 9,
-            RgbaColor.fromHex("#E0FF00").source(),
-            RgbaColor.fromHex("#5B7F00").source(),
+            "#E0FF00",
+            "#5B7F00",
             CellularTextureType.Balls
         ).generateImage()
         AcidTurret.images = []
@@ -1286,18 +1261,19 @@ class MoonTurret extends Turret {
 
 class PlasmaTurret extends Turret {
 
-    private static images: CanvasImageSource[]
+    private static images: CanvasImageSource
+    private static frameCount: number
 
-    private angle: number
+    private frame: number
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
-        this.angle = Angle.rand()
+        this.frame = 0
     }
 
     step(time: number) {
         super.step(time)
-        this.angle += time * Angle.deg45
+        this.frame = (this.frame + time * 25) % PlasmaTurret.frameCount
     }
 
     render(ctx: CanvasRenderingContext2D, preRender: boolean) {
@@ -1305,13 +1281,11 @@ class PlasmaTurret extends Turret {
         if (preRender) {
             return
         }
-        let variant = (this.type.count() - 3) * 2
-        ctx.translate(this.center.x, this.center.y)
-        ctx.rotate(this.angle)
-        ctx.drawImage(PlasmaTurret.images[variant], -32, -32)
-        ctx.rotate(-2 * this.angle)
-        ctx.drawImage(PlasmaTurret.images[variant + 1], -32, -32)
-        ctx.resetTransform()
+        ctx.drawImage(
+            PlasmaTurret.images,
+            Math.floor(this.frame) * 64, (this.type.count() - 3) * 64, 64, 64,
+            this.tile.pos.x, this.tile.pos.y, 64, 64
+        )
     }
 
     addType(type: TurretElement) {
@@ -1331,37 +1305,36 @@ class PlasmaTurret extends Turret {
     }
 
     static init() {
-        let background = RgbaColor.fromHex("#889FFF00").source()
-        let color1 = new PerlinNoiseTextureGenerator(
-            64, 64,
-            RgbaColor.fromHex("#8C8CFF").source(),
-            RgbaColor.fromHex("#A3C6FF").source(),
-            0.5
-        )
-        let tex1a = new CirclesTextureGenerator(
-            64, 64,
-            RgbaColor.fromHex("#889FFF40").source(),
-            color1, background, 0.4, 2
-        ).generateImage()
-        let tex1b = new CirclesTextureGenerator(
-            64, 64,
-            RgbaColor.fromHex("#889FFF40").source(),
-            color1, background, 0.28, 3
-        ).generateImage()
-        let color2 = new PerlinNoiseTextureGenerator(
-            64, 64,
-            RgbaColor.fromHex("#B28CFF").source(),
-            RgbaColor.fromHex("#DAC6FF").source(),
-            0.5
-        )
-        let tex2a = new CirclesTextureGenerator(
-            64, 64, color2, background, background, 0.4, 2
-        ).generateImage()
-        let tex2b = new CirclesTextureGenerator(
-            64, 64, color2, background, background, 0.28, 3
-        ).generateImage()
-        PlasmaTurret.images = [tex1a, tex2a, tex1b, tex2b]
+        PlasmaTurret.frameCount = 100
+        let background = "#889FFF00"
+        let color1 = new PerlinNoiseTextureGenerator(64, 64, "#8C8CFF", "#A3C6FF", 0.5)
+        let tex1a = new CirclesTextureGenerator(64, 64, "#889FFF40", color1, background, 0.4, 2, 0.7)
+        let tex1b = new CirclesTextureGenerator(64, 64, "#889FFF40", color1, background, 0.28, 3, 0.7)
+        let color2 = new PerlinNoiseTextureGenerator(64, 64, "#B28CFF80", "#DAC6FF", 0.5)
+        let tex2a = new CirclesTextureGenerator(64, 64, color2, background, background, 0.4, 2, 0.1)
+        let tex2b = new CirclesTextureGenerator(64, 64, color2, background, background, 0.28, 3, 0.1)
+        let c = new PreRenderedImage(64 * PlasmaTurret.frameCount, 128)
+        PlasmaTurret.preRender(c.ctx, tex1a, tex2a, 0)
+        PlasmaTurret.preRender(c.ctx, tex1b, tex2b, 64)
+        c.saveImage("plasma")
+        PlasmaTurret.images = c.image
     }
+
+    private static preRender(ctx: CanvasRenderingContext2D, tex1: ColorSource, tex2: ColorSource, y: number) {
+        for (let i = 0; i < PlasmaTurret.frameCount; ++i) {
+            let a = i * Angle.deg360 / PlasmaTurret.frameCount, x = i * 64
+            let src = new AddingSource(
+                64, 64,
+                new RotatingSource(64, 64, tex1, a, 32, 32),
+                new RotatingSource(64, 64, tex2, -a, 32, 32)
+            )
+            ctx.fillStyle = ctx.createPattern(src.generateImage(), "repeat")
+            ctx.beginPath()
+            ctx.arc(x + 32, y + 32, 30, 0, Angle.deg360)
+            ctx.fill()
+        }
+    }
+
 }
 
 class EarthquakeTurret extends Turret {

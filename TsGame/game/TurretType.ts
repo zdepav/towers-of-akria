@@ -13,9 +13,7 @@ class TurretType {
         this.type = type === null ? [0, 0, 0, 0] : type
     }
 
-    copy(): TurretType {
-        return new TurretType(this.type.slice())
-    }
+    copy(): TurretType { return new TurretType(this.type.slice()) }
 
     add(elem: TurretElement) {
         ++this.type[elem]
@@ -37,6 +35,8 @@ class TurretType {
         }
         return c
     }
+
+    contains(type: TurretElement) { return this.type[type] > 0 }
 
     toArray(): TurretElement[] {
         let arr: TurretElement[] = []

@@ -58,6 +58,19 @@ class Utils {
     static granulate(value, steps) {
         return Math.floor(value * steps) / steps + 1 / steps / 2;
     }
+    static euclideanDistance(dx, dy) {
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    static manhattanDistance(dx, dy) {
+        return Math.abs(dx) + Math.abs(dy);
+    }
+    static chebyshevDistance(dx, dy) {
+        return Math.max(Math.abs(dx), Math.abs(dy));
+    }
+    static minkowskiDistance(dx, dy) {
+        let d = Math.sqrt(Math.abs(dx)) + Math.sqrt(Math.abs(dy));
+        return d * d;
+    }
     static byteToHex(byte) {
         byte = Utils.clamp(byte, 0, 255);
         return Utils.hex[Math.floor(byte / 16)] + Utils.hex[Math.floor(byte % 16)];
@@ -69,7 +82,13 @@ class Utils {
         return startY + distance * Math.sin(direction);
     }
     static ld(distance, direction, startX = 0, startY = 0) {
-        return new Coords(startX + distance * Math.cos(direction), startY + distance * Math.sin(direction));
+        return new Vec2(startX + distance * Math.cos(direction), startY + distance * Math.sin(direction));
+    }
+    static rotatePoint(x, y, originX, originY, angle) {
+        x -= originX;
+        y -= originY;
+        let c = Math.cos(angle), s = Math.sin(angle);
+        return new Vec2(x * c - y * s + originX, x * s + y * c + originY);
     }
     static getAngle(x1, y1, x2, y2) {
         return Math.atan2(y2 - y1, x2 - x1);
@@ -105,8 +124,19 @@ class Utils {
         }
         return Math.floor(Math.random() * (max - min) + min);
     }
+    static isString(obj) {
+        return typeof obj === 'string' || obj instanceof String;
+    }
 }
 Utils.hex = "0123456789abcdef";
+var MouseButton;
+(function (MouseButton) {
+    MouseButton[MouseButton["Left"] = 0] = "Left";
+    MouseButton[MouseButton["Middle"] = 1] = "Middle";
+    MouseButton[MouseButton["Right"] = 2] = "Right";
+    MouseButton[MouseButton["Back"] = 3] = "Back";
+    MouseButton[MouseButton["Forward"] = 4] = "Forward";
+})(MouseButton || (MouseButton = {}));
 class RenderablePath {
     constructor(path, fill) {
         this.path = path;
@@ -167,12 +197,6 @@ class PerformanceMeter {
         return this.queue.length > 0 ? this.sum / this.queue.length : NaN;
     }
 }
-class Coords {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-}
 class Rect {
     constructor(x, y, w, h) {
         this.x = x;
@@ -218,16 +242,23 @@ class Vec2 {
         let l = 1 / this.length();
         return new Vec2(this.x * l, this.y * l);
     }
+    isZero() {
+        return this.x === 0 && this.y === 0;
+    }
     static randUnit() {
         let a = Angle.rand();
         return new Vec2(Utils.ldx(1, a), Utils.ldy(1, a));
     }
+    static init() {
+        Vec2.zero = new Vec2(0, 0);
+    }
 }
+Vec2.init();
 class DijkstraNode {
     constructor(x, y, previous) {
         this.previous = previous;
         this.distance = previous == null ? 0 : previous.distance + 1;
-        this.pos = new Coords(x, y);
+        this.pos = new Vec2(x, y);
     }
 }
 class Angle {
@@ -264,10 +295,11 @@ class Angle {
     }
 }
 Angle.init();
+/// <reference path="utils.ts"/>
 class ColorSource {
     constructor(width, height) {
-        this.width = width;
-        this.height = height;
+        this.width = Math.max(1, Math.floor(width));
+        this.height = Math.max(1, Math.floor(height));
     }
     getColor(x, y) {
         return this._getColor(Utils.wrap(x, 0, this.width), Utils.wrap(y, 0, this.height));
@@ -281,6 +313,23 @@ class ColorSource {
             }
         }
         return tex.image;
+    }
+    static get(color) {
+        if (color === null) {
+            return null;
+        }
+        else if (color instanceof ColorSource) {
+            return color;
+        }
+        else if (color instanceof RgbaColor) {
+            return color.source();
+        }
+        else if (Utils.isString(color)) {
+            return RgbaColor.fromHex(color).source();
+        }
+        else {
+            return null;
+        }
     }
 }
 class CanvasColorSource extends ColorSource {
@@ -336,6 +385,17 @@ class RgbaColor {
     }
     add(c) {
         return new RgbaColor(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.pa());
+    }
+    blend(c) {
+        if (this.a === 0) {
+            return c.a === 0 ? this : c;
+        }
+        else if (c.a === 0) {
+            return this;
+        }
+        else {
+            return new RgbaColor(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.a * (255 - this.a) / 255);
+        }
     }
     withRed(r) { return new RgbaColor(r, this.g, this.b, this.a); }
     withGreen(g) { return new RgbaColor(this.r, g, this.b, this.a); }
@@ -393,7 +453,7 @@ class RgbaColor {
 RgbaColor.init();
 class RgbaColorSource extends ColorSource {
     constructor(color, width = 1, height = 1) {
-        super(Math.max(1, Math.floor(width)), Math.max(1, Math.floor(height)));
+        super(width, height);
         this.color = color;
     }
     _getColor(x, y) { return this.color; }
@@ -404,19 +464,10 @@ class RgbaColorSource extends ColorSource {
         return tex.image;
     }
 }
-/// <reference path='Game.ts'/>
-class GameItem {
-    constructor(game) {
-        this.game = game;
-    }
-    step(time) { }
-    render(ctx, preRender) { }
-}
-/// <reference path="Utils.ts"/>
 class TextureGenerator extends ColorSource {
     constructor(width, height, color) {
         super(width, height);
-        this.color = color === null ? RgbaColor.black.source() : color;
+        this.color = ColorSource.get(color !== null ? color : RgbaColor.black);
     }
 }
 var CellularTextureType;
@@ -425,13 +476,35 @@ var CellularTextureType;
     CellularTextureType[CellularTextureType["Net"] = 1] = "Net";
     CellularTextureType[CellularTextureType["Balls"] = 2] = "Balls";
 })(CellularTextureType || (CellularTextureType = {}));
+var CellularTextureDistanceMetric;
+(function (CellularTextureDistanceMetric) {
+    CellularTextureDistanceMetric[CellularTextureDistanceMetric["Euclidean"] = 0] = "Euclidean";
+    CellularTextureDistanceMetric[CellularTextureDistanceMetric["Manhattan"] = 1] = "Manhattan";
+    CellularTextureDistanceMetric[CellularTextureDistanceMetric["Chebyshev"] = 2] = "Chebyshev";
+    CellularTextureDistanceMetric[CellularTextureDistanceMetric["Minkowski"] = 3] = "Minkowski";
+})(CellularTextureDistanceMetric || (CellularTextureDistanceMetric = {}));
 // based on https://blackpawn.com/texts/cellular/default.html
 class CellularTextureGenerator extends TextureGenerator {
     // density n => 1 point per n pixels
-    constructor(width, height, density, color1, color2, type) {
+    constructor(width, height, density, color1, color2, type = CellularTextureType.Lava, metric = CellularTextureDistanceMetric.Euclidean) {
         super(width, height, color1);
-        this.color2 = color2 === null ? RgbaColor.white.source() : color2;
+        this.color2 = ColorSource.get(color2 !== null ? color2 : RgbaColor.white);
         this.type = type;
+        let distance;
+        switch (metric) {
+            case CellularTextureDistanceMetric.Euclidean:
+                distance = Utils.euclideanDistance;
+                break;
+            case CellularTextureDistanceMetric.Manhattan:
+                distance = Utils.manhattanDistance;
+                break;
+            case CellularTextureDistanceMetric.Chebyshev:
+                distance = Utils.chebyshevDistance;
+                break;
+            case CellularTextureDistanceMetric.Minkowski:
+                distance = Utils.minkowskiDistance;
+                break;
+        }
         this.density = Math.max(1, density);
         let points = [];
         let pointCount = this.width * this.height / this.density;
@@ -439,14 +512,14 @@ class CellularTextureGenerator extends TextureGenerator {
             pointCount = 2;
         }
         for (let i = 0; i < pointCount; ++i) {
-            points[i] = new Coords(Math.random() * this.width, Math.random() * this.height);
+            points[i] = new Vec2(Math.random() * this.width, Math.random() * this.height);
         }
         this.distances = [];
         this.min = Infinity;
         let max = 0, i, d;
         for (let x = 0; x < this.width; ++x) {
             for (let y = 0; y < this.height; ++y) {
-                let { min1, min2 } = CellularTextureGenerator.distancesTo2Nearest(this, x, y, points);
+                let { min1, min2 } = CellularTextureGenerator.distancesTo2Nearest(x, y, this.width, this.height, points, distance);
                 switch (this.type) {
                     case CellularTextureType.Net:
                         d = min2 - min1;
@@ -465,22 +538,22 @@ class CellularTextureGenerator extends TextureGenerator {
         }
         this.range = max - this.min;
     }
-    static wrappedDistance(g, x, y, b) {
+    static wrappedDistance(x, y, width, height, b, distance) {
         let dx = Math.abs(x - b.x);
         let dy = Math.abs(y - b.y);
-        if (dx > g.width / 2) {
-            dx = g.width - dx;
+        if (dx > width / 2) {
+            dx = width - dx;
         }
-        if (dy > g.height / 2) {
-            dy = g.height - dy;
+        if (dy > height / 2) {
+            dy = height - dy;
         }
-        return Math.sqrt(dx * dx + dy * dy);
+        return distance(dx, dy);
     }
-    static distancesTo2Nearest(g, x, y, points) {
+    static distancesTo2Nearest(x, y, width, height, points, distance) {
         let min1 = Infinity;
         let min2 = Infinity;
         for (const p of points) {
-            let d = CellularTextureGenerator.wrappedDistance(g, x, y, p);
+            let d = CellularTextureGenerator.wrappedDistance(x, y, width, height, p, distance);
             if (d < min1) {
                 min2 = min1;
                 min1 = d;
@@ -529,7 +602,7 @@ class PerlinGradient {
 class PerlinTextureGenerator extends TextureGenerator {
     constructor(width, height, color1, color2, scale = 1) {
         super(width, height, color1);
-        this.color2 = color2 === null ? RgbaColor.white.source() : color2;
+        this.color2 = ColorSource.get(color2 !== null ? color2 : RgbaColor.white);
         this.scale = 1 / (scale * 32);
     }
     dotGridGradient(gradient, ix, iy, x, y) {
@@ -648,11 +721,12 @@ class BarkTextureGenerator extends PerlinTextureGenerator {
     }
 }
 class CirclesTextureGenerator extends PerlinTextureGenerator {
-    constructor(width, height, color1, color2, background, scale = 1, ringCount = Infinity) {
+    constructor(width, height, color1, color2, background, scale = 1, ringCount = Infinity, turbulence = 1) {
         super(width, height, color1, color2, scale);
         this.ringCount = ringCount;
         this.ringCountL = this.ringCount - 0.25;
-        this.background = background !== null ? background : RgbaColor.transparent.source();
+        this.turbulence = turbulence / 2;
+        this.background = ColorSource.get(background !== null ? background : RgbaColor.transparent);
         this.gradients = [];
         this.scale2 = this.scale * 2;
         for (let i = 0; i < 2; ++i) {
@@ -662,8 +736,8 @@ class CirclesTextureGenerator extends PerlinTextureGenerator {
         this.cy = this.height * this.scale / 2;
     }
     _getColor(x, y) {
-        let _x = x * this.scale + this.perlin(this.gradients[0], x * this.scale2, y * this.scale2) * 0.5 - this.cx;
-        let _y = y * this.scale + this.perlin(this.gradients[1], x * this.scale2, y * this.scale2) * 0.5 - this.cy;
+        let _x = x * this.scale + this.perlin(this.gradients[0], x * this.scale2, y * this.scale2) * this.turbulence - this.cx;
+        let _y = y * this.scale + this.perlin(this.gradients[1], x * this.scale2, y * this.scale2) * this.turbulence - this.cy;
         let d = Math.sqrt(_x * _x + _y * _y);
         if (d > this.ringCount) {
             return this.background.getColor(x, y);
@@ -700,7 +774,196 @@ class CamouflageTextureGenerator extends PerlinTextureGenerator {
             Utils.granulate(this.perlin(this.gradients[8], _x * 4, _y * 4), 6) * 0.1) / 2 + 0.5);
     }
 }
-/// <reference path='Utils.ts'/>
+class GradientSource extends ColorSource {
+    constructor(width, height) {
+        super(width, height);
+        this.colorStops = [];
+    }
+    addColorStop(pos, color) {
+        this.colorStops.push({ pos: pos, color: ColorSource.get(color) });
+        this.colorStops.sort((a, b) => a.pos - b.pos);
+    }
+    getColorAtPosition(x, y, position) {
+        if (this.colorStops.length == 0) {
+            return RgbaColor.black;
+        }
+        else if (this.colorStops.length == 1) {
+            return this.colorStops[0].color.getColor(x, y);
+        }
+        else if (position <= this.colorStops[0].pos) {
+            return this.colorStops[0].color.getColor(x, y);
+        }
+        else if (position >= this.colorStops[this.colorStops.length - 1].pos) {
+            return this.colorStops[this.colorStops.length - 1].color.getColor(x, y);
+        }
+        else {
+            let i = 1;
+            while (position > this.colorStops[i].pos) {
+                ++i;
+            }
+            return this.colorStops[i - 1].color.getColor(x, y).lerp(this.colorStops[i].color.getColor(x, y), (position - this.colorStops[i - 1].pos) / (this.colorStops[i].pos - this.colorStops[i - 1].pos));
+        }
+    }
+}
+class LinearGradientSource extends GradientSource {
+    constructor(width, height, x1, y1, x2, y2) {
+        super(width, height);
+        this.a = x2 - x1;
+        this.b = y2 - y1;
+        this.c = -this.a * x1 - this.b * y1;
+        this.d = Math.sqrt(this.a * this.a + this.b * this.b);
+        this.d *= this.d;
+    }
+    _getColor(x, y) {
+        return this.getColorAtPosition(x, y, (this.a * x + this.b * y + this.c) / this.d);
+    }
+}
+class RadialGradientSource extends GradientSource {
+    constructor(width, height, x, y, r1, r2) {
+        super(width, height);
+        this.x = x;
+        this.y = y;
+        this.r1 = r1;
+        this.dr = r2 - r1;
+    }
+    _getColor(x, y) {
+        let dx = x - this.x, dy = y - this.y;
+        return this.getColorAtPosition(x, y, (Math.sqrt(dx * dx + dy * dy) - this.r1) / this.dr);
+    }
+}
+class ShapeSource extends ColorSource {
+    constructor(width, height, color, background) {
+        super(width, height);
+        this.color = ColorSource.get(color !== null ? color : RgbaColor.white);
+        this.background = ColorSource.get(background !== null ? background : RgbaColor.black);
+    }
+}
+class RectangleSource extends ShapeSource {
+    constructor(width, height, x, y, w, h, color, background) {
+        super(width, height, color, background);
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+    }
+    _getColor(x, y) {
+        let _x = (x - this.x) / this.w, _y = (y - this.y) / this.h;
+        return (_x >= 0 || _x < 1 || _y >= 0 || _y < 1) ? this.color.getColor(x, y) : this.background.getColor(x, y);
+    }
+}
+class EllipseSource extends ShapeSource {
+    constructor(width, height, x, y, r1, r2, color, background) {
+        super(width, height, color, background);
+        this.x = x;
+        this.y = y;
+        this.r1 = r1;
+        this.r2 = r2;
+    }
+    _getColor(x, y) {
+        let _x = (x - this.x) / this.r1, _y = (y - this.y) / this.r2;
+        return Math.sqrt(_x * _x + _y * _y) <= 1 ? this.color.getColor(x, y) : this.background.getColor(x, y);
+    }
+}
+class PathSource extends ShapeSource {
+    constructor(width, height, path, color, background, fillRule = "nonzero") {
+        super(width, height, color, background);
+        this.path = path;
+        this.fillRule = fillRule;
+        this.ctx = new PreRenderedImage(1, 1).ctx;
+    }
+    _getColor(x, y) {
+        return this.ctx.isPointInPath(this.path, x, y, this.fillRule) ? this.color.getColor(x, y) : this.background.getColor(x, y);
+    }
+}
+class CombiningSource extends ColorSource {
+    constructor(width, height, color1, color2) {
+        super(width, height);
+        this.color1 = ColorSource.get(color1 !== null ? color1 : RgbaColor.black);
+        this.color2 = ColorSource.get(color2 !== null ? color2 : RgbaColor.white);
+    }
+    _getColor(x, y) {
+        return this.combine(this.color1.getColor(x, y), this.color2.getColor(x, y));
+    }
+}
+class AddingSource extends CombiningSource {
+    constructor(width, height, color1, color2) {
+        super(width, height, color1, color2);
+    }
+    combine(a, b) {
+        return a.add(b);
+    }
+}
+class MultiplyingSource extends CombiningSource {
+    constructor(width, height, color1, color2) {
+        super(width, height, color1, color2);
+    }
+    combine(a, b) {
+        return a.multiply(b);
+    }
+}
+class BlendingSource extends CombiningSource {
+    constructor(width, height, color1, color2) {
+        super(width, height, color1, color2);
+    }
+    combine(a, b) {
+        return a.blend(b);
+    }
+}
+class LerpingSource extends CombiningSource {
+    constructor(width, height, color1, color2, coeficient) {
+        super(width, height, color1, color2);
+        this.coeficient = coeficient;
+    }
+    combine(a, b) {
+        return a.lerp(b, this.coeficient);
+    }
+}
+class TransformingSource extends ColorSource {
+    constructor(width, height, source) {
+        super(width, height);
+        this.source = source;
+    }
+    _getColor(x, y) {
+        let v = this.reverseTransform(x, y);
+        return this.source.getColor(v.x, v.y);
+    }
+}
+class TranslatingSource extends TransformingSource {
+    constructor(width, height, source, xd, yd) {
+        super(width, height, source);
+        this.xd = xd;
+        this.yd = yd;
+    }
+    reverseTransform(x, y) {
+        return new Vec2(x - this.xd, y - this.yd);
+    }
+}
+class RotatingSource extends TransformingSource {
+    constructor(width, height, source, angle, originX, originY) {
+        super(width, height, source);
+        this.angle = angle;
+        this.originX = originX;
+        this.originY = originY;
+    }
+    reverseTransform(x, y) {
+        return Utils.rotatePoint(x, y, this.originX, this.originY, -this.angle);
+    }
+}
+class ScalingSource extends TransformingSource {
+    constructor(width, height, source, scale, originX, originY) {
+        super(width, height, source);
+        this.scale = scale;
+        this.origin = new Vec2(originX, originY);
+    }
+    reverseTransform(x, y) {
+        let v = new Vec2(x, y), dv = v.sub(this.origin);
+        if (dv.isZero()) {
+            return v;
+        }
+        return v.add(dv.mul(1 / this.scale));
+    }
+}
+/// <reference path='utils.ts'/>
 class Particle {
     step(time) { }
     render(ctx) { }
@@ -734,9 +997,9 @@ class SmokeParticle extends Particle {
         return this.life >= 1;
     }
 }
-class ParticleSystem extends GameItem {
+class ParticleSystem {
     constructor(game) {
-        super(game);
+        this.game = game;
         this.parts = [];
         this.count = 0;
     }
@@ -781,9 +1044,7 @@ class TurretType {
     constructor(type = null) {
         this.type = type === null ? [0, 0, 0, 0] : type;
     }
-    copy() {
-        return new TurretType(this.type.slice());
-    }
+    copy() { return new TurretType(this.type.slice()); }
     add(elem) {
         ++this.type[elem];
         return this;
@@ -799,6 +1060,7 @@ class TurretType {
         }
         return c;
     }
+    contains(type) { return this.type[type] > 0; }
     toArray() {
         let arr = [];
         for (let i = 0; i < this.type[TurretElement.Air]; ++i) {
@@ -832,16 +1094,16 @@ class TurretType {
         return arr;
     }
 }
-/// <reference path='Utils.ts'/>
-/// <reference path='GameItem.ts'/>
-/// <reference path="TextureGenerator.ts"/>
-/// <reference path="ParticleSystem.ts"/>
+/// <reference path='utils.ts'/>
+/// <reference path='Game.ts'/>
+/// <reference path="generators.ts"/>
+/// <reference path="particles.ts"/>
 /// <reference path="TurretType.ts"/>
-class Turret extends GameItem {
+class Turret {
     constructor(tile, type = null) {
-        super(tile.game);
+        this.game = tile.game;
         this.tile = tile;
-        this.center = new Coords(tile.pos.x + 32, tile.pos.y + 32);
+        this.center = new Vec2(tile.pos.x + 32, tile.pos.y + 32);
         this.hp = 100;
         this.type = type === null ? new TurretType() : type;
         this.cooldown = 0;
@@ -853,6 +1115,19 @@ class Turret extends GameItem {
     }
     render(ctx, preRender) { }
     getType() { return this.type.copy(); }
+    /**
+     * returns multiplier for upgrade cost if upgrade is possible or -1 if not
+     * @param type upgrade type
+     */
+    upgradeCostMultiplier(type) {
+        switch (this.type.count()) {
+            case 0: return 1;
+            case 1: return this.type.contains(type) ? 1 : 2;
+            case 2: return this.type.contains(type) ? 2 : 4;
+            case 3: return this.type.contains(type) ? 4 : 8;
+            default: return -1;
+        }
+    }
     addType(type) {
         switch (type) {
             case TurretElement.Air:
@@ -1025,12 +1300,7 @@ class EarthTurret extends Turret {
         let renderable = new RenderablePathSet();
         let path;
         let grad;
-        let corners = [
-            { x: 22, y: 22 },
-            { x: 42, y: 22 },
-            { x: 22, y: 42 },
-            { x: 42, y: 42 }
-        ];
+        let corners = [{ x: 22, y: 22 }, { x: 42, y: 22 }, { x: 22, y: 42 }, { x: 42, y: 42 }];
         for (const corner of corners) {
             path = new Path2D();
             path.arc(corner.x, corner.y, 10, 0, Angle.deg360);
@@ -1065,12 +1335,7 @@ class EarthTurret extends Turret {
         let renderable = new RenderablePathSet();
         let path;
         let grad;
-        let corners = [
-            { x: 21, y: 21 },
-            { x: 43, y: 21 },
-            { x: 21, y: 43 },
-            { x: 43, y: 43 }
-        ];
+        let corners = [{ x: 21, y: 21 }, { x: 43, y: 21 }, { x: 21, y: 43 }, { x: 43, y: 43 }];
         for (const corner of corners) {
             path = new Path2D();
             path.arc(corner.x, corner.y, 10, 0, Angle.deg360);
@@ -1105,12 +1370,7 @@ class EarthTurret extends Turret {
         let renderable = new RenderablePathSet();
         let path;
         let grad;
-        let corners = [
-            { x: 20, y: 20 },
-            { x: 44, y: 20 },
-            { x: 20, y: 44 },
-            { x: 44, y: 44 }
-        ];
+        let corners = [{ x: 20, y: 20 }, { x: 44, y: 20 }, { x: 20, y: 44 }, { x: 44, y: 44 }];
         for (const corner of corners) {
             path = new Path2D();
             path.arc(corner.x, corner.y, 11, 0, Angle.deg360);
@@ -1141,10 +1401,10 @@ class EarthTurret extends Turret {
         EarthTurret.images[3] = c.image;
     }
     static preRender4() {
-        let c = new PreRenderedImage(64, 64);
-        let renderable = new RenderablePathSet();
-        let path;
         let grad;
+        let tex1 = new CamouflageTextureGenerator(64, 64, "#825D30", "#308236", 0.5);
+        let tex2 = new CamouflageTextureGenerator(64, 64, "#92A33C", "#4ED314", 0.5);
+        let src = RgbaColor.transparent.source();
         let corners = [
             { x: 20, y: 20 },
             { x: 44, y: 20 },
@@ -1152,14 +1412,13 @@ class EarthTurret extends Turret {
             { x: 44, y: 44 }
         ];
         for (const corner of corners) {
-            path = new Path2D();
-            path.arc(corner.x, corner.y, 11, 0, Angle.deg360);
-            grad = c.ctx.createRadialGradient(corner.x, corner.y, 6, corner.x, corner.y, 10);
-            grad.addColorStop(0, "#4ed314");
-            grad.addColorStop(1, "#3da547");
-            renderable.pushNew(path, grad);
+            grad = new RadialGradientSource(64, 64, corner.x, corner.y, 12, 6);
+            grad.addColorStop(0, "#825D3000");
+            grad.addColorStop(0.2, tex1);
+            grad.addColorStop(1, tex2);
+            src = new EllipseSource(64, 64, corner.x, corner.y, 12, 12, grad, src);
         }
-        path = new Path2D();
+        let path = new Path2D;
         path.moveTo(18, 26);
         path.lineTo(26, 18);
         path.lineTo(46, 38);
@@ -1170,15 +1429,11 @@ class EarthTurret extends Turret {
         path.lineTo(18, 38);
         path.lineTo(26, 46);
         path.closePath();
-        renderable.pushNew(path, "#4ed314");
-        path = new Path2D();
-        path.arc(32, 32, 10, 0, Angle.deg360);
-        grad = c.ctx.createRadialGradient(32, 32, 4, 32, 32, 10);
-        grad.addColorStop(0, "#b6ff00");
-        grad.addColorStop(1, "#4ed314");
-        renderable.pushNew(path, grad);
-        renderable.render(c.ctx);
-        EarthTurret.images[4] = c.image;
+        src = new PathSource(64, 64, path, tex2, src);
+        grad = new RadialGradientSource(64, 64, 32, 32, 10, 4);
+        grad.addColorStop(0, tex2);
+        grad.addColorStop(1, "#B6FF00");
+        EarthTurret.images[4] = new EllipseSource(64, 64, 32, 32, 10.5, 10.5, grad, src).generateImage();
     }
 }
 class FireTurret extends Turret {
@@ -1237,8 +1492,8 @@ class FireTurret extends Turret {
     }
     static init() {
         let c = new PreRenderedImage(64, 64);
-        let texLava = new CellularTextureGenerator(64, 64, 36, RgbaColor.fromHex("#FF5020").source(), RgbaColor.fromHex("#C00000").source(), CellularTextureType.Balls);
-        let texRock = new CellularTextureGenerator(64, 64, 144, RgbaColor.fromHex("#662D22").source(), RgbaColor.fromHex("#44150D").source(), CellularTextureType.Balls);
+        let texLava = new CellularTextureGenerator(64, 64, 36, "#FF5020", "#C00000", CellularTextureType.Balls);
+        let texRock = new CellularTextureGenerator(64, 64, 144, "#662D22", "#44150D", CellularTextureType.Balls);
         let renderable = new RenderablePathSet();
         let path = new Path2D();
         for (let k = 0; k < 36; ++k) {
@@ -1312,8 +1567,8 @@ class WaterTurret extends Turret {
         }
     }
     static init() {
-        let sandTex = new NoiseTextureGenerator(64, 64, RgbaColor.fromHex("#F2EBC1").source(), 0.08, 0, 1).generateImage();
-        let groundTex = new NoiseTextureGenerator(64, 64, RgbaColor.fromHex("#B9B5A0").source(), 0.05, 0, 1).generateImage();
+        let sandTex = new NoiseTextureGenerator(64, 64, "#F2EBC1", 0.08, 0, 1).generateImage();
+        let groundTex = new NoiseTextureGenerator(64, 64, "#B9B5A0", 0.05, 0, 1).generateImage();
         let c0 = new PreRenderedImage(64, 64);
         let c1 = new PreRenderedImage(64, 64);
         let c2 = new PreRenderedImage(64, 64);
@@ -1324,7 +1579,7 @@ class WaterTurret extends Turret {
         WaterTurret.images = [c0.image, c1.image, c2.image, c3.image];
     }
     static preRender(groundTex, sandTex) {
-        let waterTex = new CellularTextureGenerator(64, 64, Utils.randInt(16, 36), RgbaColor.fromHex("#3584CE").source(), RgbaColor.fromHex("#3EB4EF").source(), CellularTextureType.Balls).generateImage();
+        let waterTex = new CellularTextureGenerator(64, 64, Utils.randInt(16, 36), "#3584CE", "#3EB4EF", CellularTextureType.Balls).generateImage();
         let textures = [groundTex, sandTex, waterTex];
         let pts = [[], [], []];
         for (let i = 0; i < 8; ++i) {
@@ -1402,7 +1657,7 @@ class IceTurret extends Turret {
         }
     }
     static init() {
-        let tex = new CellularTextureGenerator(64, 64, 64, RgbaColor.fromHex("#D1EFFF").source(), RgbaColor.fromHex("#70BECC").source(), CellularTextureType.Lava);
+        let tex = new CellularTextureGenerator(64, 64, 64, "#D1EFFF", "#70BECC", CellularTextureType.Lava);
         let c0 = new PreRenderedImage(64, 64);
         let c1 = new PreRenderedImage(64, 64);
         let c2 = new PreRenderedImage(64, 64);
@@ -1512,7 +1767,7 @@ class AcidTurret extends Turret {
         }
     }
     static init() {
-        let acidTex = new CellularTextureGenerator(64, 64, 9, RgbaColor.fromHex("#E0FF00").source(), RgbaColor.fromHex("#5B7F00").source(), CellularTextureType.Balls).generateImage();
+        let acidTex = new CellularTextureGenerator(64, 64, 9, "#E0FF00", "#5B7F00", CellularTextureType.Balls).generateImage();
         AcidTurret.images = [];
         AcidTurret.frameCount = 100;
         for (let i = 0; i < AcidTurret.frameCount; ++i) {
@@ -1931,24 +2186,18 @@ class MoonTurret extends Turret {
 class PlasmaTurret extends Turret {
     constructor(tile, type) {
         super(tile, type);
-        this.angle = Angle.rand();
+        this.frame = 0;
     }
     step(time) {
         super.step(time);
-        this.angle += time * Angle.deg45;
+        this.frame = (this.frame + time * 25) % PlasmaTurret.frameCount;
     }
     render(ctx, preRender) {
         super.render(ctx, preRender);
         if (preRender) {
             return;
         }
-        let variant = (this.type.count() - 3) * 2;
-        ctx.translate(this.center.x, this.center.y);
-        ctx.rotate(this.angle);
-        ctx.drawImage(PlasmaTurret.images[variant], -32, -32);
-        ctx.rotate(-2 * this.angle);
-        ctx.drawImage(PlasmaTurret.images[variant + 1], -32, -32);
-        ctx.resetTransform();
+        ctx.drawImage(PlasmaTurret.images, Math.floor(this.frame) * 64, (this.type.count() - 3) * 64, 64, 64, this.tile.pos.x, this.tile.pos.y, 64, 64);
     }
     addType(type) {
         if (this.type.count() >= 4) {
@@ -1966,14 +2215,29 @@ class PlasmaTurret extends Turret {
         }
     }
     static init() {
-        let background = RgbaColor.fromHex("#889FFF00").source();
-        let color1 = new PerlinNoiseTextureGenerator(64, 64, RgbaColor.fromHex("#8C8CFF").source(), RgbaColor.fromHex("#A3C6FF").source(), 0.5);
-        let tex1a = new CirclesTextureGenerator(64, 64, RgbaColor.fromHex("#889FFF40").source(), color1, background, 0.4, 2).generateImage();
-        let tex1b = new CirclesTextureGenerator(64, 64, RgbaColor.fromHex("#889FFF40").source(), color1, background, 0.28, 3).generateImage();
-        let color2 = new PerlinNoiseTextureGenerator(64, 64, RgbaColor.fromHex("#B28CFF").source(), RgbaColor.fromHex("#DAC6FF").source(), 0.5);
-        let tex2a = new CirclesTextureGenerator(64, 64, color2, background, background, 0.4, 2).generateImage();
-        let tex2b = new CirclesTextureGenerator(64, 64, color2, background, background, 0.28, 3).generateImage();
-        PlasmaTurret.images = [tex1a, tex2a, tex1b, tex2b];
+        PlasmaTurret.frameCount = 100;
+        let background = "#889FFF00";
+        let color1 = new PerlinNoiseTextureGenerator(64, 64, "#8C8CFF", "#A3C6FF", 0.5);
+        let tex1a = new CirclesTextureGenerator(64, 64, "#889FFF40", color1, background, 0.4, 2, 0.7);
+        let tex1b = new CirclesTextureGenerator(64, 64, "#889FFF40", color1, background, 0.28, 3, 0.7);
+        let color2 = new PerlinNoiseTextureGenerator(64, 64, "#B28CFF80", "#DAC6FF", 0.5);
+        let tex2a = new CirclesTextureGenerator(64, 64, color2, background, background, 0.4, 2, 0.1);
+        let tex2b = new CirclesTextureGenerator(64, 64, color2, background, background, 0.28, 3, 0.1);
+        let c = new PreRenderedImage(64 * PlasmaTurret.frameCount, 128);
+        PlasmaTurret.preRender(c.ctx, tex1a, tex2a, 0);
+        PlasmaTurret.preRender(c.ctx, tex1b, tex2b, 64);
+        c.saveImage("plasma");
+        PlasmaTurret.images = c.image;
+    }
+    static preRender(ctx, tex1, tex2, y) {
+        for (let i = 0; i < PlasmaTurret.frameCount; ++i) {
+            let a = i * Angle.deg360 / PlasmaTurret.frameCount, x = i * 64;
+            let src = new AddingSource(64, 64, new RotatingSource(64, 64, tex1, a, 32, 32), new RotatingSource(64, 64, tex2, -a, 32, 32));
+            ctx.fillStyle = ctx.createPattern(src.generateImage(), "repeat");
+            ctx.beginPath();
+            ctx.arc(x + 32, y + 32, 30, 0, Angle.deg360);
+            ctx.fill();
+        }
     }
 }
 class EarthquakeTurret extends Turret {
@@ -2031,16 +2295,14 @@ class ArcaneTurret extends Turret {
     }
 }
 /// <reference path='turrets.ts'/>
-/// <reference path='GameItem.ts'/>
-/// <reference path='Utils.ts'/>
+/// <reference path='utils.ts'/>
 /// <reference path="TurretType.ts"/>
-/// <reference path="ParticleSystem.ts"/>
+/// <reference path="particles.ts"/>
 var TileType;
 /// <reference path='turrets.ts'/>
-/// <reference path='GameItem.ts'/>
-/// <reference path='Utils.ts'/>
+/// <reference path='utils.ts'/>
 /// <reference path="TurretType.ts"/>
-/// <reference path="ParticleSystem.ts"/>
+/// <reference path="particles.ts"/>
 (function (TileType) {
     TileType[TileType["Unknown"] = 0] = "Unknown";
     TileType[TileType["Empty"] = 1] = "Empty";
@@ -2050,28 +2312,29 @@ var TileType;
     TileType[TileType["Spawn"] = 5] = "Spawn";
     TileType[TileType["HQ"] = 6] = "HQ";
 })(TileType || (TileType = {}));
-class Tile extends GameItem {
+class Tile {
     constructor(game, x, y, type, ctx) {
-        super(game);
+        this.game = game;
         this.type = type;
         this.turret = null;
-        this.pos = new Coords(x, y);
+        this.pos = new Vec2(x, y);
         this.decor = new RenderablePathSet();
         switch (type) {
             case TileType.Empty:
-                this.groundFill = ctx.createPattern(Tile.grass, "repeat"); // "#5BA346"
+                this.groundFill = ctx.createPattern(Tile.grassTex, "repeat"); // "#5BA346"
                 break;
             case TileType.Path:
-                this.groundFill = "#B5947E";
+                this.groundFill = ctx.createPattern(Tile.pathTex, "repeat"); // "#B5947E"
                 break;
             case TileType.Spawn:
-                let spawnGradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32);
-                spawnGradient.addColorStop(0, "#E77B65");
-                spawnGradient.addColorStop(1, "#B5947E");
-                this.groundFill = spawnGradient;
+                this.groundFill = ctx.createPattern(Tile.spawnTex, "repeat");
+                /*  let spawnGradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32)
+                    spawnGradient.addColorStop(0, "#E77B65")
+                    spawnGradient.addColorStop(1, "#B5947E")
+                    this.groundFill = spawnGradient */
                 break;
             case TileType.HQ:
-                this.groundFill = "#B5947E";
+                this.groundFill = ctx.createPattern(Tile.pathTex, "repeat"); // "#B5947E"
                 break;
             case TileType.Tower:
                 this.groundFill = "#808080";
@@ -2187,16 +2450,26 @@ class Tile extends GameItem {
         }
     }
     static init() {
-        Tile.grass = new NoiseTextureGenerator(64, 64, RgbaColor.fromHex("#5BA346").source(), 0.075, 0, 0.25).generateImage();
+        Tile.grassTex = new NoiseTextureGenerator(64, 64, "#5BA346", 0.075, 0, 0.25).generateImage();
+        let pathTex = new NoiseTextureGenerator(64, 64, "#B5947E", 0.04, 0, 0.2);
+        Tile.pathTex = pathTex.generateImage();
+        let grad = new LinearGradientSource(64, 64, 0, 32, 64, 32);
+        grad.addColorStop(0, "#E77B65");
+        grad.addColorStop(1, pathTex);
+        Tile.spawnTex = grad.generateImage();
     }
+    onClick(button, x, y) { }
 }
 class Game {
     constructor(canvas) {
         this.ctx = canvas.getContext("2d");
+        this.canvas = canvas;
         this.prevTime = new Date().getTime();
         this.time = 0;
+        this.mousePosition = Vec2.zero;
         this.performanceMeter = new PerformanceMeter();
         this.particles = new ParticleSystem(this);
+        this.selectedTurretElement = null;
         let canvasWidth = canvas.width;
         let mapWidth = Math.floor(canvasWidth / 64) - 3;
         mapWidth = mapWidth % 2 === 0 ? mapWidth - 1 : mapWidth;
@@ -2215,6 +2488,16 @@ class Game {
         this.generateMap();
         this.generateCastle();
         this.preRender();
+        this.canvas.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            return false;
+        }, false);
+        let g = this;
+        this.canvas.addEventListener("mousemove", (e) => g.onMouseMove(e), false);
+        this.canvas.addEventListener("mousedown", (e) => g.onMouseDown(e), false);
+        this.canvas.addEventListener("mouseup", (e) => g.onMouseUp(e), false);
+        this.canvas.addEventListener("keydown", (e) => g.onKeyDown(e), false);
+        this.canvas.addEventListener("keyup", (e) => g.onKeyUp(e), false);
     }
     generateMap() {
         let mapGen = [];
@@ -2231,7 +2514,7 @@ class Game {
                 }
                 else if (x % 2 === 0 && y % 2 === 0) {
                     columnGen.push(TileType.WallGen);
-                    wallGens.add(new Coords(x, y));
+                    wallGens.add(new Vec2(x, y));
                 }
                 else {
                     columnGen.push(TileType.Unknown);
@@ -2345,16 +2628,16 @@ class Game {
                     this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Tower, this.ctx);
                     let r = Math.random();
                     /*if (r < 0.8) {
-                        this.map[x][y].turret.addType(TurretElement.Water)
+                        this.map[x][y].turret.addType(TurretElement.Earth)
                     }
                     if (r < 0.6) {
-                        this.map[x][y].turret.addType(TurretElement.Water)
+                        this.map[x][y].turret.addType(TurretElement.Earth)
                     }
                     if (r < 0.4) {
-                        this.map[x][y].turret.addType(TurretElement.Water)
+                        this.map[x][y].turret.addType(TurretElement.Earth)
                     }
                     if (r < 0.2) {
-                        this.map[x][y].turret.addType(TurretElement.Water)
+                        this.map[x][y].turret.addType(TurretElement.Earth)
                     }*/
                     let t = this.map[x][y].turret;
                     if (r < 0.2) {
@@ -2424,7 +2707,7 @@ class Game {
         let y = this.height - 192;
         let path1 = new Path2D();
         path1.rect(x + 36, y + 36, 120, 120);
-        let tex = new CellularTextureGenerator(192, 192, 144, RgbaColor.fromHex("#82614F").source(), RgbaColor.fromHex("#997663").source(), CellularTextureType.Balls);
+        let tex = new FrostedGlassTextureGenerator(192, 192, "#82614F", "#997663", 0.5);
         this.castle.pushNew(path1, this.ctx.createPattern(tex.generateImage(), "repeat"));
         let path2 = new Path2D();
         path2.rect(x + 6, y + 6, 60, 60);
@@ -2502,58 +2785,36 @@ class Game {
         this.prevTime = time;
         this.time += timeDiff;
     }
+    onMouseMove(e) {
+        var rect = this.canvas.getBoundingClientRect();
+        this.mousePosition = new Vec2(Utils.clamp(Math.floor(e.clientX - rect.left), 0, this.width - 1), Utils.clamp(Math.floor(e.clientY - rect.top), 0, this.width - 1));
+    }
+    onMouseDown(e) {
+        this.onMouseMove(e);
+    }
+    onMouseUp(e) {
+        this.onMouseMove(e);
+    }
+    onKeyDown(e) {
+        switch (e.key.toUpperCase()) {
+            case 'Q':
+                this.selectedTurretElement = TurretElement.Air;
+                break;
+            case 'W':
+                this.selectedTurretElement = TurretElement.Earth;
+                break;
+            case 'E':
+                this.selectedTurretElement = TurretElement.Fire;
+                break;
+            case 'R':
+                this.selectedTurretElement = TurretElement.Water;
+                break;
+        }
+    }
+    onKeyUp(e) {
+    }
     preRender() {
         let c = new PreRenderedImage(this.width, this.height);
-        /*let tex1 = new PerlinNoiseTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        let tex2 = new CloudsTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        let tex3 = new VelvetTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        let tex4 = new GlassTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        let tex5 = new BarkTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        let tex6 = new CirclesTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#5050FF").source(),
-            RgbaColor.fromHex("#90C0FF").source(),
-            RgbaColor.fromHex("#5050FF00").source(),
-            1, 4
-        ).generateImage()
-        let tex7 = new FrostedGlassTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        let tex8 = new CamouflageTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        c.ctx.drawImage(tex1, 0, 0)
-        c.ctx.drawImage(tex2, this.width / 4, 0)
-        c.ctx.drawImage(tex3, this.width / 2, 0)
-        c.ctx.drawImage(tex4, this.width / 4 * 3, 0)
-        c.ctx.drawImage(tex5, 0, this.height / 2)
-        c.ctx.drawImage(tex6, this.width / 4, this.height / 2)
-        c.ctx.drawImage(tex7, this.width / 2, this.height / 2)
-        c.ctx.drawImage(tex8, this.width / 4 * 3, this.height / 2)*/
         c.ctx.fillStyle = "#C0C0C0";
         c.ctx.fillRect(0, 0, this.width, this.height);
         for (let x = 0; x < this.mapWidth; ++x) {
@@ -2562,12 +2823,15 @@ class Game {
             }
         }
         c.ctx.fillStyle = "#B5947E";
-        c.ctx.fillRect(this.guiPanel.x, this.height - 192, 192, 192);
+        let x = this.guiPanel.x, y = this.height - 192;
+        for (let i = 0; i < 9; ++i) {
+            c.ctx.drawImage(Tile.pathTex, x + i % 3 * 64, y + Math.floor(i / 3) * 64);
+        }
         c.ctx.fillStyle = "#606060";
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h);
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2);
         this.castle.render(c.ctx);
-        c.saveImage("textures");
+        //c.saveImage("textures")
         this.preRendered = c.image;
     }
     render() {
@@ -2579,13 +2843,15 @@ class Game {
         }
         this.particles.render(this.ctx, false);
         let fps = this.performanceMeter.getFps();
+        this.ctx.fillStyle = "#000000";
+        this.ctx.textAlign = "right";
+        this.ctx.textBaseline = "top";
+        this.ctx.font = "bold 16px serif";
         if (!isNaN(fps)) {
-            this.ctx.fillStyle = "#000000";
-            this.ctx.textAlign = "right";
-            this.ctx.textBaseline = "top";
-            this.ctx.font = "bold 16px serif";
             this.ctx.fillText(Math.floor(fps).toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 16);
         }
+        this.ctx.fillText(this.mousePosition.x.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 32);
+        this.ctx.fillText(this.mousePosition.y.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 48);
     }
 }
 /// <reference path='Game.ts'/>

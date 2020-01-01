@@ -1,4 +1,4 @@
-﻿/// <reference path='Utils.ts'/>
+﻿/// <reference path='utils.ts'/>
 
 class Particle {
 
@@ -49,13 +49,15 @@ class SmokeParticle extends Particle {
 
 }
 
-class ParticleSystem extends GameItem {
+class ParticleSystem {
 
     private parts: Particle[]
     private count: number
 
+    game: Game
+
     constructor(game: Game) {
-        super(game)
+        this.game = game
         this.parts = []
         this.count = 0
     }

@@ -62,6 +62,23 @@
         return Math.floor(value * steps) / steps + 1 / steps / 2
     }
 
+    static euclideanDistance(dx: number, dy: number): number {
+        return Math.sqrt(dx * dx + dy * dy)
+    }
+
+    static manhattanDistance(dx: number, dy: number): number {
+        return Math.abs(dx) + Math.abs(dy)
+    }
+
+    static chebyshevDistance(dx: number, dy: number): number {
+        return Math.max(Math.abs(dx), Math.abs(dy))
+    }
+
+    static minkowskiDistance(dx: number, dy: number): number {
+        let d = Math.sqrt(Math.abs(dx)) + Math.sqrt(Math.abs(dy))
+        return d * d
+    }
+
     static byteToHex(byte: number): string {
         byte = Utils.clamp(byte, 0, 255)
         return Utils.hex[Math.floor(byte / 16)] + Utils.hex[Math.floor(byte % 16)]
@@ -75,11 +92,18 @@
         return startY + distance * Math.sin(direction)
     }
 
-    static ld(distance: number, direction: number, startX: number = 0, startY: number = 0): Coords {
-        return new Coords(
+    static ld(distance: number, direction: number, startX: number = 0, startY: number = 0): Vec2 {
+        return new Vec2(
             startX + distance * Math.cos(direction),
             startY + distance * Math.sin(direction)
         )
+    }
+
+    static rotatePoint(x: number, y: number, originX: number, originY: number, angle: number): Vec2 {
+        x -= originX
+        y -= originY
+        let c = Math.cos(angle), s = Math.sin(angle)
+        return new Vec2(x * c - y * s + originX, x * s + y * c + originY)
     }
 
     static getAngle(x1: number, y1: number, x2: number, y2: number): number {
@@ -119,6 +143,18 @@
         return Math.floor(Math.random() * (max - min) + min)
     }
 
+    static isString(obj: any): boolean {
+        return typeof obj === 'string' || obj instanceof String
+    }
+
+}
+
+enum MouseButton {
+    Left,
+    Middle,
+    Right,
+    Back,
+    Forward
 }
 
 class RenderablePath {
@@ -214,18 +250,6 @@ class PerformanceMeter {
 
 }
 
-class Coords {
-
-    x: number
-    y: number
-
-    constructor(x: number, y: number) {
-        this.x = x
-        this.y = y
-    }
-
-}
-
 class Rect {
 
     x: number
@@ -243,6 +267,8 @@ class Rect {
 }
 
 class Vec2 {
+
+    static zero: Vec2
 
     x: number
     y: number
@@ -294,23 +320,33 @@ class Vec2 {
         return new Vec2(this.x * l, this.y * l)
     }
 
+    isZero(): boolean {
+        return this.x === 0 && this.y === 0
+    }
+
     static randUnit(): Vec2 {
         let a = Angle.rand()
         return new Vec2(Utils.ldx(1, a), Utils.ldy(1, a))
     }
 
+    static init() {
+        Vec2.zero = new Vec2(0, 0)
+    }
+
 }
+
+Vec2.init()
 
 class DijkstraNode {
 
-    pos: Coords
+    pos: Vec2
     previous: DijkstraNode
     distance: number
 
     constructor(x: number, y: number, previous: DijkstraNode) {
         this.previous = previous
         this.distance = previous == null ? 0 : previous.distance + 1
-        this.pos = new Coords(x, y)
+        this.pos = new Vec2(x, y)
     }
 
 }
@@ -379,223 +415,3 @@ class Angle {
 }
 
 Angle.init()
-
-abstract class ColorSource {
-
-    protected width: number
-    protected height: number
-
-    constructor(width: number, height: number) {
-        this.width = width
-        this.height = height
-    }
-
-    getColor(x: number, y: number): RgbaColor {
-        return this._getColor(
-            Utils.wrap(x, 0, this.width),
-            Utils.wrap(y, 0, this.height)
-        )
-    }
-
-    protected abstract _getColor(x: number, y: number): RgbaColor;
-
-    generateImage(): CanvasImageSource {
-        let tex = new PreRenderedImage(this.width, this.height)
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                tex.ctx.fillStyle = this._getColor(x, y).toCss()
-                tex.ctx.fillRect(x, y, 1, 1);
-            }
-        }
-        return tex.image
-    }
-
-}
-
-class CanvasColorSource extends ColorSource {
-
-    private ctx: CanvasRenderingContext2D
-
-    constructor(canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D | null) {
-        super(canvas.width, canvas.height)
-        this.ctx = ctx === null ? canvas.getContext("2d") : ctx
-    }
-
-    protected _getColor(x: number, y: number): RgbaColor {
-        var data = this.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
-        return new RgbaColor(data[0], data[1], data[2], data[3]);
-    }
-
-    generateImage(): CanvasImageSource {
-        let tex = new PreRenderedImage(this.width, this.height)
-        tex.ctx.putImageData(this.ctx.getImageData(0, 0, this.width, this.height), 0, 0)
-        return tex.image
-    }
-
-}
-
-class RgbaColor {
-
-    static transparent: RgbaColor
-    static black: RgbaColor
-    static red: RgbaColor
-    static green: RgbaColor
-    static blue: RgbaColor
-    static yellow: RgbaColor
-    static cyan: RgbaColor
-    static magenta: RgbaColor
-    static white: RgbaColor
-
-    r: number
-    g: number
-    b: number
-    a: number
-
-    constructor(r: number, g: number, b: number, a: number = 255) {
-        this.r = Math.floor(Utils.clamp(r, 0, 255))
-        this.g = Math.floor(Utils.clamp(g, 0, 255))
-        this.b = Math.floor(Utils.clamp(b, 0, 255))
-        this.a = Math.floor(Utils.clamp(a, 0, 255))
-    }
-
-    static fromHex(color: string): RgbaColor {
-        if (/^#[0-9a-f]{3}[0-9a-f]?$/i.test(color)) {
-            let a = color.length > 4 ? parseInt(color[4], 16) * 17 : 255
-            return new RgbaColor(
-                parseInt(color[1], 16) * 17,
-                parseInt(color[2], 16) * 17,
-                parseInt(color[3], 16) * 17,
-                a
-            )
-        } else if (/^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(color)) {
-            let a = color.length > 7 ? parseInt(color.substr(7, 2), 16) : 255
-            return new RgbaColor(
-                parseInt(color.substr(1, 2), 16),
-                parseInt(color.substr(3, 2), 16),
-                parseInt(color.substr(5, 2), 16),
-                a
-            )
-        } else return null
-    }
-
-    private pr(): number { return this.r * this.a / 255 }
-
-    private pg(): number { return this.g * this.a / 255 }
-
-    private pb(): number { return this.b * this.a / 255 }
-
-    private pa(): number { return this.a * this.a / 255 }
-
-    toCss(): string {
-        return "#"
-            + Utils.byteToHex(this.r)
-            + Utils.byteToHex(this.g)
-            + Utils.byteToHex(this.b)
-            + Utils.byteToHex(this.a)
-    }
-
-    multiplyFloat(ammount: number, multiplyAlpha: boolean = false): RgbaColor {
-        return new RgbaColor(
-            this.r * ammount,
-            this.g * ammount,
-            this.b * ammount,
-            multiplyAlpha ? this.a * ammount : this.a
-        )
-    }
-
-    multiply(c: RgbaColor): RgbaColor {
-        return new RgbaColor(this.r * c.r, this.g * c.g, this.b * c.b, this.a * c.a)
-    }
-
-    add(c: RgbaColor): RgbaColor {
-        return new RgbaColor(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.pa())
-    }
-
-    withRed(r: number): RgbaColor { return new RgbaColor(r, this.g, this.b, this.a) }
-
-    withGreen(g: number): RgbaColor { return new RgbaColor(this.r, g, this.b, this.a) }
-
-    withBlue(b: number): RgbaColor { return new RgbaColor(this.r, this.g, b, this.a) }
-
-    withAlpha(a: number): RgbaColor { return new RgbaColor(this.r, this.g, this.b, a) }
-
-    lerp(c: RgbaColor, ammount: number): RgbaColor {
-        if (ammount >= 1) {
-            return c
-        } else if (ammount <= 0) {
-            return this
-        } else {
-            let a2 = 1 - ammount
-            return new RgbaColor(
-                this.r * a2 + c.r * ammount,
-                this.g * a2 + c.g * ammount,
-                this.b * a2 + c.b * ammount,
-                this.a * a2 + c.a * ammount
-            )
-        }
-    }
-
-    addNoise(intensity: number, saturation: number, coverage: number): RgbaColor {
-        if (Math.random() < coverage) {
-            intensity *= 255
-            if (saturation <= 0) {
-                let n = Utils.rand(-intensity, intensity)
-                return new RgbaColor(this.r + n, this.g + n, this.b + n, this.a)
-            } else if (saturation >= 1) {
-                return new RgbaColor(
-                    this.r + Utils.rand(-intensity, intensity),
-                    this.g + Utils.rand(-intensity, intensity),
-                    this.b + Utils.rand(-intensity, intensity),
-                    this.a
-                )
-            } else {
-                let s2 = 1 - saturation
-                let rn = Utils.rand(-intensity, intensity)
-                let gn = saturation * Utils.rand(-intensity, intensity) + s2 * rn
-                let bn = saturation * Utils.rand(-intensity, intensity) + s2 * rn
-                return new RgbaColor(this.r + rn, this.g + gn, this.b + bn, this.a)
-            }
-        } else {
-            return this
-        }
-    }
-
-    source(width: number = 1, height: number = 1): RgbaColorSource {
-        return new RgbaColorSource(this, width, height)
-    }
-
-    static init() {
-        RgbaColor.transparent = new RgbaColor(0, 0, 0, 0)
-        RgbaColor.black = new RgbaColor(0, 0, 0)
-        RgbaColor.red = new RgbaColor(255, 0, 0)
-        RgbaColor.green = new RgbaColor(0, 255, 0)
-        RgbaColor.blue = new RgbaColor(0, 0, 255)
-        RgbaColor.yellow = new RgbaColor(255, 255, 0)
-        RgbaColor.cyan = new RgbaColor(0, 255, 255)
-        RgbaColor.magenta = new RgbaColor(255, 0, 255)
-        RgbaColor.white = new RgbaColor(255, 255, 255)
-    }
-
-}
-
-RgbaColor.init()
-
-class RgbaColorSource extends ColorSource {
-
-    color: RgbaColor
-
-    constructor(color: RgbaColor, width: number = 1, height: number = 1) {
-        super(Math.max(1, Math.floor(width)), Math.max(1, Math.floor(height)))
-        this.color = color
-    }
-
-    protected _getColor(x: number, y: number): RgbaColor { return this.color }
-
-    generateImage(): CanvasImageSource {
-        let tex = new PreRenderedImage(this.width, this.height)
-        tex.ctx.fillStyle = this.color.toCss()
-        tex.ctx.fillRect(0, 0, this.width, this.height)
-        return tex.image
-    }
-
-}

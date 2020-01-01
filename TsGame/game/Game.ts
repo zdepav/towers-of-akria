@@ -1,8 +1,7 @@
 /// <reference path='turrets.ts'/>
-/// <reference path='GameItem.ts'/>
-/// <reference path='Utils.ts'/>
+/// <reference path='utils.ts'/>
 /// <reference path="TurretType.ts"/>
-/// <reference path="ParticleSystem.ts"/>
+/// <reference path="particles.ts"/>
 
 enum TileType {
     Unknown,
@@ -14,38 +13,42 @@ enum TileType {
     HQ
 }
 
-class Tile extends GameItem {
+class Tile {
 
-    private static grass: CanvasImageSource
-    private static path: CanvasImageSource
+    private static grassTex: CanvasImageSource
+    private static spawnTex: CanvasImageSource
+    static pathTex: CanvasImageSource
 
-    pos: Coords
-    type: TileType
-    turret: Turret
     private groundFill: string | CanvasPattern | CanvasGradient
     private decor: RenderablePathSet
 
+    game: Game
+    pos: Vec2
+    type: TileType
+    turret: Turret
+
     constructor(game: Game, x: number, y: number, type: TileType, ctx: CanvasRenderingContext2D) {
-        super(game)
+        this.game = game
         this.type = type
         this.turret = null
-        this.pos = new Coords(x, y)
+        this.pos = new Vec2(x, y)
         this.decor = new RenderablePathSet()
         switch (type) {
             case TileType.Empty:
-                this.groundFill = ctx.createPattern(Tile.grass, "repeat") // "#5BA346"
+                this.groundFill = ctx.createPattern(Tile.grassTex, "repeat") // "#5BA346"
                 break
             case TileType.Path:
-                this.groundFill = "#B5947E"
+                this.groundFill = ctx.createPattern(Tile.pathTex, "repeat") // "#B5947E"
                 break
             case TileType.Spawn:
-                let spawnGradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32)
-                spawnGradient.addColorStop(0, "#E77B65")
-                spawnGradient.addColorStop(1, "#B5947E")
-                this.groundFill = spawnGradient
+                this.groundFill = ctx.createPattern(Tile.spawnTex, "repeat")
+                /*  let spawnGradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32)
+                    spawnGradient.addColorStop(0, "#E77B65")
+                    spawnGradient.addColorStop(1, "#B5947E")
+                    this.groundFill = spawnGradient */
                 break
             case TileType.HQ:
-                this.groundFill = "#B5947E"
+                this.groundFill = ctx.createPattern(Tile.pathTex, "repeat") // "#B5947E"
                 break
             case TileType.Tower:
                 this.groundFill = "#808080"
@@ -165,22 +168,33 @@ class Tile extends GameItem {
     }
 
     static init() {
-        Tile.grass = new NoiseTextureGenerator(64, 64, RgbaColor.fromHex("#5BA346").source(), 0.075, 0, 0.25).generateImage()
+        Tile.grassTex = new NoiseTextureGenerator(64, 64, "#5BA346", 0.075, 0, 0.25).generateImage()
+        let pathTex = new NoiseTextureGenerator(64, 64, "#B5947E", 0.04, 0, 0.2)
+        Tile.pathTex = pathTex.generateImage()
+        let grad = new LinearGradientSource(64, 64, 0, 32, 64, 32)
+        grad.addColorStop(0, "#E77B65")
+        grad.addColorStop(1, pathTex)
+        Tile.spawnTex = grad.generateImage()
     }
+
+    onClick(button: MouseButton, x: number, y: number) { }
 
 }
 
 class Game {
 
     private preRendered: CanvasImageSource
+    private canvas: HTMLCanvasElement
     private ctx: CanvasRenderingContext2D
     private guiPanel: Rect
     private map: Tile[][]
-    private enemies: GameItem[]
+    //private enemies: GameItem[]
     private castle: RenderablePathSet
     private prevTime: number
     private time: number
     private performanceMeter: PerformanceMeter
+    private mousePosition: Vec2
+    private selectedTurretElement: TurretElement | null
 
     mapWidth: number
     mapHeight: number
@@ -190,10 +204,13 @@ class Game {
 
     constructor(canvas: HTMLCanvasElement) {
         this.ctx = canvas.getContext("2d")
+        this.canvas = canvas
         this.prevTime = new Date().getTime()
         this.time = 0
+        this.mousePosition = Vec2.zero
         this.performanceMeter = new PerformanceMeter()
         this.particles = new ParticleSystem(this)
+        this.selectedTurretElement = null
 
         let canvasWidth = canvas.width
         let mapWidth = Math.floor(canvasWidth / 64) - 3
@@ -216,13 +233,23 @@ class Game {
         this.generateMap()
         this.generateCastle()
         this.preRender()
+        this.canvas.addEventListener("contextmenu", (e: MouseEvent) => {
+            e.preventDefault()
+            return false;
+        }, false)
+        let g = this
+        this.canvas.addEventListener("mousemove", (e: MouseEvent) => g.onMouseMove(e), false)
+        this.canvas.addEventListener("mousedown", (e: MouseEvent) => g.onMouseDown(e), false)
+        this.canvas.addEventListener("mouseup", (e: MouseEvent) => g.onMouseUp(e), false)
+        this.canvas.addEventListener("keydown", (e: KeyboardEvent) => g.onKeyDown(e), false)
+        this.canvas.addEventListener("keyup", (e: KeyboardEvent) => g.onKeyUp(e), false)
     }
 
     private generateMap() {
         let mapGen: TileType[][] = []
         this.map = []
         let dijkstraMap: DijkstraNode[][] = []
-        let wallGens: Set<Coords> = new Set<Coords>()
+        let wallGens: Set<Vec2> = new Set<Vec2>()
         for (let x = 0; x < this.mapWidth; ++x) {
             var columnDijkstra: DijkstraNode[] = []
             var columnGen: TileType[] = []
@@ -232,7 +259,7 @@ class Game {
                     columnGen.push(TileType.Empty)
                 } else if (x % 2 === 0 && y % 2 === 0) {
                     columnGen.push(TileType.WallGen)
-                    wallGens.add(new Coords(x, y))
+                    wallGens.add(new Vec2(x, y))
                 } else {
                     columnGen.push(TileType.Unknown)
                 }
@@ -244,7 +271,7 @@ class Game {
             this.map.push(column)
         }
         while (wallGens.size > 0) {
-            let wg: Coords
+            let wg: Vec2
             let i = Math.random() * wallGens.size
             for (const _wg of wallGens.values()) {
                 if (i < 1) {
@@ -332,27 +359,27 @@ class Game {
                     this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Path, this.ctx)
                 } else if (
                     (x > 0 && mapGen[x - 1][y] === TileType.Path) ||
-                        (y > 0 && mapGen[x][y - 1] === TileType.Path) ||
-                        (x < this.mapWidth - 1 && mapGen[x + 1][y] === TileType.Path) ||
-                        (y < this.mapHeight - 1 && mapGen[x][y + 1] === TileType.Path) ||
-                        (x > 0 && y > 0 && mapGen[x - 1][y - 1] === TileType.Path) ||
-                        (x < this.mapWidth - 1 && y > 0 && mapGen[x + 1][y - 1] === TileType.Path) ||
-                        (x > 0 && y < this.mapHeight - 1 && mapGen[x - 1][y + 1] === TileType.Path) ||
-                        (x < this.mapWidth - 1 && y < this.mapHeight - 1 && mapGen[x + 1][y + 1] === TileType.Path)
+                    (y > 0 && mapGen[x][y - 1] === TileType.Path) ||
+                    (x < this.mapWidth - 1 && mapGen[x + 1][y] === TileType.Path) ||
+                    (y < this.mapHeight - 1 && mapGen[x][y + 1] === TileType.Path) ||
+                    (x > 0 && y > 0 && mapGen[x - 1][y - 1] === TileType.Path) ||
+                    (x < this.mapWidth - 1 && y > 0 && mapGen[x + 1][y - 1] === TileType.Path) ||
+                    (x > 0 && y < this.mapHeight - 1 && mapGen[x - 1][y + 1] === TileType.Path) ||
+                    (x < this.mapWidth - 1 && y < this.mapHeight - 1 && mapGen[x + 1][y + 1] === TileType.Path)
                 ) {
                     this.map[x][y] = new Tile(this, x * 64, y * 64, TileType.Tower, this.ctx)
                     let r = Math.random()
                     /*if (r < 0.8) {
-                        this.map[x][y].turret.addType(TurretElement.Water)
+                        this.map[x][y].turret.addType(TurretElement.Earth)
                     }
                     if (r < 0.6) {
-                        this.map[x][y].turret.addType(TurretElement.Water)
+                        this.map[x][y].turret.addType(TurretElement.Earth)
                     }
                     if (r < 0.4) {
-                        this.map[x][y].turret.addType(TurretElement.Water)
+                        this.map[x][y].turret.addType(TurretElement.Earth)
                     }
                     if (r < 0.2) {
-                        this.map[x][y].turret.addType(TurretElement.Water)
+                        this.map[x][y].turret.addType(TurretElement.Earth)
                     }*/
                     let t = this.map[x][y].turret
                     if (r < 0.2) {
@@ -410,12 +437,7 @@ class Game {
         let y = this.height - 192
         let path1 = new Path2D()
         path1.rect(x + 36, y + 36, 120, 120)
-        let tex = new CellularTextureGenerator(
-            192, 192, 144,
-            RgbaColor.fromHex("#82614F").source(),
-            RgbaColor.fromHex("#997663").source(),
-            CellularTextureType.Balls
-        )
+        let tex = new FrostedGlassTextureGenerator(192, 192, "#82614F", "#997663", 0.5)
         this.castle.pushNew(path1, this.ctx.createPattern(tex.generateImage(), "repeat"))
         let path2 = new Path2D()
         path2.rect(x + 6, y + 6, 60, 60)
@@ -482,7 +504,7 @@ class Game {
         this.render()
     }
 
-    step() {
+    private step() {
         let time = new Date().getTime()
         let timeDiff = (time - this.prevTime) / 1000
         this.performanceMeter.add(1 / timeDiff)
@@ -496,58 +518,45 @@ class Game {
         this.time += timeDiff
     }
 
-    preRender() {
+    private onMouseMove(e: MouseEvent) {
+        var rect = this.canvas.getBoundingClientRect()
+        this.mousePosition = new Vec2(
+            Utils.clamp(Math.floor(e.clientX - rect.left), 0, this.width - 1),
+            Utils.clamp(Math.floor(e.clientY - rect.top), 0, this.width - 1)
+        )
+    }
+
+    private onMouseDown(e: MouseEvent) {
+        this.onMouseMove(e)
+    }
+
+    private onMouseUp(e: MouseEvent) {
+        this.onMouseMove(e)
+    }
+
+    private onKeyDown(e: KeyboardEvent) {
+        switch (e.key.toUpperCase()) {
+            case 'Q':
+                this.selectedTurretElement = TurretElement.Air
+                break
+            case 'W':
+                this.selectedTurretElement = TurretElement.Earth
+                break
+            case 'E':
+                this.selectedTurretElement = TurretElement.Fire
+                break
+            case 'R':
+                this.selectedTurretElement = TurretElement.Water
+                break
+        }
+    }
+
+    private onKeyUp(e: KeyboardEvent) {
+
+    }
+
+    private preRender() {
         let c = new PreRenderedImage(this.width, this.height)
-        /*let tex1 = new PerlinNoiseTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        let tex2 = new CloudsTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        let tex3 = new VelvetTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        let tex4 = new GlassTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        let tex5 = new BarkTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        let tex6 = new CirclesTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#5050FF").source(),
-            RgbaColor.fromHex("#90C0FF").source(),
-            RgbaColor.fromHex("#5050FF00").source(),
-            1, 4
-        ).generateImage()
-        let tex7 = new FrostedGlassTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        let tex8 = new CamouflageTextureGenerator(
-            this.width / 4, this.height / 2,
-            RgbaColor.fromHex("#2020FF").source(),
-            RgbaColor.fromHex("#C0FFFF").source()
-        ).generateImage()
-        c.ctx.drawImage(tex1, 0, 0)
-        c.ctx.drawImage(tex2, this.width / 4, 0)
-        c.ctx.drawImage(tex3, this.width / 2, 0)
-        c.ctx.drawImage(tex4, this.width / 4 * 3, 0)
-        c.ctx.drawImage(tex5, 0, this.height / 2)
-        c.ctx.drawImage(tex6, this.width / 4, this.height / 2)
-        c.ctx.drawImage(tex7, this.width / 2, this.height / 2)
-        c.ctx.drawImage(tex8, this.width / 4 * 3, this.height / 2)*/
         c.ctx.fillStyle = "#C0C0C0"
         c.ctx.fillRect(0, 0, this.width, this.height)
         for (let x = 0; x < this.mapWidth; ++x) {
@@ -556,16 +565,19 @@ class Game {
             }
         }
         c.ctx.fillStyle = "#B5947E"
-        c.ctx.fillRect(this.guiPanel.x, this.height - 192, 192, 192)
+        let x = this.guiPanel.x, y = this.height - 192
+        for (let i = 0; i < 9; ++i) {
+            c.ctx.drawImage(Tile.pathTex, x + i % 3 * 64, y + Math.floor(i / 3) * 64)
+        }
         c.ctx.fillStyle = "#606060"
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h)
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2)
         this.castle.render(c.ctx)
-        c.saveImage("textures")
+        //c.saveImage("textures")
         this.preRendered = c.image
     }
 
-    render() {
+    private render() {
         this.ctx.drawImage(this.preRendered, 0, 0)
         for (let x = 0; x < this.mapWidth; ++x) {
             for (let y = 0; y < this.mapHeight; ++y) {
@@ -574,13 +586,15 @@ class Game {
         }
         this.particles.render(this.ctx, false)
         let fps = this.performanceMeter.getFps()
+        this.ctx.fillStyle = "#000000"
+        this.ctx.textAlign = "right"
+        this.ctx.textBaseline = "top"
+        this.ctx.font = "bold 16px serif"
         if (!isNaN(fps)) {
-            this.ctx.fillStyle = "#000000"
-            this.ctx.textAlign = "right"
-            this.ctx.textBaseline = "top"
-            this.ctx.font = "bold 16px serif"
             this.ctx.fillText(Math.floor(fps).toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 16)
         }
+        this.ctx.fillText(this.mousePosition.x.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 32)
+        this.ctx.fillText(this.mousePosition.y.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 48)
     }
 
 }
