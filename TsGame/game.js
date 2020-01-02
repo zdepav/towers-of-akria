@@ -384,6 +384,17 @@ var Angle = (function () {
     return Angle;
 }());
 Angle.init();
+var Curve = (function () {
+    function Curve() {
+    }
+    Curve.linear = function (x) { return x; };
+    Curve.arc = function (x) { return Math.sqrt(x * (2 - x)); };
+    Curve.invArc = function (x) { return 1 - Math.sqrt(1 - x * x); };
+    Curve.sqr = function (x) { return x * x; };
+    Curve.sqrt = function (x) { return Math.sqrt(x); };
+    Curve.sin = function (x) { return (1 - Math.cos(x * Math.PI)) * 0.5; };
+    return Curve;
+}());
 var ColorSource = (function () {
     function ColorSource(width, height) {
         this.width = Math.max(1, Math.floor(width));
@@ -597,7 +608,7 @@ var CellularTextureDistanceMetric;
 })(CellularTextureDistanceMetric || (CellularTextureDistanceMetric = {}));
 var CellularTextureGenerator = (function (_super) {
     __extends(CellularTextureGenerator, _super);
-    function CellularTextureGenerator(width, height, density, color1, color2, type, metric) {
+    function CellularTextureGenerator(width, height, density, color1, color2, type, metric, curve) {
         if (type === void 0) { type = CellularTextureType.Lava; }
         if (metric === void 0) { metric = CellularTextureDistanceMetric.Euclidean; }
         var _this = _super.call(this, width, height, color1) || this;
@@ -619,6 +630,7 @@ var CellularTextureGenerator = (function (_super) {
                 break;
         }
         _this.density = Math.max(1, density);
+        _this.curve = (curve !== null && curve !== void 0 ? curve : Curve.linear);
         var points = [];
         var pointCount = _this.width * _this.height / _this.density;
         if (pointCount < 2) {
@@ -680,7 +692,7 @@ var CellularTextureGenerator = (function (_super) {
         return { min1: min1, min2: min2 };
     };
     CellularTextureGenerator.prototype._getColor = function (x, y) {
-        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), (this.distances[Utils.flatten(this.width, x, y)] - this.min) / this.range);
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve((this.distances[Utils.flatten(this.width, x, y)] - this.min) / this.range));
     };
     return CellularTextureGenerator;
 }(TextureGenerator));
@@ -721,11 +733,12 @@ var PerlinGradient = (function () {
 }());
 var PerlinTextureGenerator = (function (_super) {
     __extends(PerlinTextureGenerator, _super);
-    function PerlinTextureGenerator(width, height, color1, color2, scale) {
+    function PerlinTextureGenerator(width, height, color1, color2, scale, curve) {
         if (scale === void 0) { scale = 1; }
         var _this = _super.call(this, width, height, color1) || this;
         _this.color2 = ColorSource.get((color2 !== null && color2 !== void 0 ? color2 : RgbaColor.white));
         _this.scale = 1 / (scale * 32);
+        _this.curve = (curve !== null && curve !== void 0 ? curve : Curve.linear);
         return _this;
     }
     PerlinTextureGenerator.prototype.dotGridGradient = function (gradient, ix, iy, x, y) {
@@ -744,22 +757,22 @@ var PerlinTextureGenerator = (function (_super) {
 }(TextureGenerator));
 var PerlinNoiseTextureGenerator = (function (_super) {
     __extends(PerlinNoiseTextureGenerator, _super);
-    function PerlinNoiseTextureGenerator(width, height, color1, color2, scale) {
+    function PerlinNoiseTextureGenerator(width, height, color1, color2, scale, curve) {
         if (scale === void 0) { scale = 1; }
-        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        var _this = _super.call(this, width, height, color1, color2, scale, curve) || this;
         _this.gradient = new PerlinGradient(_this.width * _this.scale, _this.height * _this.scale);
         return _this;
     }
     PerlinNoiseTextureGenerator.prototype._getColor = function (x, y) {
-        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.perlin(this.gradient, x * this.scale, y * this.scale) / 2 + 0.5);
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve(this.perlin(this.gradient, x * this.scale, y * this.scale) / 2 + 0.5));
     };
     return PerlinNoiseTextureGenerator;
 }(PerlinTextureGenerator));
 var CloudsTextureGenerator = (function (_super) {
     __extends(CloudsTextureGenerator, _super);
-    function CloudsTextureGenerator(width, height, color1, color2, scale) {
+    function CloudsTextureGenerator(width, height, color1, color2, scale, curve) {
         if (scale === void 0) { scale = 1; }
-        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        var _this = _super.call(this, width, height, color1, color2, scale, curve) || this;
         _this.scales = [
             _this.scale / 4,
             _this.scale / 2,
@@ -780,15 +793,15 @@ var CloudsTextureGenerator = (function (_super) {
         for (var i = 0; i < 6; ++i) {
             v += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
         }
-        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), v / 2 + 0.5);
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve(v / 2 + 0.5));
     };
     return CloudsTextureGenerator;
 }(PerlinTextureGenerator));
 var VelvetTextureGenerator = (function (_super) {
     __extends(VelvetTextureGenerator, _super);
-    function VelvetTextureGenerator(width, height, color1, color2, scale) {
+    function VelvetTextureGenerator(width, height, color1, color2, scale, curve) {
         if (scale === void 0) { scale = 1; }
-        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        var _this = _super.call(this, width, height, color1, color2, scale, curve) || this;
         _this.gradients = [];
         var w = _this.width * _this.scale, h = _this.height * _this.scale;
         for (var i = 0; i < 3; ++i) {
@@ -797,16 +810,16 @@ var VelvetTextureGenerator = (function (_super) {
         return _this;
     }
     VelvetTextureGenerator.prototype._getColor = function (x, y) {
-        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.perlin(this.gradients[0], x * this.scale + this.perlin(this.gradients[1], x * this.scale, y * this.scale), y * this.scale + this.perlin(this.gradients[2], x * this.scale, y * this.scale)) / 2 + 0.5);
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve(this.perlin(this.gradients[0], x * this.scale + this.perlin(this.gradients[1], x * this.scale, y * this.scale), y * this.scale + this.perlin(this.gradients[2], x * this.scale, y * this.scale)) / 2 + 0.5));
     };
     return VelvetTextureGenerator;
 }(PerlinTextureGenerator));
 var GlassTextureGenerator = (function (_super) {
     __extends(GlassTextureGenerator, _super);
-    function GlassTextureGenerator(width, height, color1, color2, scale, turbulence) {
+    function GlassTextureGenerator(width, height, color1, color2, scale, turbulence, curve) {
         if (scale === void 0) { scale = 1; }
         if (turbulence === void 0) { turbulence = 1; }
-        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        var _this = _super.call(this, width, height, color1, color2, scale, curve) || this;
         _this.turbulence = 0.125 * turbulence;
         _this.gradients = [];
         var w = _this.width * _this.scale, h = _this.height * _this.scale;
@@ -818,15 +831,15 @@ var GlassTextureGenerator = (function (_super) {
     GlassTextureGenerator.prototype._getColor = function (x, y) {
         var _x = Math.cos((this.perlin(this.gradients[1], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence);
         var _y = Math.sin((this.perlin(this.gradients[2], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence);
-        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.perlin(this.gradients[0], x * this.scale + _x, y * this.scale + _y) / 2 + 0.5);
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve(this.perlin(this.gradients[0], x * this.scale + _x, y * this.scale + _y) / 2 + 0.5));
     };
     return GlassTextureGenerator;
 }(PerlinTextureGenerator));
 var FrostedGlassTextureGenerator = (function (_super) {
     __extends(FrostedGlassTextureGenerator, _super);
-    function FrostedGlassTextureGenerator(width, height, color1, color2, scale) {
+    function FrostedGlassTextureGenerator(width, height, color1, color2, scale, curve) {
         if (scale === void 0) { scale = 1; }
-        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        var _this = _super.call(this, width, height, color1, color2, scale, curve) || this;
         _this.scales = [_this.scale, _this.scale * 2, _this.scale * 4];
         _this.coeficients = [0.5, 0.25, 0.25];
         _this.gradients = [];
@@ -841,15 +854,15 @@ var FrostedGlassTextureGenerator = (function (_super) {
             _x += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
             _y += this.perlin(this.gradients[i + 3], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
         }
-        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.perlin(this.gradients[6], _x, _y) / 2 + 0.5);
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve(this.perlin(this.gradients[6], _x, _y) / 2 + 0.5));
     };
     return FrostedGlassTextureGenerator;
 }(PerlinTextureGenerator));
 var BarkTextureGenerator = (function (_super) {
     __extends(BarkTextureGenerator, _super);
-    function BarkTextureGenerator(width, height, color1, color2, scale) {
+    function BarkTextureGenerator(width, height, color1, color2, scale, curve) {
         if (scale === void 0) { scale = 1; }
-        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        var _this = _super.call(this, width, height, color1, color2, scale, curve) || this;
         _this.scales = [_this.scale, _this.scale * 2, _this.scale * 4, _this.scale * 6];
         _this.coeficients = [0.5, 0.25, 0.25];
         _this.gradients = [];
@@ -865,17 +878,17 @@ var BarkTextureGenerator = (function (_super) {
         }
         v = Utils.granulate(Math.sin(2 * x * this.scale * Math.PI + 8 * v), 2);
         v += Utils.granulate(this.perlin(this.gradients[3], x * this.scales[3], y * this.scales[3]), 5);
-        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), v / 4 + 0.5);
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve(v / 4 + 0.5));
     };
     return BarkTextureGenerator;
 }(PerlinTextureGenerator));
 var CirclesTextureGenerator = (function (_super) {
     __extends(CirclesTextureGenerator, _super);
-    function CirclesTextureGenerator(width, height, color1, color2, background, scale, ringCount, turbulence) {
+    function CirclesTextureGenerator(width, height, color1, color2, background, scale, ringCount, turbulence, curve) {
         if (scale === void 0) { scale = 1; }
         if (ringCount === void 0) { ringCount = Infinity; }
         if (turbulence === void 0) { turbulence = 1; }
-        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        var _this = _super.call(this, width, height, color1, color2, scale, (curve !== null && curve !== void 0 ? curve : Curve.sin)) || this;
         _this.ringCount = ringCount;
         _this.ringCountL = _this.ringCount - 0.25;
         _this.turbulence = turbulence / 2;
@@ -897,9 +910,9 @@ var CirclesTextureGenerator = (function (_super) {
             return this.background.getColor(x, y);
         }
         else {
-            var c = this.color.getColor(x, y).lerp(this.color2.getColor(x, y), Utils.interpolateSmooth(0, 1, 1 - Math.abs(1 - d % 1 * 2)));
+            var c = this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve(1 - Math.abs(1 - d % 1 * 2)));
             if (d > this.ringCountL) {
-                return c.lerp(this.background.getColor(x, y), Utils.interpolateSmooth(0, 1, (d - this.ringCountL) * 4));
+                return c.lerp(this.background.getColor(x, y), this.curve((d - this.ringCountL) * 4));
             }
             else {
                 return c;
@@ -910,9 +923,9 @@ var CirclesTextureGenerator = (function (_super) {
 }(PerlinTextureGenerator));
 var CamouflageTextureGenerator = (function (_super) {
     __extends(CamouflageTextureGenerator, _super);
-    function CamouflageTextureGenerator(width, height, color1, color2, scale) {
+    function CamouflageTextureGenerator(width, height, color1, color2, scale, curve) {
         if (scale === void 0) { scale = 1; }
-        var _this = _super.call(this, width, height, color1, color2, scale) || this;
+        var _this = _super.call(this, width, height, color1, color2, scale, curve) || this;
         _this.scales = [_this.scale, _this.scale * 2, _this.scale * 4];
         _this.coeficients = [1.5, 0.75, 0.75];
         _this.gradients = [];
@@ -927,9 +940,9 @@ var CamouflageTextureGenerator = (function (_super) {
             _x += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
             _y += this.perlin(this.gradients[i + 3], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
         }
-        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), (Utils.granulate(this.perlin(this.gradients[6], _x, _y), 4) * 0.7 +
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve((Utils.granulate(this.perlin(this.gradients[6], _x, _y), 4) * 0.7 +
             Utils.granulate(this.perlin(this.gradients[7], _x * 2, _y * 2), 5) * 0.2 +
-            Utils.granulate(this.perlin(this.gradients[8], _x * 4, _y * 4), 6) * 0.1) / 2 + 0.5);
+            Utils.granulate(this.perlin(this.gradients[8], _x * 4, _y * 4), 6) * 0.1) / 2 + 0.5));
     };
     return CamouflageTextureGenerator;
 }(PerlinTextureGenerator));
@@ -1492,6 +1505,9 @@ var AirTurret = (function (_super) {
             gr.addColorStop(1, "#A0A0A0");
         }
         renderable.render(c.ctx);
+        if (Game.saveImages) {
+            c.saveImage("td_tower_Aefw_air_strip1");
+        }
         AirTurret.image = c.image;
     };
     return AirTurret;
@@ -1509,7 +1525,7 @@ var EarthTurret = (function (_super) {
         if (preRender) {
             return;
         }
-        ctx.drawImage(EarthTurret.images[this.type.earth()], this.tile.pos.x, this.tile.pos.y);
+        ctx.drawImage(EarthTurret.images, this.type.earth() * 64 - 64, 0, 64, 64, this.tile.pos.x, this.tile.pos.y, 64, 64);
     };
     EarthTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
@@ -1531,14 +1547,17 @@ var EarthTurret = (function (_super) {
         }
     };
     EarthTurret.init = function () {
-        EarthTurret.images = [];
-        EarthTurret.preRender1();
-        EarthTurret.preRender2();
-        EarthTurret.preRender3();
-        EarthTurret.preRender4();
+        var c = new PreRenderedImage(256, 64);
+        EarthTurret.preRender1(c.ctx, 0);
+        EarthTurret.preRender2(c.ctx, 64);
+        EarthTurret.preRender3(c.ctx, 128);
+        EarthTurret.preRender4(c.ctx, 192);
+        if (Game.saveImages) {
+            c.saveImage("td_tower_aEfw_earth_strip1");
+        }
+        EarthTurret.images = c.image;
     };
-    EarthTurret.preRender1 = function () {
-        var c = new PreRenderedImage(64, 64);
+    EarthTurret.preRender1 = function (ctx, x) {
         var renderable = new RenderablePathSet();
         var path;
         var grad;
@@ -1546,35 +1565,23 @@ var EarthTurret = (function (_super) {
         for (var _i = 0, corners_1 = corners; _i < corners_1.length; _i++) {
             var corner = corners_1[_i];
             path = new Path2D();
-            path.arc(corner.x, corner.y, 10, 0, Angle.deg360);
-            grad = c.ctx.createRadialGradient(corner.x, corner.y, 5, corner.x, corner.y, 10);
+            path.arc(x + corner.x, corner.y, 10, 0, Angle.deg360);
+            grad = ctx.createRadialGradient(x + corner.x, corner.y, 5, x + corner.x, corner.y, 10);
             grad.addColorStop(0, "#90d173");
             grad.addColorStop(1, "#6ba370");
             renderable.pushNew(path, grad);
         }
+        renderable.pushPolygon([20, 24, 24, 20, 44, 40, 40, 44], "#90d173", x);
+        renderable.pushPolygon([44, 24, 40, 20, 20, 40, 24, 44], "#90d173", x);
         path = new Path2D();
-        path.moveTo(20, 24);
-        path.lineTo(24, 20);
-        path.lineTo(44, 40);
-        path.lineTo(40, 44);
-        path.closePath();
-        path.moveTo(44, 24);
-        path.lineTo(40, 20);
-        path.lineTo(20, 40);
-        path.lineTo(24, 44);
-        path.closePath();
-        renderable.pushNew(path, "#90d173");
-        path = new Path2D();
-        path.arc(32, 32, 6, 0, Angle.deg360);
-        grad = c.ctx.createRadialGradient(32, 32, 2, 32, 32, 6);
+        path.arc(x + 32, 32, 6, 0, Angle.deg360);
+        grad = ctx.createRadialGradient(x + 32, 32, 2, x + 32, 32, 6);
         grad.addColorStop(0, "#beefa7");
         grad.addColorStop(1, "#90d173");
         renderable.pushNew(path, grad);
-        renderable.render(c.ctx);
-        EarthTurret.images[1] = c.image;
+        renderable.render(ctx);
     };
-    EarthTurret.preRender2 = function () {
-        var c = new PreRenderedImage(64, 64);
+    EarthTurret.preRender2 = function (ctx, x) {
         var renderable = new RenderablePathSet();
         var path;
         var grad;
@@ -1582,35 +1589,23 @@ var EarthTurret = (function (_super) {
         for (var _i = 0, corners_2 = corners; _i < corners_2.length; _i++) {
             var corner = corners_2[_i];
             path = new Path2D();
-            path.arc(corner.x, corner.y, 10, 0, Angle.deg360);
-            grad = c.ctx.createRadialGradient(corner.x, corner.y, 5, corner.x, corner.y, 10);
+            path.arc(x + corner.x, corner.y, 10, 0, Angle.deg360);
+            grad = ctx.createRadialGradient(x + corner.x, corner.y, 5, x + corner.x, corner.y, 10);
             grad.addColorStop(0, "#6fd243");
             grad.addColorStop(1, "#54a45b");
             renderable.pushNew(path, grad);
         }
+        renderable.pushPolygon([20, 24, 24, 20, 44, 40, 40, 44], "#6fd243", x);
+        renderable.pushPolygon([44, 24, 40, 20, 20, 40, 24, 44], "#6fd243", x);
         path = new Path2D();
-        path.moveTo(20, 24);
-        path.lineTo(24, 20);
-        path.lineTo(44, 40);
-        path.lineTo(40, 44);
-        path.closePath();
-        path.moveTo(44, 24);
-        path.lineTo(40, 20);
-        path.lineTo(20, 40);
-        path.lineTo(24, 44);
-        path.closePath();
-        renderable.pushNew(path, "#6fd243");
-        path = new Path2D();
-        path.arc(32, 32, 6, 0, Angle.deg360);
-        grad = c.ctx.createRadialGradient(32, 32, 2, 32, 32, 6);
+        path.arc(x + 32, 32, 6, 0, Angle.deg360);
+        grad = ctx.createRadialGradient(x + 32, 32, 2, x + 32, 32, 6);
         grad.addColorStop(0, "#a6f083");
         grad.addColorStop(1, "#6fd243");
         renderable.pushNew(path, grad);
-        renderable.render(c.ctx);
-        EarthTurret.images[2] = c.image;
+        renderable.render(ctx);
     };
-    EarthTurret.preRender3 = function () {
-        var c = new PreRenderedImage(64, 64);
+    EarthTurret.preRender3 = function (ctx, x) {
         var renderable = new RenderablePathSet();
         var path;
         var grad;
@@ -1618,44 +1613,28 @@ var EarthTurret = (function (_super) {
         for (var _i = 0, corners_3 = corners; _i < corners_3.length; _i++) {
             var corner = corners_3[_i];
             path = new Path2D();
-            path.arc(corner.x, corner.y, 11, 0, Angle.deg360);
-            grad = c.ctx.createRadialGradient(corner.x, corner.y, 5, corner.x, corner.y, 10);
+            path.arc(x + corner.x, corner.y, 11, 0, Angle.deg360);
+            grad = ctx.createRadialGradient(x + corner.x, corner.y, 5, x + corner.x, corner.y, 10);
             grad.addColorStop(0, "#4ed314");
             grad.addColorStop(1, "#3da547");
             renderable.pushNew(path, grad);
         }
+        renderable.pushPolygon([19, 25, 25, 19, 45, 39, 39, 45], "#4ed314", x);
+        renderable.pushPolygon([45, 25, 39, 19, 19, 39, 25, 45], "#4ed314", x);
         path = new Path2D();
-        path.moveTo(19, 25);
-        path.lineTo(25, 19);
-        path.lineTo(45, 39);
-        path.lineTo(39, 45);
-        path.closePath();
-        path.moveTo(45, 25);
-        path.lineTo(39, 19);
-        path.lineTo(19, 39);
-        path.lineTo(25, 45);
-        path.closePath();
-        renderable.pushNew(path, "#4ed314");
-        path = new Path2D();
-        path.arc(32, 32, 8, 0, Angle.deg360);
-        grad = c.ctx.createRadialGradient(32, 32, 3, 32, 32, 8);
+        path.arc(x + 32, 32, 8, 0, Angle.deg360);
+        grad = ctx.createRadialGradient(x + 32, 32, 3, x + 32, 32, 8);
         grad.addColorStop(0, "#8ef260");
         grad.addColorStop(1, "#4ed314");
         renderable.pushNew(path, grad);
-        renderable.render(c.ctx);
-        EarthTurret.images[3] = c.image;
+        renderable.render(ctx);
     };
-    EarthTurret.preRender4 = function () {
+    EarthTurret.preRender4 = function (ctx, x) {
         var grad;
         var tex1 = new CamouflageTextureGenerator(64, 64, "#825D30", "#308236", 0.5);
         var tex2 = new CamouflageTextureGenerator(64, 64, "#92A33C", "#4ED314", 0.5);
         var src = RgbaColor.transparent.source();
-        var corners = [
-            { x: 20, y: 20 },
-            { x: 44, y: 20 },
-            { x: 20, y: 44 },
-            { x: 44, y: 44 }
-        ];
+        var corners = [{ x: 20, y: 20 }, { x: 44, y: 20 }, { x: 20, y: 44 }, { x: 44, y: 44 }];
         for (var _i = 0, corners_4 = corners; _i < corners_4.length; _i++) {
             var corner = corners_4[_i];
             grad = new RadialGradientSource(64, 64, corner.x, corner.y, 12, 6);
@@ -1679,7 +1658,7 @@ var EarthTurret = (function (_super) {
         grad = new RadialGradientSource(64, 64, 32, 32, 10, 4);
         grad.addColorStop(0, tex2);
         grad.addColorStop(1, "#B6FF00");
-        EarthTurret.images[4] = new EllipseSource(64, 64, 32, 32, 10.5, 10.5, grad, src).generateImage();
+        ctx.drawImage(new EllipseSource(64, 64, 32, 32, 10.5, 10.5, grad, src).generateImage(), x, 0);
     };
     return EarthTurret;
 }(Turret));
@@ -1775,6 +1754,9 @@ var FireTurret = (function (_super) {
         path.closePath();
         renderable.pushNew(path, c.ctx.createPattern(texLava.generateImage(), "no-repeat"));
         renderable.render(c.ctx);
+        if (Game.saveImages) {
+            c.saveImage("td_tower_aeFw_fire_strip1");
+        }
         FireTurret.image = c.image;
     };
     return FireTurret;
@@ -1796,7 +1778,7 @@ var WaterTurret = (function (_super) {
         }
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
-        ctx.drawImage(WaterTurret.images[this.type.count() - 1], -32, -32);
+        ctx.drawImage(WaterTurret.images, (this.type.count() - 1) * 64, 0, 64, 64, -32, -32, 64, 64);
         ctx.resetTransform();
     };
     WaterTurret.prototype.addType = function (type) {
@@ -1821,14 +1803,15 @@ var WaterTurret = (function (_super) {
     WaterTurret.init = function () {
         var sandTex = new NoiseTextureGenerator(64, 64, "#F2EBC1", 0.08, 0, 1).generateImage();
         var groundTex = new NoiseTextureGenerator(64, 64, "#B9B5A0", 0.05, 0, 1).generateImage();
-        var c0 = new PreRenderedImage(64, 64);
-        var c1 = new PreRenderedImage(64, 64);
-        var c2 = new PreRenderedImage(64, 64);
-        var c3 = WaterTurret.preRender(groundTex, sandTex);
-        c0.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex).image, 9, 9, 46, 46);
-        c1.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex).image, 6, 6, 52, 52);
-        c2.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex).image, 3, 3, 58, 58);
-        WaterTurret.images = [c0.image, c1.image, c2.image, c3.image];
+        var c = new PreRenderedImage(256, 64);
+        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), 9, 9, 46, 46);
+        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), 70, 6, 52, 52);
+        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), 131, 3, 58, 58);
+        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), 192, 0);
+        if (Game.saveImages) {
+            c.saveImage("td_tower_aefW_water_strip4");
+        }
+        WaterTurret.images = c.image;
     };
     WaterTurret.preRender = function (groundTex, sandTex) {
         var waterTex = new CellularTextureGenerator(64, 64, Utils.randInt(16, 36), "#3584CE", "#3EB4EF", CellularTextureType.Balls).generateImage();
@@ -1868,7 +1851,7 @@ var WaterTurret = (function (_super) {
             ctx.fillStyle = ctx.createPattern(textures[j], "repeat");
             ctx.fill();
         }
-        return c;
+        return c.image;
     };
     return WaterTurret;
 }(Turret));
@@ -1891,7 +1874,7 @@ var IceTurret = (function (_super) {
         var i = Utils.sign(this.type.water() - this.type.air()) + 1;
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
-        ctx.drawImage(IceTurret.images[i], -r, -r, r * 2, r * 2);
+        ctx.drawImage(IceTurret.images, i * 64, 0, 64, 64, -r, -r, r * 2, r * 2);
         ctx.resetTransform();
     };
     IceTurret.prototype.addType = function (type) {
@@ -1913,16 +1896,19 @@ var IceTurret = (function (_super) {
     };
     IceTurret.init = function () {
         var tex = new CellularTextureGenerator(64, 64, 64, "#D1EFFF", "#70BECC", CellularTextureType.Lava);
-        var c0 = new PreRenderedImage(64, 64);
-        var c1 = new PreRenderedImage(64, 64);
+        var c = new PreRenderedImage(192, 64);
         var c2 = new PreRenderedImage(64, 64);
-        var fill = c1.ctx.createPattern(tex.generateImage(), "no-repeat");
-        IceTurret.preRender(c1.ctx, fill, true);
-        c0.ctx.drawImage(c1.image, 0, 0);
-        IceTurret.preRender(c0.ctx, "#FFFFFF80");
-        c2.ctx.drawImage(c1.image, 0, 0);
-        IceTurret.preRender(c2.ctx, "#51AFCC80");
-        IceTurret.images = [c0.image, c1.image, c2.image];
+        var fill = c2.ctx.createPattern(tex.generateImage(), "repeat");
+        IceTurret.preRender(c2.ctx, 0, fill, true);
+        c.ctx.drawImage(c2.image, 0, 0);
+        c.ctx.drawImage(c2.image, 64, 0);
+        c.ctx.drawImage(c2.image, 128, 0);
+        IceTurret.preRender(c.ctx, 0, "#FFFFFF80");
+        IceTurret.preRender(c.ctx, 128, "#51AFCC60");
+        if (Game.saveImages) {
+            c.saveImage("td_tower_AefW_ice_strip3");
+        }
+        IceTurret.images = c.image;
     };
     IceTurret.mkBranch = function (ctx, x, y, angle, size) {
         if (size >= 2.5) {
@@ -1959,7 +1945,7 @@ var IceTurret = (function (_super) {
             ctx.stroke();
         }
     };
-    IceTurret.preRender = function (ctx, fill, drawCenter) {
+    IceTurret.preRender = function (ctx, baseX, fill, drawCenter) {
         if (drawCenter === void 0) { drawCenter = false; }
         ctx.save();
         ctx.lineCap = "round";
@@ -1968,19 +1954,19 @@ var IceTurret = (function (_super) {
         for (var k = 0; k < 6; ++k) {
             var a = k * Angle.deg60;
             if (k === 0) {
-                centerPath.moveTo(Utils.ldx(8, a, 32), Utils.ldy(8, a, 32));
+                centerPath.moveTo(baseX + Utils.ldx(8, a, 32), Utils.ldy(8, a, 32));
             }
             else {
-                centerPath.lineTo(Utils.ldx(8, a, 32), Utils.ldy(8, a, 32));
+                centerPath.lineTo(baseX + Utils.ldx(8, a, 32), Utils.ldy(8, a, 32));
             }
-            IceTurret.mkBranch(ctx, Utils.ldx(8, a, 32), Utils.ldy(8, a, 32), a, 3);
+            IceTurret.mkBranch(ctx, baseX + Utils.ldx(8, a, 32), Utils.ldy(8, a, 32), a, 3);
         }
         centerPath.closePath();
         ctx.restore();
         ctx.fillStyle = fill;
         ctx.fill(centerPath);
         if (drawCenter) {
-            var grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 6);
+            var grad = ctx.createRadialGradient(baseX + 32, 32, 0, baseX + 32, 32, 6);
             grad.addColorStop(0, "#FFFFFF");
             grad.addColorStop(1, "#D1EFFF00");
             ctx.fillStyle = grad;
@@ -2005,8 +1991,7 @@ var AcidTurret = (function (_super) {
         if (preRender) {
             return;
         }
-        var f = AcidTurret.images[Math.floor(this.frame)][this.type.water() + this.type.earth() - 2];
-        ctx.drawImage(f, this.center.x - 32, this.center.y - 32);
+        ctx.drawImage(AcidTurret.images, Math.floor(this.frame) * 64, (this.type.water() + this.type.earth() - 2) * 64, 64, 64, this.tile.pos.x, this.tile.pos.y, 64, 64);
     };
     AcidTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
@@ -2027,13 +2012,17 @@ var AcidTurret = (function (_super) {
     };
     AcidTurret.init = function () {
         var acidTex = new CellularTextureGenerator(64, 64, 9, "#E0FF00", "#5B7F00", CellularTextureType.Balls).generateImage();
-        AcidTurret.images = [];
         AcidTurret.frameCount = 100;
+        var c = new PreRenderedImage(64 * AcidTurret.frameCount, 192);
         for (var i = 0; i < AcidTurret.frameCount; ++i) {
-            AcidTurret.images.push(AcidTurret.preRenderFrame(acidTex, i));
+            AcidTurret.preRenderFrame(acidTex, c.ctx, i);
         }
+        if (Game.saveImages) {
+            c.saveImage("td_tower_aEfW_acid_strip" + AcidTurret.frameCount);
+        }
+        AcidTurret.images = c.image;
     };
-    AcidTurret.preRenderFrame = function (texture, frame) {
+    AcidTurret.preRenderFrame = function (texture, targetCtx, frame) {
         var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         var offset = frame / AcidTurret.frameCount * 64;
         var c0 = new PreRenderedImage(64, 64);
@@ -2094,7 +2083,9 @@ var AcidTurret = (function (_super) {
             ctx.lineWidth = 2 + i;
             ctx.stroke();
         }
-        return [c0.image, c1.image, c2.image];
+        targetCtx.drawImage(c0.image, frame * 64, 0);
+        targetCtx.drawImage(c1.image, frame * 64, 64);
+        targetCtx.drawImage(c2.image, frame * 64, 128);
     };
     return AcidTurret;
 }(Turret));
@@ -2173,6 +2164,9 @@ var CannonTurret = (function (_super) {
         ctx.lineTo(52, 36);
         ctx.lineWidth = 1;
         ctx.stroke();
+        if (Game.saveImages) {
+            c.saveImage("td_tower_aEFw_cannon_strip1");
+        }
         CannonTurret.image = c.image;
     };
     return CannonTurret;
@@ -2211,6 +2205,9 @@ var ArcherTurret = (function (_super) {
     };
     ArcherTurret.init = function () {
         var c = new PreRenderedImage(64, 64);
+        if (Game.saveImages) {
+            c.saveImage("td_tower_AEfw_archer_strip1");
+        }
         ArcherTurret.image = c.image;
     };
     return ArcherTurret;
@@ -2231,7 +2228,7 @@ var LightningTurret = (function (_super) {
         if (preRender) {
             return;
         }
-        ctx.drawImage(LightningTurret.images[Math.floor(this.animationTimer * 8)], this.tile.pos.x, this.tile.pos.y);
+        ctx.drawImage(LightningTurret.images, Math.floor(this.animationTimer * 8) * 64, 0, 64, 64, this.tile.pos.x, this.tile.pos.y, 64, 64);
     };
     LightningTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
@@ -2301,10 +2298,14 @@ var LightningTurret = (function (_super) {
             ctx.fill();
             ctx.resetTransform();
         }
-        LightningTurret.images = [];
+        var c2 = new PreRenderedImage(8 * 64, 64);
         for (var i = 0; i < 8; ++i) {
-            LightningTurret.images.push(c[i].image);
+            c2.ctx.drawImage(c[i].image, i * 64, 0);
         }
+        if (Game.saveImages) {
+            c2.saveImage("td_tower_AeFw_lightning_strip8");
+        }
+        LightningTurret.images = c2.image;
     };
     return LightningTurret;
 }(Turret));
@@ -2342,6 +2343,9 @@ var FlamethrowerTurret = (function (_super) {
     };
     FlamethrowerTurret.init = function () {
         var c = new PreRenderedImage(64, 64);
+        if (Game.saveImages) {
+            c.saveImage("td_tower_aeFW_flamethrower_strip1");
+        }
         FlamethrowerTurret.image = c.image;
     };
     return FlamethrowerTurret;
@@ -2350,7 +2354,7 @@ var SunTurret = (function (_super) {
     __extends(SunTurret, _super);
     function SunTurret(tile, type) {
         var _this = _super.call(this, tile, type) || this;
-        _this.frame = 0;
+        _this.frame = Utils.rand(0, SunTurret.frameCount);
         return _this;
     }
     SunTurret.prototype.step = function (time) {
@@ -2363,7 +2367,7 @@ var SunTurret = (function (_super) {
             return;
         }
         var r = 16 + 4 * this.type.count();
-        ctx.drawImage(SunTurret.images[Math.floor(this.frame)], this.center.x - r, this.center.y - r, r * 2, r * 2);
+        ctx.drawImage(SunTurret.images, Math.floor(this.frame) * 64, 0, 64, 64, this.center.x - r, this.center.y - r, r * 2, r * 2);
     };
     SunTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
@@ -2381,9 +2385,9 @@ var SunTurret = (function (_super) {
         }
     };
     SunTurret.init = function () {
-        SunTurret.images = [];
         SunTurret.frameCount = 90;
         var c = new PreRenderedImage(64, 64);
+        var c2 = new PreRenderedImage(SunTurret.frameCount * 64, 64);
         var ctx = c.ctx;
         var grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
         grad.addColorStop(0.00000, "#FFFF40");
@@ -2406,19 +2410,20 @@ var SunTurret = (function (_super) {
         }
         ctx.fill();
         for (var i = 0; i < SunTurret.frameCount; ++i) {
-            SunTurret.images.push(SunTurret.preRenderFrame(c.image, i));
+            SunTurret.preRenderFrame(c.image, c2.ctx, i);
         }
+        if (Game.saveImages) {
+            c2.saveImage("td_tower_AEFw_sun_strip" + SunTurret.frameCount);
+        }
+        SunTurret.images = c2.image;
     };
-    SunTurret.preRenderFrame = function (texture, frame) {
+    SunTurret.preRenderFrame = function (texture, ctx, frame) {
         var offset = frame / SunTurret.frameCount * Angle.deg30;
-        var c = new PreRenderedImage(64, 64);
-        var ctx = c.ctx;
-        ctx.translate(32, 32);
+        ctx.translate(frame * 64 + 32, 32);
         ctx.drawImage(texture, -32, -32);
         ctx.rotate(offset);
         ctx.drawImage(texture, -32, -32);
         ctx.resetTransform();
-        return c.image;
     };
     return SunTurret;
 }(Turret));
@@ -2454,6 +2459,9 @@ var MoonTurret = (function (_super) {
     };
     MoonTurret.init = function () {
         var c = new PreRenderedImage(64, 64);
+        if (Game.saveImages) {
+            c.saveImage("td_tower_AEfW_moon_strip1");
+        }
         MoonTurret.image = c.image;
     };
     return MoonTurret;
@@ -2504,7 +2512,9 @@ var PlasmaTurret = (function (_super) {
         var c = new PreRenderedImage(64 * PlasmaTurret.frameCount, 128);
         PlasmaTurret.preRender(c.ctx, tex1a, tex2a, 0);
         PlasmaTurret.preRender(c.ctx, tex1b, tex2b, 64);
-        c.saveImage("plasma");
+        if (Game.saveImages) {
+            c.saveImage("td_tower_AeFW_plasma_strip" + PlasmaTurret.frameCount);
+        }
         PlasmaTurret.images = c.image;
     };
     PlasmaTurret.preRender = function (ctx, tex1, tex2, y) {
@@ -2523,17 +2533,20 @@ var PlasmaTurret = (function (_super) {
 var EarthquakeTurret = (function (_super) {
     __extends(EarthquakeTurret, _super);
     function EarthquakeTurret(tile, type) {
-        return _super.call(this, tile, type) || this;
+        var _this = _super.call(this, tile, type) || this;
+        _this.frame = Utils.rand(0, EarthquakeTurret.frameCount);
+        return _this;
     }
     EarthquakeTurret.prototype.step = function (time) {
         _super.prototype.step.call(this, time);
+        this.frame = (this.frame + time * 25) % EarthquakeTurret.frameCount;
     };
     EarthquakeTurret.prototype.render = function (ctx, preRender) {
         _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
-        ctx.drawImage(EarthquakeTurret.image, this.tile.pos.x, this.tile.pos.y);
+        ctx.drawImage(EarthquakeTurret.images, Math.floor(this.frame) * 48, (this.type.count() - 3) * 48, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48);
     };
     EarthquakeTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
@@ -2551,8 +2564,52 @@ var EarthquakeTurret = (function (_super) {
         }
     };
     EarthquakeTurret.init = function () {
-        var c = new PreRenderedImage(64, 64);
-        EarthquakeTurret.image = c.image;
+        EarthquakeTurret.frameCount = 52;
+        var c = new PreRenderedImage(EarthquakeTurret.frameCount * 48, 96);
+        var ctx = c.ctx;
+        var cracks = [];
+        for (var i = 0; i < 4; ++i) {
+            cracks.push(new CellularTextureGenerator(48, 48, Utils.randInt(32, 128), "#808080", new PerlinNoiseTextureGenerator(48, 48, RgbaColor.black, "#808080", 0.75), CellularTextureType.Lava, CellularTextureDistanceMetric.Manhattan, Curve.sqr));
+        }
+        var l1 = EarthquakeTurret.frameCount / 2, l2 = EarthquakeTurret.frameCount / 4;
+        for (var i = 0; i < EarthquakeTurret.frameCount; ++i) {
+            var a1 = Math.floor(i / l1), b1 = i / l1 % 1, a2 = Math.floor(i / l2), b2 = i / l2 % 1;
+            ctx.drawImage(new LerpingSource(48, 48, cracks[a1], "#808080", b1).generateImage(), i * 48, 0);
+            ctx.drawImage(new LerpingSource(48, 48, cracks[a2], "#808080", b2).generateImage(), i * 48, 48);
+            for (var x = i * 48 + 24, y = 24; y < 96; y += 48) {
+                var b = y < 48 ? b1 : b2;
+                var grad = ctx.createRadialGradient(0, 0, 4, 0, 0, 12);
+                grad.addColorStop(0.4, RgbaColor.fromHex("#E8E144").lerp(RgbaColor.fromHex("#E86544").lerp(RgbaColor.fromHex("#808080"), b), Curve.arc(b)).toCss());
+                grad.addColorStop(0.5, "#606060");
+                grad.addColorStop(1, "#000000");
+                ctx.fillStyle = grad;
+                ctx.translate(x, y);
+                ctx.rotate(b * Angle.deg90);
+                EarthquakeTurret.path(ctx);
+                ctx.fill();
+                ctx.resetTransform();
+            }
+        }
+        if (!Game.saveImages) {
+            c.saveImage("td_tower_aEFW_earthquake_strip" + EarthquakeTurret.frameCount);
+        }
+        EarthquakeTurret.images = c.image;
+    };
+    EarthquakeTurret.path = function (ctx) {
+        ctx.beginPath();
+        ctx.moveTo(12, -12);
+        ctx.lineTo(Utils.ldx(8, -Angle.deg30), Utils.ldy(8, -Angle.deg30));
+        ctx.arc(0, 0, 8, -Angle.deg30, Angle.deg30);
+        ctx.lineTo(12, 12);
+        ctx.lineTo(Utils.ldx(8, Angle.deg60), Utils.ldy(8, Angle.deg60));
+        ctx.arc(0, 0, 8, Angle.deg60, Angle.deg120);
+        ctx.lineTo(-12, 12);
+        ctx.lineTo(Utils.ldx(8, Angle.deg150), Utils.ldy(8, Angle.deg150));
+        ctx.arc(0, 0, 8, Angle.deg150, Angle.deg210);
+        ctx.lineTo(-12, -12);
+        ctx.lineTo(Utils.ldx(8, Angle.deg240), Utils.ldy(8, Angle.deg240));
+        ctx.arc(0, 0, 8, Angle.deg240, Angle.deg300);
+        ctx.closePath();
     };
     return EarthquakeTurret;
 }(Turret));
@@ -2574,6 +2631,9 @@ var ArcaneTurret = (function (_super) {
     ArcaneTurret.prototype.addType = function (type) { };
     ArcaneTurret.init = function () {
         var c = new PreRenderedImage(64, 64);
+        if (Game.saveImages) {
+            c.saveImage("td_tower_AEFW_arcane_strip1");
+        }
         ArcaneTurret.image = c.image;
     };
     return ArcaneTurret;
@@ -3030,6 +3090,9 @@ var Game = (function () {
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h);
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2);
         this.castle.render(c.ctx);
+        if (Game.saveImages) {
+            c.saveImage("td_map");
+        }
         this.preRendered = c.image;
     };
     Game.prototype.render = function () {
@@ -3051,6 +3114,7 @@ var Game = (function () {
         this.ctx.fillText(this.mousePosition.x.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 32);
         this.ctx.fillText(this.mousePosition.y.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 48);
     };
+    Game.saveImages = false;
     return Game;
 }());
 window.onload = function () {

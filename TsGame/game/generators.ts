@@ -261,7 +261,7 @@ abstract class TextureGenerator extends ColorSource {
 
     protected color: ColorSource
 
-    constructor(width: number, height: number, color: ColorSource | string | null) {
+    constructor(width: number, height: number, color: ColorSource | RgbaColor | string | null) {
         super(width, height)
         this.color = ColorSource.get(color ?? RgbaColor.black)
     }
@@ -290,16 +290,18 @@ class CellularTextureGenerator extends TextureGenerator {
     private distances: number[]
     private min: number
     private range: number
+    private curve: (x: number) => number
 
     // density n => 1 point per n pixels
     constructor(
         width: number,
         height: number,
         density: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null,
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null,
         type: CellularTextureType = CellularTextureType.Lava,
-        metric: CellularTextureDistanceMetric = CellularTextureDistanceMetric.Euclidean
+        metric: CellularTextureDistanceMetric = CellularTextureDistanceMetric.Euclidean,
+        curve?: (x: number) => number
     ) {
         super(width, height, color1)
         this.color2 = ColorSource.get(color2 ?? RgbaColor.white)
@@ -320,6 +322,7 @@ class CellularTextureGenerator extends TextureGenerator {
                 break
         }
         this.density = Math.max(1, density)
+        this.curve = curve ?? Curve.linear
         let points: Vec2[] = []
         let pointCount = this.width * this.height / this.density
         if (pointCount < 2) {
@@ -396,7 +399,7 @@ class CellularTextureGenerator extends TextureGenerator {
     protected _getColor(x: number, y: number): RgbaColor {
         return this.color.getColor(x, y).lerp(
             this.color2.getColor(x, y),
-            (this.distances[Utils.flatten(this.width, x, y)] - this.min) / this.range
+            this.curve((this.distances[Utils.flatten(this.width, x, y)] - this.min) / this.range)
         )
     }
 
@@ -411,7 +414,7 @@ class NoiseTextureGenerator extends TextureGenerator {
 
     constructor(
         width: number, height: number,
-        color: ColorSource | string | null,
+        color: ColorSource | RgbaColor | string | null,
         intensity: number,
         saturation: number,
         coverage: number
@@ -462,16 +465,19 @@ abstract class PerlinTextureGenerator extends TextureGenerator {
 
     protected color2: ColorSource
     protected scale: number
+    protected curve: (x: number) => number
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null,
-        scale: number = 1
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null,
+        scale: number = 1,
+        curve?: (x: number) => number
     ) {
         super(width, height, color1)
         this.color2 = ColorSource.get(color2 ?? RgbaColor.white)
         this.scale = 1 / (scale * 32)
+        this.curve = curve ?? Curve.linear
     }
 
     protected dotGridGradient(gradient: PerlinGradient, ix: number, iy: number, x: number, y: number): number {
@@ -508,18 +514,19 @@ class PerlinNoiseTextureGenerator extends PerlinTextureGenerator {
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null,
-        scale: number = 1
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null,
+        scale: number = 1,
+        curve?: (x: number) => number
     ) {
-        super(width, height, color1, color2, scale)
+        super(width, height, color1, color2, scale, curve)
         this.gradient = new PerlinGradient(this.width * this.scale, this.height * this.scale)
     }
 
     protected _getColor(x: number, y: number): RgbaColor {
         return this.color.getColor(x, y).lerp(
             this.color2.getColor(x, y),
-            this.perlin(this.gradient, x * this.scale, y * this.scale) / 2 + 0.5
+            this.curve(this.perlin(this.gradient, x * this.scale, y * this.scale) / 2 + 0.5)
         )
     }
 
@@ -533,11 +540,12 @@ class CloudsTextureGenerator extends PerlinTextureGenerator {
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null,
-        scale: number = 1
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null,
+        scale: number = 1,
+        curve?: (x: number) => number
     ) {
-        super(width, height, color1, color2, scale)
+        super(width, height, color1, color2, scale, curve)
         this.scales = [
             this.scale / 4,
             this.scale / 2,
@@ -558,7 +566,7 @@ class CloudsTextureGenerator extends PerlinTextureGenerator {
         for (let i = 0; i < 6; ++i) {
             v += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i]
         }
-        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), v / 2 + 0.5)
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve(v / 2 + 0.5))
     }
 
 }
@@ -569,11 +577,12 @@ class VelvetTextureGenerator extends PerlinTextureGenerator {
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null,
-        scale: number = 1
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null,
+        scale: number = 1,
+        curve?: (x: number) => number
     ) {
-        super(width, height, color1, color2, scale)
+        super(width, height, color1, color2, scale, curve)
         this.gradients = []
         let w = this.width * this.scale, h = this.height * this.scale
         for (let i = 0; i < 3; ++i) {
@@ -584,11 +593,11 @@ class VelvetTextureGenerator extends PerlinTextureGenerator {
     protected _getColor(x: number, y: number): RgbaColor {
         return this.color.getColor(x, y).lerp(
             this.color2.getColor(x, y),
-            this.perlin(
+            this.curve(this.perlin(
                 this.gradients[0],
                 x * this.scale + this.perlin(this.gradients[1], x * this.scale, y * this.scale),
                 y * this.scale + this.perlin(this.gradients[2], x * this.scale, y * this.scale)
-            ) / 2 + 0.5
+            ) / 2 + 0.5)
         )
     }
 
@@ -601,12 +610,13 @@ class GlassTextureGenerator extends PerlinTextureGenerator {
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null,
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null,
         scale: number = 1,
-        turbulence: number = 1
+        turbulence: number = 1,
+        curve?: (x: number) => number
     ) {
-        super(width, height, color1, color2, scale)
+        super(width, height, color1, color2, scale, curve)
         this.turbulence = 0.125 * turbulence
         this.gradients = []
         let w = this.width * this.scale, h = this.height * this.scale
@@ -620,11 +630,11 @@ class GlassTextureGenerator extends PerlinTextureGenerator {
         let _y = Math.sin((this.perlin(this.gradients[2], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence)
         return this.color.getColor(x, y).lerp(
             this.color2.getColor(x, y),
-            this.perlin(
+            this.curve(this.perlin(
                 this.gradients[0],
                 x * this.scale + _x,
                 y * this.scale + _y
-            ) / 2 + 0.5
+            ) / 2 + 0.5)
         )
     }
 
@@ -638,11 +648,12 @@ class FrostedGlassTextureGenerator extends PerlinTextureGenerator {
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null,
-        scale: number = 1
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null,
+        scale: number = 1,
+        curve?: (x: number) => number
     ) {
-        super(width, height, color1, color2, scale)
+        super(width, height, color1, color2, scale, curve)
         this.scales = [this.scale, this.scale * 2, this.scale * 4]
         this.coeficients = [0.5, 0.25, 0.25]
         this.gradients = []
@@ -659,7 +670,7 @@ class FrostedGlassTextureGenerator extends PerlinTextureGenerator {
         }
         return this.color.getColor(x, y).lerp(
             this.color2.getColor(x, y),
-            this.perlin(this.gradients[6], _x, _y) / 2 + 0.5
+            this.curve(this.perlin(this.gradients[6], _x, _y) / 2 + 0.5)
         )
     }
 
@@ -673,11 +684,12 @@ class BarkTextureGenerator extends PerlinTextureGenerator {
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null,
-        scale: number = 1
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null,
+        scale: number = 1,
+        curve?: (x: number) => number
     ) {
-        super(width, height, color1, color2, scale)
+        super(width, height, color1, color2, scale, curve)
         this.scales = [this.scale, this.scale * 2, this.scale * 4, this.scale * 6]
         this.coeficients = [0.5, 0.25, 0.25]
         this.gradients = []
@@ -693,7 +705,7 @@ class BarkTextureGenerator extends PerlinTextureGenerator {
         }
         v = Utils.granulate(Math.sin(2 * x * this.scale * Math.PI + 8 * v), 2)
         v += Utils.granulate(this.perlin(this.gradients[3], x * this.scales[3], y * this.scales[3]), 5)
-        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), v / 4 + 0.5)
+        return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve(v / 4 + 0.5))
     }
 
 }
@@ -711,14 +723,15 @@ class CirclesTextureGenerator extends PerlinTextureGenerator {
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null,
-        background: ColorSource | string | null,
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null,
+        background: ColorSource | RgbaColor | string | null,
         scale: number = 1,
         ringCount: number = Infinity,
-        turbulence: number = 1
+        turbulence: number = 1,
+        curve?: (x: number) => number
     ) {
-        super(width, height, color1, color2, scale)
+        super(width, height, color1, color2, scale, curve ?? Curve.sin)
         this.ringCount = ringCount
         this.ringCountL = this.ringCount - 0.25
         this.turbulence = turbulence / 2
@@ -741,12 +754,12 @@ class CirclesTextureGenerator extends PerlinTextureGenerator {
         } else {
             let c = this.color.getColor(x, y).lerp(
                 this.color2.getColor(x, y),
-                Utils.interpolateSmooth(0, 1, 1 - Math.abs(1 - d % 1 * 2))
+                this.curve(1 - Math.abs(1 - d % 1 * 2))
             )
             if (d > this.ringCountL) {
                 return c.lerp(
                     this.background.getColor(x, y),
-                    Utils.interpolateSmooth(0, 1, (d - this.ringCountL) * 4)
+                    this.curve((d - this.ringCountL) * 4)
                 )
             } else {
                 return c
@@ -764,11 +777,12 @@ class CamouflageTextureGenerator extends PerlinTextureGenerator {
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null,
-        scale: number = 1
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null,
+        scale: number = 1,
+        curve?: (x: number) => number
     ) {
-        super(width, height, color1, color2, scale)
+        super(width, height, color1, color2, scale, curve)
         this.scales = [this.scale, this.scale * 2, this.scale * 4]
         this.coeficients = [1.5, 0.75, 0.75]
         this.gradients = []
@@ -785,11 +799,11 @@ class CamouflageTextureGenerator extends PerlinTextureGenerator {
         }
         return this.color.getColor(x, y).lerp(
             this.color2.getColor(x, y),
-            (
+            this.curve((
                 Utils.granulate(this.perlin(this.gradients[6], _x, _y), 4) * 0.7 +
                 Utils.granulate(this.perlin(this.gradients[7], _x * 2, _y * 2), 5) * 0.2 +
                 Utils.granulate(this.perlin(this.gradients[8], _x * 4, _y * 4), 6) * 0.1
-            ) / 2 + 0.5
+            ) / 2 + 0.5)
         )
     }
 
@@ -883,8 +897,8 @@ abstract class ShapeSource extends ColorSource {
 
     constructor(
         width: number, height: number,
-        color: ColorSource | string | null,
-        background: ColorSource | string | null
+        color: ColorSource | RgbaColor | string | null,
+        background: ColorSource | RgbaColor | string | null
     ) {
         super(width, height)
         this.color = ColorSource.get(color ?? RgbaColor.white)
@@ -904,8 +918,8 @@ class RectangleSource extends ShapeSource {
         width: number, height: number,
         x: number, y: number,
         w: number, h: number,
-        color: ColorSource | string | null,
-        background: ColorSource | string | null
+        color: ColorSource | RgbaColor | string | null,
+        background: ColorSource | RgbaColor | string | null
     ) {
         super(width, height, color, background)
         this.x = x
@@ -932,8 +946,8 @@ class EllipseSource extends ShapeSource {
         width: number, height: number,
         x: number, y: number,
         r1: number, r2: number,
-        color: ColorSource | string | null,
-        background: ColorSource | string | null
+        color: ColorSource | RgbaColor | string | null,
+        background: ColorSource | RgbaColor | string | null
     ) {
         super(width, height, color, background)
         this.x = x
@@ -958,8 +972,8 @@ class PathSource extends ShapeSource {
     constructor(
         width: number, height: number,
         path: Path2D,
-        color: ColorSource | string | null,
-        background: ColorSource | string | null,
+        color: ColorSource | RgbaColor | string | null,
+        background: ColorSource | RgbaColor | string | null,
         fillRule: CanvasFillRule = "nonzero"
     ) {
         super(width, height, color, background)
@@ -981,8 +995,8 @@ abstract class CombiningSource extends ColorSource {
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null
     ) {
         super(width, height)
         this.color1 = ColorSource.get(color1 ?? RgbaColor.black)
@@ -1001,8 +1015,8 @@ class AddingSource extends CombiningSource {
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null
     ) {
         super(width, height, color1, color2)
     }
@@ -1015,8 +1029,8 @@ class MultiplyingSource extends CombiningSource {
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null
     ) {
         super(width, height, color1, color2)
     }
@@ -1029,8 +1043,8 @@ class BlendingSource extends CombiningSource {
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null
     ) {
         super(width, height, color1, color2)
     }
@@ -1045,8 +1059,8 @@ class LerpingSource extends CombiningSource {
 
     constructor(
         width: number, height: number,
-        color1: ColorSource | string | null,
-        color2: ColorSource | string | null,
+        color1: ColorSource | RgbaColor | string | null,
+        color2: ColorSource | RgbaColor | string | null,
         coeficient: number
     ) {
         super(width, height, color1, color2)

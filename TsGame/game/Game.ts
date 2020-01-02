@@ -158,6 +158,8 @@ class Tile {
 
 class Game {
 
+    static saveImages = false // for debug purposes
+
     private preRendered: CanvasImageSource
     private canvas: HTMLCanvasElement
     private ctx: CanvasRenderingContext2D
@@ -507,7 +509,7 @@ class Game {
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h)
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2)
         this.castle.render(c.ctx)
-        //c.saveImage("textures")
+        if (Game.saveImages) { c.saveImage("td_map") }
         this.preRendered = c.image
     }
 
