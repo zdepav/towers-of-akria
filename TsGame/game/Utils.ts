@@ -151,6 +151,20 @@
         return typeof obj === 'string' || obj instanceof String
     }
 
+    static getImageFromCache(id: string): Promise<CanvasImageSource> {
+        return new Promise<CanvasImageSource>((resolve, reject) => {
+            let data = localStorage.getItem(id)
+            if (data) {
+                let img = new Image()
+                img.onload = () => {
+                    console.log(`Restored ${id} from cache`)
+                    resolve(img)
+                }
+                img.src = "data:image/png;base64," + data
+            } else reject()
+        })
+    }
+
 }
 
 enum MouseButton {
@@ -233,15 +247,41 @@ class PreRenderedImage {
 
     saveImage(fileName: string) {
         let a = document.createElement("a")
-        a.setAttribute("download", fileName + ".png");
+        a.setAttribute("download", fileName + ".png")
         a.setAttribute(
             "href",
             (this.image as HTMLCanvasElement)
                 .toDataURL("image/png")
                 .replace("image/png", "image/octet-stream")
         );
-        a.setAttribute("target", "_blank");
+        a.setAttribute("target", "_blank")
         a.click()
+    }
+
+    cacheImage(id: string) {
+        let a = document.createElement("a")
+        a.setAttribute("download", id + ".png")
+        a.setAttribute(
+            "href",
+            (this.image as HTMLCanvasElement)
+                .toDataURL("image/png")
+                .replace("image/png", "image/octet-stream")
+        );
+        a.setAttribute("target", "_blank")
+        a.click()
+        
+        let element = document.createElement('a')
+        element.setAttribute('download', id + ".txt")
+        element.setAttribute('href', 'data:text/octet-stream;charset=utf-8,' + encodeURIComponent(this.toBase64()))
+        element.click()
+
+        localStorage.setItem(id, this.toBase64())
+    }
+
+    toBase64() {
+        return (this.image as HTMLCanvasElement)
+            .toDataURL("image/png")
+            .replace(/^data:image\/png;base64,/, "")
     }
 
 }
@@ -336,8 +376,8 @@ class Vec2 {
     }
 
     normalize(): Vec2 {
-        let l = 1 / this.length()
-        return new Vec2(this.x * l, this.y * l)
+        let m = 1 / this.length()
+        return new Vec2(this.x * m, this.y * m)
     }
 
     isZero(): boolean {

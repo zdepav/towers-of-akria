@@ -205,6 +205,25 @@ var PreRenderedImage = (function () {
         a.setAttribute("target", "_blank");
         a.click();
     };
+    PreRenderedImage.prototype.cacheImage = function (fileName) {
+        var a = document.createElement("a");
+        a.setAttribute("download", fileName + ".png");
+        a.setAttribute("href", this.image
+            .toDataURL("image/png")
+            .replace("image/png", "image/octet-stream"));
+        a.setAttribute("target", "_blank");
+        a.click();
+        var element = document.createElement('a');
+        element.setAttribute('download', fileName + ".txt");
+        element.setAttribute('href', 'data:text/octet-stream;charset=utf-8,' + encodeURIComponent(this.toBase64()));
+        element.click();
+        localStorage.setItem(fileName, this.toBase64());
+    };
+    PreRenderedImage.prototype.toBase64 = function () {
+        return this.image
+            .toDataURL("image/png")
+            .replace(/^data:image\/png;base64,/, "");
+    };
     return PreRenderedImage;
 }());
 var PerformanceMeter = (function () {
@@ -267,8 +286,8 @@ var Vec2 = (function () {
         return this.len;
     };
     Vec2.prototype.normalize = function () {
-        var l = 1 / this.length();
-        return new Vec2(this.x * l, this.y * l);
+        var m = 1 / this.length();
+        return new Vec2(this.x * m, this.y * m);
     };
     Vec2.prototype.isZero = function () {
         return this.x === 0 && this.y === 0;
@@ -403,7 +422,7 @@ var ColorSource = (function () {
     ColorSource.prototype.getColor = function (x, y) {
         return this._getColor(Utils.wrap(x, 0, this.width), Utils.wrap(y, 0, this.height));
     };
-    ColorSource.prototype.generateImage = function () {
+    ColorSource.prototype.generatePrImage = function () {
         var tex = new PreRenderedImage(this.width, this.height);
         for (var x = 0; x < this.width; ++x) {
             for (var y = 0; y < this.height; ++y) {
@@ -411,8 +430,9 @@ var ColorSource = (function () {
                 tex.ctx.fillRect(x, y, 1, 1);
             }
         }
-        return tex.image;
+        return tex;
     };
+    ColorSource.prototype.generateImage = function () { return this.generatePrImage().image; };
     ColorSource.get = function (color) {
         if (color === null) {
             return RgbaColor.transparent.source();
@@ -432,21 +452,71 @@ var ColorSource = (function () {
     };
     return ColorSource;
 }());
+var BufferedColorSource = (function (_super) {
+    __extends(BufferedColorSource, _super);
+    function BufferedColorSource(width, height, source, scale) {
+        if (scale === void 0) { scale = 1; }
+        var _this = _super.call(this, width, height) || this;
+        _this.data = [];
+        var inverseScale = 1 / scale;
+        for (var y = 0; y < _this.height; ++y) {
+            for (var x = 0; x < _this.width; ++x) {
+                _this.data.push(source.getColor(x * inverseScale, y * inverseScale));
+            }
+        }
+        return _this;
+    }
+    BufferedColorSource.prototype._getColor = function (x, y) {
+        x = Math.floor(x);
+        y = Math.floor(y);
+        return this.data[Utils.flatten(this.width, x, y)];
+    };
+    BufferedColorSource.prototype.generatePrImage = function () {
+        var tex = new PreRenderedImage(this.width, this.height);
+        for (var y = 0; y < this.height; ++y) {
+            for (var x = 0; x < this.width; ++x) {
+                tex.ctx.fillStyle = this.data[Utils.flatten(this.width, x, y)].toCss();
+                tex.ctx.fillRect(x, y, 1, 1);
+            }
+        }
+        return tex;
+    };
+    return BufferedColorSource;
+}(ColorSource));
 var CanvasColorSource = (function (_super) {
     __extends(CanvasColorSource, _super);
-    function CanvasColorSource(canvas, ctx) {
+    function CanvasColorSource(canvas, buffer) {
+        if (buffer === void 0) { buffer = false; }
         var _this = _super.call(this, canvas.width, canvas.height) || this;
-        _this.ctx = ctx === undefined ? canvas.getContext("2d") : ctx;
+        _this.ctx = canvas.getContext("2d");
+        if (buffer) {
+            var data = _this.ctx.getImageData(0, 0, _this.width, _this.height).data;
+            _this.data = [];
+            var c = _this.width * _this.height * 4;
+            for (var i = 0; i < c; i += 4) {
+                _this.data.push(new RgbaColor(data[i], data[i + 1], data[i + 2], data[i + 3]));
+            }
+        }
+        else {
+            _this.data = null;
+        }
         return _this;
     }
     CanvasColorSource.prototype._getColor = function (x, y) {
-        var data = this.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
-        return new RgbaColor(data[0], data[1], data[2], data[3]);
+        x = Math.floor(x);
+        y = Math.floor(y);
+        if (this.data) {
+            return this.data[Utils.flatten(this.width, x, y)];
+        }
+        else {
+            var data = this.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
+            return new RgbaColor(data[0], data[1], data[2], data[3]);
+        }
     };
-    CanvasColorSource.prototype.generateImage = function () {
+    CanvasColorSource.prototype.generatePrImage = function () {
         var tex = new PreRenderedImage(this.width, this.height);
         tex.ctx.putImageData(this.ctx.getImageData(0, 0, this.width, this.height), 0, 0);
-        return tex.image;
+        return tex;
     };
     return CanvasColorSource;
 }(ColorSource));
@@ -576,11 +646,11 @@ var RgbaColorSource = (function (_super) {
         return _this;
     }
     RgbaColorSource.prototype._getColor = function (x, y) { return this.color; };
-    RgbaColorSource.prototype.generateImage = function () {
+    RgbaColorSource.prototype.generatePrImage = function () {
         var tex = new PreRenderedImage(this.width, this.height);
         tex.ctx.fillStyle = this.color.toCss();
         tex.ctx.fillRect(0, 0, this.width, this.height);
-        return tex.image;
+        return tex;
     };
     return RgbaColorSource;
 }(ColorSource));
@@ -595,7 +665,7 @@ var TextureGenerator = (function (_super) {
 }(ColorSource));
 var CellularTextureType;
 (function (CellularTextureType) {
-    CellularTextureType[CellularTextureType["Lava"] = 0] = "Lava";
+    CellularTextureType[CellularTextureType["Cells"] = 0] = "Cells";
     CellularTextureType[CellularTextureType["Net"] = 1] = "Net";
     CellularTextureType[CellularTextureType["Balls"] = 2] = "Balls";
 })(CellularTextureType || (CellularTextureType = {}));
@@ -609,7 +679,7 @@ var CellularTextureDistanceMetric;
 var CellularTextureGenerator = (function (_super) {
     __extends(CellularTextureGenerator, _super);
     function CellularTextureGenerator(width, height, density, color1, color2, type, metric, curve) {
-        if (type === void 0) { type = CellularTextureType.Lava; }
+        if (type === void 0) { type = CellularTextureType.Cells; }
         if (metric === void 0) { metric = CellularTextureDistanceMetric.Euclidean; }
         var _this = _super.call(this, width, height, color1) || this;
         _this.color2 = ColorSource.get((color2 !== null && color2 !== void 0 ? color2 : RgbaColor.white));
@@ -692,6 +762,8 @@ var CellularTextureGenerator = (function (_super) {
         return { min1: min1, min2: min2 };
     };
     CellularTextureGenerator.prototype._getColor = function (x, y) {
+        x = Math.round(x);
+        y = Math.round(y);
         return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve((this.distances[Utils.flatten(this.width, x, y)] - this.min) / this.range));
     };
     return CellularTextureGenerator;
@@ -751,7 +823,7 @@ var PerlinTextureGenerator = (function (_super) {
         var y1 = y0 + 1;
         var sx = x - x0;
         var sy = y - y0;
-        return Utils.interpolateSmooth(Utils.interpolateSmooth(this.dotGridGradient(gradient, x0, y0, x, y), this.dotGridGradient(gradient, x1, y0, x, y), sx), Utils.interpolateSmooth(this.dotGridGradient(gradient, x0, y1, x, y), this.dotGridGradient(gradient, x1, y1, x, y), sx), sy);
+        return Utils.interpolateSmooth(Utils.interpolateSmooth(this.dotGridGradient(gradient, x0, y0, x, y), this.dotGridGradient(gradient, x1, y0, x, y), sx), Utils.interpolateSmooth(this.dotGridGradient(gradient, x0, y1, x, y), this.dotGridGradient(gradient, x1, y1, x, y), sx), sy) * 1.428;
     };
     return PerlinTextureGenerator;
 }(TextureGenerator));
@@ -860,11 +932,13 @@ var FrostedGlassTextureGenerator = (function (_super) {
 }(PerlinTextureGenerator));
 var BarkTextureGenerator = (function (_super) {
     __extends(BarkTextureGenerator, _super);
-    function BarkTextureGenerator(width, height, color1, color2, scale, curve) {
+    function BarkTextureGenerator(width, height, color1, color2, scale, turbulence, curve) {
         if (scale === void 0) { scale = 1; }
+        if (turbulence === void 0) { turbulence = 1; }
         var _this = _super.call(this, width, height, color1, color2, scale, curve) || this;
         _this.scales = [_this.scale, _this.scale * 2, _this.scale * 4, _this.scale * 6];
         _this.coeficients = [0.5, 0.25, 0.25];
+        _this.turbulence = turbulence;
         _this.gradients = [];
         for (var i = 0; i < 4; ++i) {
             _this.gradients.push(new PerlinGradient(_this.width * _this.scales[i], _this.height * _this.scales[i]));
@@ -874,7 +948,7 @@ var BarkTextureGenerator = (function (_super) {
     BarkTextureGenerator.prototype._getColor = function (x, y) {
         var v = 0;
         for (var i = 0; i < 3; ++i) {
-            v += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i];
+            v += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i] * this.turbulence;
         }
         v = Utils.granulate(Math.sin(2 * x * this.scale * Math.PI + 8 * v), 2);
         v += Utils.granulate(this.perlin(this.gradients[3], x * this.scales[3], y * this.scales[3]), 5);
@@ -1038,6 +1112,30 @@ var RectangleSource = (function (_super) {
     };
     return RectangleSource;
 }(ShapeSource));
+var CircleSource = (function (_super) {
+    __extends(CircleSource, _super);
+    function CircleSource(width, height, x, y, r, color, background) {
+        var _this = _super.call(this, width, height, color, background) || this;
+        _this.x = x;
+        _this.y = y;
+        _this.r1 = r;
+        _this.r2 = r + 1;
+        return _this;
+    }
+    CircleSource.prototype._getColor = function (x, y) {
+        var _x = x - this.x, _y = y - this.y, d = Math.sqrt(_x * _x + _y * _y);
+        if (d <= this.r1) {
+            return this.color.getColor(x, y);
+        }
+        else if (d >= this.r2) {
+            return this.background.getColor(x, y);
+        }
+        else {
+            return this.color.getColor(x, y).lerp(this.background.getColor(x, y), d - this.r1);
+        }
+    };
+    return CircleSource;
+}(ShapeSource));
 var EllipseSource = (function (_super) {
     __extends(EllipseSource, _super);
     function EllipseSource(width, height, x, y, r1, r2, color, background) {
@@ -1050,7 +1148,7 @@ var EllipseSource = (function (_super) {
     }
     EllipseSource.prototype._getColor = function (x, y) {
         var _x = (x - this.x) / this.r1, _y = (y - this.y) / this.r2;
-        return Math.sqrt(_x * _x + _y * _y) <= 1 ? this.color.getColor(x, y) : this.background.getColor(x, y);
+        return _x * _x + _y * _y <= 1 ? this.color.getColor(x, y) : this.background.getColor(x, y);
     };
     return EllipseSource;
 }(ShapeSource));
@@ -1169,10 +1267,51 @@ var ScalingSource = (function (_super) {
         if (dv.isZero()) {
             return v;
         }
-        return v.add(dv.mul(1 / this.scale));
+        return this.origin.add(dv.mul(1 / this.scale));
     };
     return ScalingSource;
 }(TransformingSource));
+var FisheyeSource = (function (_super) {
+    __extends(FisheyeSource, _super);
+    function FisheyeSource(width, height, source, scale, originX, originY, radius) {
+        var _this = _super.call(this, width, height, source) || this;
+        _this.scale = Utils.clamp(scale, -1, 1);
+        _this.radius = radius;
+        _this.origin = new Vec2(originX, originY);
+        return _this;
+    }
+    FisheyeSource.prototype.reverseTransform = function (x, y) {
+        var v = new Vec2(x, y), dv = v.sub(this.origin);
+        if (dv.isZero()) {
+            return v;
+        }
+        var d = dv.length() / this.radius;
+        if (d >= 1) {
+            return v;
+        }
+        if (this.scale < 0) {
+            var coef = Utils.lerp(d, Curve.arc(d), -this.scale);
+            return this.origin.add(dv.mul(coef / d));
+        }
+        else {
+            var coef = Utils.lerp(d, Curve.invArc(d), this.scale);
+            return this.origin.add(dv.mul(coef / d));
+        }
+    };
+    return FisheyeSource;
+}(TransformingSource));
+var AntialiasedSource = (function (_super) {
+    __extends(AntialiasedSource, _super);
+    function AntialiasedSource(width, height, source) {
+        var _this = _super.call(this, width, height) || this;
+        _this.source = source;
+        return _this;
+    }
+    AntialiasedSource.prototype._getColor = function (x, y) {
+        return this.source.getColor(x, y).lerp(this.source.getColor(x + 0.5, y), 0.5).lerp(this.source.getColor(x, y + 0.5).lerp(this.source.getColor(x + 0.5, y + 0.5), 0.5), 0.5);
+    };
+    return AntialiasedSource;
+}(ColorSource));
 var Particle = (function () {
     function Particle() {
     }
@@ -1430,35 +1569,29 @@ var AirTurret = (function (_super) {
         }
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
-        ctx.drawImage(AirTurret.image, -32, -32);
+        ctx.drawImage(AirTurret.image, -24, -8);
         switch (this.type.air()) {
             case 1:
                 ctx.rotate(Angle.deg90);
-                ctx.drawImage(AirTurret.image, -32, -32);
+                ctx.drawImage(AirTurret.image, -24, -8);
                 break;
             case 2:
-                ctx.rotate(Angle.deg60);
-                ctx.drawImage(AirTurret.image, -32, -32);
-                ctx.rotate(Angle.deg60);
-                ctx.drawImage(AirTurret.image, -32, -32);
+                for (var i = 0; i < 2; ++i) {
+                    ctx.rotate(Angle.deg60);
+                    ctx.drawImage(AirTurret.image, -24, -8);
+                }
                 break;
             case 3:
-                ctx.rotate(Angle.deg45);
-                ctx.drawImage(AirTurret.image, -32, -32);
-                ctx.rotate(Angle.deg45);
-                ctx.drawImage(AirTurret.image, -32, -32);
-                ctx.rotate(Angle.deg45);
-                ctx.drawImage(AirTurret.image, -32, -32);
+                for (var i = 0; i < 3; ++i) {
+                    ctx.rotate(Angle.deg45);
+                    ctx.drawImage(AirTurret.image, -24, -8);
+                }
                 break;
             case 4:
-                ctx.rotate(Angle.deg36);
-                ctx.drawImage(AirTurret.image, -32, -32);
-                ctx.rotate(Angle.deg36);
-                ctx.drawImage(AirTurret.image, -32, -32);
-                ctx.rotate(Angle.deg36);
-                ctx.drawImage(AirTurret.image, -32, -32);
-                ctx.rotate(Angle.deg36);
-                ctx.drawImage(AirTurret.image, -32, -32);
+                for (var i = 0; i < 4; ++i) {
+                    ctx.rotate(Angle.deg36);
+                    ctx.drawImage(AirTurret.image, -24, -8);
+                }
                 break;
         }
         ctx.resetTransform();
@@ -1483,19 +1616,19 @@ var AirTurret = (function (_super) {
         }
     };
     AirTurret.init = function () {
-        var c = new PreRenderedImage(64, 64);
+        var c = new PreRenderedImage(48, 16);
         var renderable = new RenderablePathSet();
         var path = new Path2D();
-        path.ellipse(44, 32, 12, 8, 0, 0, Angle.deg180);
-        var grad = c.ctx.createLinearGradient(32, 32, 32, 40);
+        path.ellipse(36, 8, 12, 8, 0, 0, Angle.deg180);
+        var grad = c.ctx.createLinearGradient(24, 8, 24, 16);
         renderable.pushNew(path, grad);
         path = new Path2D();
-        path.ellipse(20, 32, 12, 8, 0, Angle.deg180, 0);
-        grad = c.ctx.createLinearGradient(32, 32, 32, 24);
+        path.ellipse(12, 8, 12, 8, 0, Angle.deg180, 0);
+        grad = c.ctx.createLinearGradient(24, 8, 24, 0);
         renderable.pushNew(path, grad);
         path = new Path2D();
-        path.arc(32, 32, 8, 0, Angle.deg360);
-        grad = c.ctx.createRadialGradient(32, 32, 8, 32, 32, 4);
+        path.arc(24, 8, 8, 0, Angle.deg360);
+        grad = c.ctx.createRadialGradient(24, 8, 8, 24, 8, 4);
         renderable.pushNew(path, grad);
         for (var _i = 0, _a = renderable.paths; _i < _a.length; _i++) {
             var rp = _a[_i];
@@ -1506,7 +1639,7 @@ var AirTurret = (function (_super) {
         }
         renderable.render(c.ctx);
         if (Game.saveImages) {
-            c.saveImage("td_tower_Aefw_air_strip1");
+            c.cacheImage("td_tower_Aefw_air");
         }
         AirTurret.image = c.image;
     };
@@ -1525,7 +1658,7 @@ var EarthTurret = (function (_super) {
         if (preRender) {
             return;
         }
-        ctx.drawImage(EarthTurret.images, this.type.earth() * 64 - 64, 0, 64, 64, this.tile.pos.x, this.tile.pos.y, 64, 64);
+        ctx.drawImage(EarthTurret.images, 0, this.type.earth() * 48 - 48, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48);
     };
     EarthTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
@@ -1547,118 +1680,118 @@ var EarthTurret = (function (_super) {
         }
     };
     EarthTurret.init = function () {
-        var c = new PreRenderedImage(256, 64);
+        var c = new PreRenderedImage(48, 192);
         EarthTurret.preRender1(c.ctx, 0);
-        EarthTurret.preRender2(c.ctx, 64);
-        EarthTurret.preRender3(c.ctx, 128);
-        EarthTurret.preRender4(c.ctx, 192);
+        EarthTurret.preRender2(c.ctx, 48);
+        EarthTurret.preRender3(c.ctx, 96);
+        EarthTurret.preRender4(c.ctx, 144);
         if (Game.saveImages) {
-            c.saveImage("td_tower_aEfw_earth_strip1");
+            c.cacheImage("td_tower_aEfw_earth");
         }
         EarthTurret.images = c.image;
     };
-    EarthTurret.preRender1 = function (ctx, x) {
+    EarthTurret.preRender1 = function (ctx, y) {
         var renderable = new RenderablePathSet();
         var path;
         var grad;
-        var corners = [{ x: 22, y: 22 }, { x: 42, y: 22 }, { x: 22, y: 42 }, { x: 42, y: 42 }];
+        var corners = [{ x: 14, y: 14 }, { x: 34, y: 14 }, { x: 14, y: 34 }, { x: 34, y: 34 }];
         for (var _i = 0, corners_1 = corners; _i < corners_1.length; _i++) {
             var corner = corners_1[_i];
             path = new Path2D();
-            path.arc(x + corner.x, corner.y, 10, 0, Angle.deg360);
-            grad = ctx.createRadialGradient(x + corner.x, corner.y, 5, x + corner.x, corner.y, 10);
+            path.arc(corner.x, y + corner.y, 10, 0, Angle.deg360);
+            grad = ctx.createRadialGradient(corner.x, y + corner.y, 5, corner.x, y + corner.y, 10);
             grad.addColorStop(0, "#90d173");
             grad.addColorStop(1, "#6ba370");
             renderable.pushNew(path, grad);
         }
-        renderable.pushPolygon([20, 24, 24, 20, 44, 40, 40, 44], "#90d173", x);
-        renderable.pushPolygon([44, 24, 40, 20, 20, 40, 24, 44], "#90d173", x);
+        renderable.pushPolygon([12, 16, 16, 12, 36, 32, 32, 36], "#90d173", 0, y);
+        renderable.pushPolygon([36, 16, 32, 12, 12, 32, 16, 36], "#90d173", 0, y);
         path = new Path2D();
-        path.arc(x + 32, 32, 6, 0, Angle.deg360);
-        grad = ctx.createRadialGradient(x + 32, 32, 2, x + 32, 32, 6);
+        path.arc(24, y + 24, 6, 0, Angle.deg360);
+        grad = ctx.createRadialGradient(24, y + 24, 2, 24, y + 24, 6);
         grad.addColorStop(0, "#beefa7");
         grad.addColorStop(1, "#90d173");
         renderable.pushNew(path, grad);
         renderable.render(ctx);
     };
-    EarthTurret.preRender2 = function (ctx, x) {
+    EarthTurret.preRender2 = function (ctx, y) {
         var renderable = new RenderablePathSet();
         var path;
         var grad;
-        var corners = [{ x: 21, y: 21 }, { x: 43, y: 21 }, { x: 21, y: 43 }, { x: 43, y: 43 }];
+        var corners = [{ x: 13, y: 13 }, { x: 35, y: 13 }, { x: 13, y: 35 }, { x: 35, y: 35 }];
         for (var _i = 0, corners_2 = corners; _i < corners_2.length; _i++) {
             var corner = corners_2[_i];
             path = new Path2D();
-            path.arc(x + corner.x, corner.y, 10, 0, Angle.deg360);
-            grad = ctx.createRadialGradient(x + corner.x, corner.y, 5, x + corner.x, corner.y, 10);
+            path.arc(corner.x, y + corner.y, 10, 0, Angle.deg360);
+            grad = ctx.createRadialGradient(corner.x, y + corner.y, 5, corner.x, y + corner.y, 10);
             grad.addColorStop(0, "#6fd243");
             grad.addColorStop(1, "#54a45b");
             renderable.pushNew(path, grad);
         }
-        renderable.pushPolygon([20, 24, 24, 20, 44, 40, 40, 44], "#6fd243", x);
-        renderable.pushPolygon([44, 24, 40, 20, 20, 40, 24, 44], "#6fd243", x);
+        renderable.pushPolygon([12, 16, 16, 12, 36, 32, 32, 36], "#6fd243", 0, y);
+        renderable.pushPolygon([36, 16, 32, 12, 12, 32, 16, 36], "#6fd243", 0, y);
         path = new Path2D();
-        path.arc(x + 32, 32, 6, 0, Angle.deg360);
-        grad = ctx.createRadialGradient(x + 32, 32, 2, x + 32, 32, 6);
+        path.arc(24, y + 24, 6, 0, Angle.deg360);
+        grad = ctx.createRadialGradient(24, y + 24, 2, 24, y + 24, 6);
         grad.addColorStop(0, "#a6f083");
         grad.addColorStop(1, "#6fd243");
         renderable.pushNew(path, grad);
         renderable.render(ctx);
     };
-    EarthTurret.preRender3 = function (ctx, x) {
+    EarthTurret.preRender3 = function (ctx, y) {
         var renderable = new RenderablePathSet();
         var path;
         var grad;
-        var corners = [{ x: 20, y: 20 }, { x: 44, y: 20 }, { x: 20, y: 44 }, { x: 44, y: 44 }];
+        var corners = [{ x: 12, y: 12 }, { x: 36, y: 12 }, { x: 12, y: 36 }, { x: 36, y: 36 }];
         for (var _i = 0, corners_3 = corners; _i < corners_3.length; _i++) {
             var corner = corners_3[_i];
             path = new Path2D();
-            path.arc(x + corner.x, corner.y, 11, 0, Angle.deg360);
-            grad = ctx.createRadialGradient(x + corner.x, corner.y, 5, x + corner.x, corner.y, 10);
+            path.arc(corner.x, y + corner.y, 11, 0, Angle.deg360);
+            grad = ctx.createRadialGradient(corner.x, y + corner.y, 5, corner.x, y + corner.y, 10);
             grad.addColorStop(0, "#4ed314");
             grad.addColorStop(1, "#3da547");
             renderable.pushNew(path, grad);
         }
-        renderable.pushPolygon([19, 25, 25, 19, 45, 39, 39, 45], "#4ed314", x);
-        renderable.pushPolygon([45, 25, 39, 19, 19, 39, 25, 45], "#4ed314", x);
+        renderable.pushPolygon([11, 17, 17, 11, 37, 31, 31, 37], "#4ed314", 0, y);
+        renderable.pushPolygon([37, 17, 31, 11, 11, 31, 17, 37], "#4ed314", 0, y);
         path = new Path2D();
-        path.arc(x + 32, 32, 8, 0, Angle.deg360);
-        grad = ctx.createRadialGradient(x + 32, 32, 3, x + 32, 32, 8);
+        path.arc(24, y + 24, 8, 0, Angle.deg360);
+        grad = ctx.createRadialGradient(24, y + 24, 3, 24, y + 24, 8);
         grad.addColorStop(0, "#8ef260");
         grad.addColorStop(1, "#4ed314");
         renderable.pushNew(path, grad);
         renderable.render(ctx);
     };
-    EarthTurret.preRender4 = function (ctx, x) {
+    EarthTurret.preRender4 = function (ctx, y) {
         var grad;
-        var tex1 = new CamouflageTextureGenerator(64, 64, "#825D30", "#308236", 0.5);
-        var tex2 = new CamouflageTextureGenerator(64, 64, "#92A33C", "#4ED314", 0.5);
+        var tex1 = new CamouflageTextureGenerator(48, 48, "#825D30", "#308236", 0.5);
+        var tex2 = new CamouflageTextureGenerator(48, 48, "#92A33C", "#4ED314", 0.5);
         var src = RgbaColor.transparent.source();
-        var corners = [{ x: 20, y: 20 }, { x: 44, y: 20 }, { x: 20, y: 44 }, { x: 44, y: 44 }];
+        var corners = [{ x: 12, y: 12 }, { x: 36, y: 12 }, { x: 12, y: 36 }, { x: 36, y: 36 }];
         for (var _i = 0, corners_4 = corners; _i < corners_4.length; _i++) {
             var corner = corners_4[_i];
-            grad = new RadialGradientSource(64, 64, corner.x, corner.y, 12, 6);
+            grad = new RadialGradientSource(48, 48, corner.x, corner.y, 12, 6);
             grad.addColorStop(0, "#825D3000");
             grad.addColorStop(0.2, tex1);
             grad.addColorStop(1, tex2);
-            src = new EllipseSource(64, 64, corner.x, corner.y, 12, 12, grad, src);
+            src = new CircleSource(48, 48, corner.x, corner.y, 12.5, grad, src);
         }
         var path = new Path2D;
-        path.moveTo(18, 26);
-        path.lineTo(26, 18);
-        path.lineTo(46, 38);
-        path.lineTo(38, 46);
+        path.moveTo(10, 18);
+        path.lineTo(18, 10);
+        path.lineTo(38, 30);
+        path.lineTo(30, 38);
         path.closePath();
-        path.moveTo(46, 26);
-        path.lineTo(38, 18);
+        path.moveTo(38, 18);
+        path.lineTo(30, 10);
+        path.lineTo(10, 30);
         path.lineTo(18, 38);
-        path.lineTo(26, 46);
         path.closePath();
-        src = new PathSource(64, 64, path, tex2, src);
-        grad = new RadialGradientSource(64, 64, 32, 32, 10, 4);
+        src = new PathSource(48, 48, path, tex2, src);
+        grad = new RadialGradientSource(48, 48, 24, 24, 10, 4);
         grad.addColorStop(0, tex2);
         grad.addColorStop(1, "#B6FF00");
-        ctx.drawImage(new EllipseSource(64, 64, 32, 32, 10.5, 10.5, grad, src).generateImage(), x, 0);
+        ctx.drawImage(new CircleSource(48, 48, 24, 24, 10.5, grad, src).generateImage(), 0, y);
     };
     return EarthTurret;
 }(Turret));
@@ -1693,7 +1826,7 @@ var FireTurret = (function (_super) {
         if (preRender) {
             return;
         }
-        var r = 20 + 3 * this.type.fire();
+        var r = 16 + 2 * this.type.fire();
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
         ctx.drawImage(FireTurret.image, -r, -r, r * 2, r * 2);
@@ -1719,24 +1852,24 @@ var FireTurret = (function (_super) {
         }
     };
     FireTurret.init = function () {
-        var c = new PreRenderedImage(64, 64);
-        var texLava = new CellularTextureGenerator(64, 64, 36, "#FF5020", "#C00000", CellularTextureType.Balls);
-        var texRock = new CellularTextureGenerator(64, 64, 144, "#662D22", "#44150D", CellularTextureType.Balls);
+        var c = new PreRenderedImage(48, 48);
+        var texLava = new CellularTextureGenerator(48, 48, 36, "#FF5020", "#C00000", CellularTextureType.Balls);
+        var texRock = new CellularTextureGenerator(48, 48, 144, "#662D22", "#44150D", CellularTextureType.Balls);
         var renderable = new RenderablePathSet();
         var path = new Path2D();
         for (var k = 0; k < 36; ++k) {
             var radius = 20 + 4 * Math.random();
             var a = k * Angle.deg10;
             if (k === 0) {
-                path.moveTo(Utils.ldx(radius, a, 32), Utils.ldy(radius, a, 32));
+                path.moveTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24));
             }
             else {
-                path.lineTo(Utils.ldx(radius, a, 32), Utils.ldy(radius, a, 32));
+                path.lineTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24));
             }
         }
         path.closePath();
         renderable.pushNew(path, c.ctx.createPattern(texRock.generateImage(), "no-repeat"));
-        var grad = c.ctx.createRadialGradient(32, 32, 24, 32, 32, 10);
+        var grad = c.ctx.createRadialGradient(24, 24, 24, 24, 24, 10);
         grad.addColorStop(0, "#300000");
         grad.addColorStop(1, "#30000000");
         renderable.pushNew(path, grad);
@@ -1745,17 +1878,17 @@ var FireTurret = (function (_super) {
             var radius = 9 + 2 * Math.random();
             var a = k * Angle.deg20;
             if (k === 0) {
-                path.moveTo(Utils.ldx(radius, a, 32), Utils.ldy(radius, a, 32));
+                path.moveTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24));
             }
             else {
-                path.lineTo(Utils.ldx(radius, a, 32), Utils.ldy(radius, a, 32));
+                path.lineTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24));
             }
         }
         path.closePath();
         renderable.pushNew(path, c.ctx.createPattern(texLava.generateImage(), "no-repeat"));
         renderable.render(c.ctx);
         if (Game.saveImages) {
-            c.saveImage("td_tower_aeFw_fire_strip1");
+            c.cacheImage("td_tower_aeFw_fire");
         }
         FireTurret.image = c.image;
     };
@@ -1778,7 +1911,7 @@ var WaterTurret = (function (_super) {
         }
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
-        ctx.drawImage(WaterTurret.images, (this.type.count() - 1) * 64, 0, 64, 64, -32, -32, 64, 64);
+        ctx.drawImage(WaterTurret.images, 0, (this.type.count() - 1) * 48, 48, 48, -24, -24, 48, 48);
         ctx.resetTransform();
     };
     WaterTurret.prototype.addType = function (type) {
@@ -1801,15 +1934,15 @@ var WaterTurret = (function (_super) {
         }
     };
     WaterTurret.init = function () {
-        var sandTex = new NoiseTextureGenerator(64, 64, "#F2EBC1", 0.08, 0, 1).generateImage();
-        var groundTex = new NoiseTextureGenerator(64, 64, "#B9B5A0", 0.05, 0, 1).generateImage();
-        var c = new PreRenderedImage(256, 64);
-        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), 9, 9, 46, 46);
-        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), 70, 6, 52, 52);
-        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), 131, 3, 58, 58);
-        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), 192, 0);
+        var sandTex = new NoiseTextureGenerator(48, 48, "#F2EBC1", 0.08, 0, 1).generateImage();
+        var groundTex = new NoiseTextureGenerator(48, 48, "#B9B5A0", 0.05, 0, 1).generateImage();
+        var c = new PreRenderedImage(48, 192);
+        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), 1, 1, 46, 46);
+        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -2, 46, 52, 52);
+        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -5, 91, 58, 58);
+        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -8, 136);
         if (Game.saveImages) {
-            c.saveImage("td_tower_aefW_water_strip4");
+            c.cacheImage("td_tower_aefW_water");
         }
         WaterTurret.images = c.image;
     };
@@ -1874,7 +2007,7 @@ var IceTurret = (function (_super) {
         var i = Utils.sign(this.type.water() - this.type.air()) + 1;
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
-        ctx.drawImage(IceTurret.images, i * 64, 0, 64, 64, -r, -r, r * 2, r * 2);
+        ctx.drawImage(IceTurret.images, 0, i * 64, 64, 64, -r, -r, r * 2, r * 2);
         ctx.resetTransform();
     };
     IceTurret.prototype.addType = function (type) {
@@ -1895,18 +2028,18 @@ var IceTurret = (function (_super) {
         }
     };
     IceTurret.init = function () {
-        var tex = new CellularTextureGenerator(64, 64, 64, "#D1EFFF", "#70BECC", CellularTextureType.Lava);
-        var c = new PreRenderedImage(192, 64);
+        var tex = new CellularTextureGenerator(64, 64, 64, "#D1EFFF", "#70BECC", CellularTextureType.Cells);
+        var c = new PreRenderedImage(64, 192);
         var c2 = new PreRenderedImage(64, 64);
         var fill = c2.ctx.createPattern(tex.generateImage(), "repeat");
         IceTurret.preRender(c2.ctx, 0, fill, true);
         c.ctx.drawImage(c2.image, 0, 0);
-        c.ctx.drawImage(c2.image, 64, 0);
-        c.ctx.drawImage(c2.image, 128, 0);
+        c.ctx.drawImage(c2.image, 0, 64);
+        c.ctx.drawImage(c2.image, 0, 128);
         IceTurret.preRender(c.ctx, 0, "#FFFFFF80");
         IceTurret.preRender(c.ctx, 128, "#51AFCC60");
         if (Game.saveImages) {
-            c.saveImage("td_tower_AefW_ice_strip3");
+            c.cacheImage("td_tower_AefW_ice");
         }
         IceTurret.images = c.image;
     };
@@ -1945,7 +2078,7 @@ var IceTurret = (function (_super) {
             ctx.stroke();
         }
     };
-    IceTurret.preRender = function (ctx, baseX, fill, drawCenter) {
+    IceTurret.preRender = function (ctx, baseY, fill, drawCenter) {
         if (drawCenter === void 0) { drawCenter = false; }
         ctx.save();
         ctx.lineCap = "round";
@@ -1954,19 +2087,19 @@ var IceTurret = (function (_super) {
         for (var k = 0; k < 6; ++k) {
             var a = k * Angle.deg60;
             if (k === 0) {
-                centerPath.moveTo(baseX + Utils.ldx(8, a, 32), Utils.ldy(8, a, 32));
+                centerPath.moveTo(Utils.ldx(8, a, 32), baseY + Utils.ldy(8, a, 32));
             }
             else {
-                centerPath.lineTo(baseX + Utils.ldx(8, a, 32), Utils.ldy(8, a, 32));
+                centerPath.lineTo(Utils.ldx(8, a, 32), baseY + Utils.ldy(8, a, 32));
             }
-            IceTurret.mkBranch(ctx, baseX + Utils.ldx(8, a, 32), Utils.ldy(8, a, 32), a, 3);
+            IceTurret.mkBranch(ctx, Utils.ldx(8, a, 32), baseY + Utils.ldy(8, a, 32), a, 3);
         }
         centerPath.closePath();
         ctx.restore();
         ctx.fillStyle = fill;
         ctx.fill(centerPath);
         if (drawCenter) {
-            var grad = ctx.createRadialGradient(baseX + 32, 32, 0, baseX + 32, 32, 6);
+            var grad = ctx.createRadialGradient(32, baseY + 32, 0, 32, baseY + 32, 6);
             grad.addColorStop(0, "#FFFFFF");
             grad.addColorStop(1, "#D1EFFF00");
             ctx.fillStyle = grad;
@@ -1991,7 +2124,7 @@ var AcidTurret = (function (_super) {
         if (preRender) {
             return;
         }
-        ctx.drawImage(AcidTurret.images, Math.floor(this.frame) * 64, (this.type.water() + this.type.earth() - 2) * 64, 64, 64, this.tile.pos.x, this.tile.pos.y, 64, 64);
+        ctx.drawImage(AcidTurret.images, Math.floor(this.frame) * 48, (this.type.water() + this.type.earth() - 2) * 48, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48);
     };
     AcidTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
@@ -2011,31 +2144,31 @@ var AcidTurret = (function (_super) {
         }
     };
     AcidTurret.init = function () {
-        var acidTex = new CellularTextureGenerator(64, 64, 9, "#E0FF00", "#5B7F00", CellularTextureType.Balls).generateImage();
-        AcidTurret.frameCount = 100;
-        var c = new PreRenderedImage(64 * AcidTurret.frameCount, 192);
+        var acidTex = new CellularTextureGenerator(32, 32, 9, "#E0FF00", "#5B7F00", CellularTextureType.Balls).generateImage();
+        AcidTurret.frameCount = 50;
+        var c = new PreRenderedImage(48 * AcidTurret.frameCount, 144);
         for (var i = 0; i < AcidTurret.frameCount; ++i) {
             AcidTurret.preRenderFrame(acidTex, c.ctx, i);
         }
         if (Game.saveImages) {
-            c.saveImage("td_tower_aEfW_acid_strip" + AcidTurret.frameCount);
+            c.cacheImage("td_tower_aEfW_acid_strip" + AcidTurret.frameCount);
         }
         AcidTurret.images = c.image;
     };
     AcidTurret.preRenderFrame = function (texture, targetCtx, frame) {
         var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-        var offset = frame / AcidTurret.frameCount * 64;
-        var c0 = new PreRenderedImage(64, 64);
-        var c1 = new PreRenderedImage(64, 64);
-        var c2 = new PreRenderedImage(64, 64);
+        var offset = frame / AcidTurret.frameCount * 32;
+        var c0 = new PreRenderedImage(48, 48);
+        var c1 = new PreRenderedImage(48, 48);
+        var c2 = new PreRenderedImage(48, 48);
         var c = [c0, c1, c2];
         var ctx = c0.ctx;
         ctx.beginPath();
-        ctx.moveTo(26, 20);
-        ctx.arcTo(44, 20, 44, 26, 6);
-        ctx.arcTo(44, 44, 38, 44, 6);
-        ctx.arcTo(20, 44, 20, 38, 6);
-        ctx.arcTo(20, 20, 26, 20, 6);
+        ctx.moveTo(18, 12);
+        ctx.arcTo(36, 12, 36, 18, 6);
+        ctx.arcTo(36, 36, 30, 36, 6);
+        ctx.arcTo(12, 36, 12, 30, 6);
+        ctx.arcTo(12, 12, 18, 12, 6);
         ctx.closePath();
         ctx.fillStyle = "#B0B0B0";
         ctx.fill();
@@ -2058,7 +2191,7 @@ var AcidTurret = (function (_super) {
             ctx.fillStyle = pattern;
             ctx.fillRect(1, 1, w - 2, w - 2);
             ctx = c[i].ctx;
-            ctx.translate(32, 32);
+            ctx.translate(24, 24);
             ctx.drawImage(ca.image, 12, -4 - i);
             ctx.rotate(Angle.deg90);
             ctx.drawImage(ca.image, 12, -4 - i);
@@ -2071,21 +2204,21 @@ var AcidTurret = (function (_super) {
             pattern.setTransform(svg.createSVGMatrix().translate(offset, offset));
             ctx.fillStyle = pattern;
             ctx.beginPath();
-            ctx.arc(32, 32, 6 + i, 0, Angle.deg360);
+            ctx.arc(24, 24, 6 + i, 0, Angle.deg360);
             ctx.closePath();
             ctx.fill();
             ctx.fillStyle = "#60606080";
             ctx.fill();
-            var grad = ctx.createLinearGradient(25 - i / 2, 25 - i / 2, 38 + i / 2, 38 + i / 2);
+            var grad = ctx.createLinearGradient(17 - i / 2, 17 - i / 2, 30 + i / 2, 30 + i / 2);
             grad.addColorStop(0, "#808080");
             grad.addColorStop(1, "#404040");
             ctx.strokeStyle = grad;
             ctx.lineWidth = 2 + i;
             ctx.stroke();
         }
-        targetCtx.drawImage(c0.image, frame * 64, 0);
-        targetCtx.drawImage(c1.image, frame * 64, 64);
-        targetCtx.drawImage(c2.image, frame * 64, 128);
+        targetCtx.drawImage(c0.image, frame * 48, 0);
+        targetCtx.drawImage(c1.image, frame * 48, 48);
+        targetCtx.drawImage(c2.image, frame * 48, 96);
     };
     return AcidTurret;
 }(Turret));
@@ -2107,11 +2240,11 @@ var CannonTurret = (function (_super) {
         if (preRender) {
             return;
         }
-        var r = 24 + 2 * this.type.earth() + 2 * this.type.fire();
+        var r = 12 + this.type.earth() + this.type.fire();
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
         ctx.translate(-2 * this.cooldown, 0);
-        ctx.drawImage(CannonTurret.image, -r, -r, r * 2, r * 2);
+        ctx.drawImage(CannonTurret.image, -r * 2, -r, r * 4, r * 2);
         ctx.resetTransform();
     };
     CannonTurret.prototype.addType = function (type) {
@@ -2132,9 +2265,9 @@ var CannonTurret = (function (_super) {
         }
     };
     CannonTurret.init = function () {
-        var c = new PreRenderedImage(64, 64);
+        var c = new PreRenderedImage(64, 32);
         var ctx = c.ctx;
-        var grad = ctx.createLinearGradient(20, 32, 40, 32);
+        var grad = ctx.createLinearGradient(20, 16, 40, 16);
         grad.addColorStop(0.000, "#543B2C");
         grad.addColorStop(0.125, "#664936");
         grad.addColorStop(0.250, "#6C4D38");
@@ -2145,14 +2278,14 @@ var CannonTurret = (function (_super) {
         grad.addColorStop(0.875, "#664936");
         grad.addColorStop(1.000, "#543B2C");
         ctx.fillStyle = grad;
-        ctx.fillRect(20, 19, 20, 26);
+        ctx.fillRect(20, 3, 20, 26);
         ctx.beginPath();
-        ctx.arc(20, 32, 7, Angle.deg90, Angle.deg270);
-        ctx.arcTo(42, 25, 52, 28, 50);
-        ctx.arc(54, 28, 2, Angle.deg180, Angle.deg360);
-        ctx.lineTo(56, 36);
-        ctx.arc(54, 36, 2, 0, Angle.deg180);
-        ctx.arcTo(45, 39, 38, 39, 50);
+        ctx.arc(20, 16, 7, Angle.deg90, Angle.deg270);
+        ctx.arcTo(42, 9, 52, 12, 50);
+        ctx.arc(54, 12, 2, Angle.deg180, Angle.deg360);
+        ctx.lineTo(56, 20);
+        ctx.arc(54, 20, 2, 0, Angle.deg180);
+        ctx.arcTo(45, 23, 38, 23, 50);
         ctx.closePath();
         ctx.strokeStyle = "#101010";
         ctx.lineWidth = 2;
@@ -2160,12 +2293,12 @@ var CannonTurret = (function (_super) {
         ctx.fillStyle = "#303030";
         ctx.fill();
         ctx.beginPath();
-        ctx.moveTo(52, 28);
-        ctx.lineTo(52, 36);
+        ctx.moveTo(52, 12);
+        ctx.lineTo(52, 20);
         ctx.lineWidth = 1;
         ctx.stroke();
         if (Game.saveImages) {
-            c.saveImage("td_tower_aEFw_cannon_strip1");
+            c.cacheImage("td_tower_aEFw_cannon");
         }
         CannonTurret.image = c.image;
     };
@@ -2206,7 +2339,7 @@ var ArcherTurret = (function (_super) {
     ArcherTurret.init = function () {
         var c = new PreRenderedImage(64, 64);
         if (Game.saveImages) {
-            c.saveImage("td_tower_AEfw_archer_strip1");
+            c.cacheImage("td_tower_AEfw_archer");
         }
         ArcherTurret.image = c.image;
     };
@@ -2228,7 +2361,10 @@ var LightningTurret = (function (_super) {
         if (preRender) {
             return;
         }
-        ctx.drawImage(LightningTurret.images, Math.floor(this.animationTimer * 8) * 64, 0, 64, 64, this.tile.pos.x, this.tile.pos.y, 64, 64);
+        ctx.translate(this.center.x, this.center.y);
+        ctx.rotate(-Math.floor(this.animationTimer * 8) * Angle.deg45);
+        ctx.drawImage(LightningTurret.image, -24, -24);
+        ctx.resetTransform();
     };
     LightningTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
@@ -2248,22 +2384,19 @@ var LightningTurret = (function (_super) {
         }
     };
     LightningTurret.init = function () {
-        var c = [];
-        for (var i = 0; i < 8; ++i) {
-            c[i] = new PreRenderedImage(64, 64);
-        }
-        var ctx = c[0].ctx;
-        var grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 18);
+        var c = new PreRenderedImage(48, 48);
+        var ctx = c.ctx;
+        var grad = ctx.createRadialGradient(24, 24, 0, 24, 24, 18);
         grad.addColorStop(0, "#FFFFFF");
         grad.addColorStop(0.33, "#A97FFF");
         grad.addColorStop(1, "#D6BFFF");
         ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.moveTo(50, 32);
+        ctx.moveTo(42, 24);
         for (var i = 1; i < 16; ++i) {
             var r = i % 2 == 0 ? 21 : 7;
             var a = i * Angle.deg45 / 2;
-            ctx.lineTo(Utils.ldx(r, a, 32), Utils.ldy(r, a, 32));
+            ctx.lineTo(Utils.ldx(r, a, 24), Utils.ldy(r, a, 24));
         }
         ctx.closePath();
         ctx.fill();
@@ -2274,38 +2407,25 @@ var LightningTurret = (function (_super) {
         var j = true;
         for (var i = 0; i < 8; ++i, j = !j) {
             var a = i * Angle.deg45;
-            ctx.translate(Utils.ldx(18, a, 32), Utils.ldy(18, a, 32));
+            ctx.translate(Utils.ldx(18, a, 24), Utils.ldy(18, a, 24));
             if (j) {
                 ctx.rotate(Angle.deg45);
             }
             ctx.fillRect(-3, -3, 6, 6);
             ctx.resetTransform();
         }
-        for (var i = 1; i < 8; ++i) {
-            c[i].ctx.drawImage(c[0].image, 0, 0);
-        }
-        for (var i = 0; i < 8; ++i, j = !j) {
-            ctx = c[7 - i].ctx;
-            grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 8);
-            grad.addColorStop(0, "#FFFFFFC0");
-            grad.addColorStop(1, "#F8F2FF00");
-            ctx.fillStyle = grad;
-            var a = i * Angle.deg45;
-            ctx.translate(Utils.ldx(18, a, 32), Utils.ldy(18, a, 32));
-            ctx.beginPath();
-            ctx.arc(0, 0, 8, 0, Angle.deg360);
-            ctx.closePath();
-            ctx.fill();
-            ctx.resetTransform();
-        }
-        var c2 = new PreRenderedImage(8 * 64, 64);
-        for (var i = 0; i < 8; ++i) {
-            c2.ctx.drawImage(c[i].image, i * 64, 0);
-        }
+        grad = ctx.createRadialGradient(42, 24, 0, 42, 24, 8);
+        grad.addColorStop(0, "#FFFFFFC0");
+        grad.addColorStop(1, "#F8F2FF00");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(42, 24, 8, 0, Angle.deg360);
+        ctx.closePath();
+        ctx.fill();
         if (Game.saveImages) {
-            c2.saveImage("td_tower_AeFw_lightning_strip8");
+            c.cacheImage("td_tower_AeFw_lightning");
         }
-        LightningTurret.images = c2.image;
+        LightningTurret.image = c.image;
     };
     return LightningTurret;
 }(Turret));
@@ -2344,7 +2464,7 @@ var FlamethrowerTurret = (function (_super) {
     FlamethrowerTurret.init = function () {
         var c = new PreRenderedImage(64, 64);
         if (Game.saveImages) {
-            c.saveImage("td_tower_aeFW_flamethrower_strip1");
+            c.cacheImage("td_tower_aeFW_flamethrower");
         }
         FlamethrowerTurret.image = c.image;
     };
@@ -2355,6 +2475,7 @@ var SunTurret = (function (_super) {
     function SunTurret(tile, type) {
         var _this = _super.call(this, tile, type) || this;
         _this.frame = Utils.rand(0, SunTurret.frameCount);
+        _this.angle = Angle.rand();
         return _this;
     }
     SunTurret.prototype.step = function (time) {
@@ -2366,8 +2487,13 @@ var SunTurret = (function (_super) {
         if (preRender) {
             return;
         }
-        var r = 16 + 4 * this.type.count();
-        ctx.drawImage(SunTurret.images, Math.floor(this.frame) * 64, 0, 64, 64, this.center.x - r, this.center.y - r, r * 2, r * 2);
+        var r = 28 + 4 * (this.type.count() - 3);
+        ctx.translate(this.center.x, this.center.y);
+        ctx.rotate(this.angle);
+        ctx.drawImage(SunTurret.image, -r, -r, r * 2, r * 2);
+        ctx.rotate(this.frame / SunTurret.frameCount * Angle.deg30);
+        ctx.drawImage(SunTurret.image, -r, -r, r * 2, r * 2);
+        ctx.resetTransform();
     };
     SunTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
@@ -2387,7 +2513,6 @@ var SunTurret = (function (_super) {
     SunTurret.init = function () {
         SunTurret.frameCount = 90;
         var c = new PreRenderedImage(64, 64);
-        var c2 = new PreRenderedImage(SunTurret.frameCount * 64, 64);
         var ctx = c.ctx;
         var grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
         grad.addColorStop(0.00000, "#FFFF40");
@@ -2409,38 +2534,31 @@ var SunTurret = (function (_super) {
             ctx.lineTo(Utils.ldx(32, a2, 32), Utils.ldy(32, a2, 32));
         }
         ctx.fill();
-        for (var i = 0; i < SunTurret.frameCount; ++i) {
-            SunTurret.preRenderFrame(c.image, c2.ctx, i);
-        }
         if (Game.saveImages) {
-            c2.saveImage("td_tower_AEFw_sun_strip" + SunTurret.frameCount);
+            c.cacheImage("td_tower_AEFw_sun");
         }
-        SunTurret.images = c2.image;
-    };
-    SunTurret.preRenderFrame = function (texture, ctx, frame) {
-        var offset = frame / SunTurret.frameCount * Angle.deg30;
-        ctx.translate(frame * 64 + 32, 32);
-        ctx.drawImage(texture, -32, -32);
-        ctx.rotate(offset);
-        ctx.drawImage(texture, -32, -32);
-        ctx.resetTransform();
+        SunTurret.image = c.image;
     };
     return SunTurret;
 }(Turret));
 var MoonTurret = (function (_super) {
     __extends(MoonTurret, _super);
     function MoonTurret(tile, type) {
-        return _super.call(this, tile, type) || this;
+        var _this = _super.call(this, tile, type) || this;
+        _this.frame = Utils.rand(0, MoonTurret.frameCount);
+        return _this;
     }
     MoonTurret.prototype.step = function (time) {
         _super.prototype.step.call(this, time);
+        this.frame = (this.frame + time * 25) % MoonTurret.frameCount;
     };
     MoonTurret.prototype.render = function (ctx, preRender) {
         _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
-        ctx.drawImage(MoonTurret.image, this.tile.pos.x, this.tile.pos.y);
+        var r = 28 + 4 * (this.type.count() - 3);
+        ctx.drawImage(MoonTurret.images, Math.floor(this.frame) * 64, 0, 64, 64, this.center.x - r, this.center.y - r, r * 2, r * 2);
     };
     MoonTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
@@ -2458,11 +2576,32 @@ var MoonTurret = (function (_super) {
         }
     };
     MoonTurret.init = function () {
-        var c = new PreRenderedImage(64, 64);
-        if (Game.saveImages) {
-            c.saveImage("td_tower_AEfW_moon_strip1");
+        MoonTurret.frameCount = 50;
+        var c = new PreRenderedImage(MoonTurret.frameCount * 64, 64);
+        var colorA = ColorSource.get("#E0E0E0");
+        var colorB = ColorSource.get("#FFFFFF00");
+        var s = new CellularTextureGenerator(64, 32, 49, "#A0A0A0", colorA, CellularTextureType.Balls);
+        for (var i = 0; i < 3; ++i) {
+            s = new CellularTextureGenerator(64, 32, 49, s, colorA, CellularTextureType.Cells);
         }
-        MoonTurret.image = c.image;
+        s = new BufferedColorSource(64, 32, s);
+        var p = new PerlinNoiseTextureGenerator(64, 64, "#FFFFFF00", "#FFFFFF80", 0.4);
+        for (var i = 0; i < MoonTurret.frameCount; ++i) {
+            var coef = i / MoonTurret.frameCount;
+            var t1 = new TranslatingSource(64, 64, s, -64 * coef, 0);
+            var ns = new ScalingSource(64, 64, t1, 0.5, 32, 32);
+            var t2 = new TranslatingSource(64, 64, p, 64 * coef, 0);
+            var grad = new RadialGradientSource(64, 64, 32, 32, 16, 32);
+            grad.addColorStop(0, t2);
+            grad.addColorStop(1, colorB);
+            ns = new FisheyeSource(64, 64, ns, 0.5, 32, 32, 16);
+            ns = new CircleSource(64, 64, 32, 32, 16, ns, grad);
+            c.ctx.drawImage(ns.generateImage(), i * 64, 0);
+        }
+        if (Game.saveImages) {
+            c.cacheImage("td_tower_AEfW_moon_strip" + MoonTurret.frameCount);
+        }
+        MoonTurret.images = c.image;
     };
     return MoonTurret;
 }(Turret));
@@ -2500,12 +2639,12 @@ var PlasmaTurret = (function (_super) {
         }
     };
     PlasmaTurret.init = function () {
-        PlasmaTurret.frameCount = 100;
+        PlasmaTurret.frameCount = 65;
         var background = "#552BA800";
         var color1 = new PerlinNoiseTextureGenerator(64, 64, "#4B007A00", "#FFFFFF", 0.5);
         var tex1a = new CirclesTextureGenerator(64, 64, "#A389FFC0", color1, background, 0.4, 2, 0.7);
         var tex1b = new CirclesTextureGenerator(64, 64, "#A389FFC0", color1, background, 0.28, 3, 0.7);
-        var color2 = new PerlinNoiseTextureGenerator(64, 64, "#552BA800", "#AF84FF", 0.5);
+        var color2 = new PerlinNoiseTextureGenerator(64, 64, "#552BA840", "#AF84FF", 0.5);
         var back2 = new LerpingSource(64, 64, background, color2, 0.5);
         var tex2a = new CirclesTextureGenerator(64, 64, color2, back2, background, 0.4, 2, 0.1);
         var tex2b = new CirclesTextureGenerator(64, 64, color2, back2, background, 0.28, 3, 0.1);
@@ -2513,7 +2652,7 @@ var PlasmaTurret = (function (_super) {
         PlasmaTurret.preRender(c.ctx, tex1a, tex2a, 0);
         PlasmaTurret.preRender(c.ctx, tex1b, tex2b, 64);
         if (Game.saveImages) {
-            c.saveImage("td_tower_AeFW_plasma_strip" + PlasmaTurret.frameCount);
+            c.cacheImage("td_tower_AeFW_plasma_strip" + PlasmaTurret.frameCount);
         }
         PlasmaTurret.images = c.image;
     };
@@ -2534,19 +2673,29 @@ var EarthquakeTurret = (function (_super) {
     __extends(EarthquakeTurret, _super);
     function EarthquakeTurret(tile, type) {
         var _this = _super.call(this, tile, type) || this;
-        _this.frame = Utils.rand(0, EarthquakeTurret.frameCount);
+        _this.frame = Utils.rand(0, EarthquakeTurret.totalFrameCount);
         return _this;
     }
     EarthquakeTurret.prototype.step = function (time) {
         _super.prototype.step.call(this, time);
-        this.frame = (this.frame + time * 25) % EarthquakeTurret.frameCount;
+        this.frame = (this.frame + time * 25) % EarthquakeTurret.totalFrameCount;
     };
     EarthquakeTurret.prototype.render = function (ctx, preRender) {
         _super.prototype.render.call(this, ctx, preRender);
         if (preRender) {
             return;
         }
-        ctx.drawImage(EarthquakeTurret.images, Math.floor(this.frame) * 48, (this.type.count() - 3) * 48, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48);
+        var a, b;
+        if (this.type.count() == 3) {
+            a = Math.floor(this.frame / EarthquakeTurret.halfFrameCount);
+            b = Math.floor(this.frame % EarthquakeTurret.halfFrameCount);
+        }
+        else {
+            a = Math.floor(this.frame / EarthquakeTurret.baseFrameCount);
+            b = Math.floor(this.frame % EarthquakeTurret.baseFrameCount) * 2;
+        }
+        ctx.drawImage(EarthquakeTurret.images, a * 48, 0, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48);
+        ctx.drawImage(EarthquakeTurret.images, 192 + b * 48, 0, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48);
     };
     EarthquakeTurret.prototype.addType = function (type) {
         if (this.type.count() >= 4) {
@@ -2564,34 +2713,31 @@ var EarthquakeTurret = (function (_super) {
         }
     };
     EarthquakeTurret.init = function () {
-        EarthquakeTurret.frameCount = 52;
-        var c = new PreRenderedImage(EarthquakeTurret.frameCount * 48, 96);
+        EarthquakeTurret.baseFrameCount = 12;
+        EarthquakeTurret.halfFrameCount = 24;
+        EarthquakeTurret.totalFrameCount = 48;
+        var c = new PreRenderedImage(192 + EarthquakeTurret.halfFrameCount * 48, 48);
         var ctx = c.ctx;
-        var cracks = [];
         for (var i = 0; i < 4; ++i) {
-            cracks.push(new CellularTextureGenerator(48, 48, Utils.randInt(32, 128), "#808080", new PerlinNoiseTextureGenerator(48, 48, RgbaColor.black, "#808080", 0.75), CellularTextureType.Lava, CellularTextureDistanceMetric.Manhattan, Curve.sqr));
+            ctx.drawImage(new CellularTextureGenerator(48, 48, Utils.randInt(32, 128), "#808080", new PerlinNoiseTextureGenerator(48, 48, RgbaColor.black, "#808080", 0.75), CellularTextureType.Cells, CellularTextureDistanceMetric.Manhattan, Curve.sqr).generateImage(), i * 48, 0);
         }
-        var l1 = EarthquakeTurret.frameCount / 2, l2 = EarthquakeTurret.frameCount / 4;
-        for (var i = 0; i < EarthquakeTurret.frameCount; ++i) {
-            var a1 = Math.floor(i / l1), b1 = i / l1 % 1, a2 = Math.floor(i / l2), b2 = i / l2 % 1;
-            ctx.drawImage(new LerpingSource(48, 48, cracks[a1], "#808080", b1).generateImage(), i * 48, 0);
-            ctx.drawImage(new LerpingSource(48, 48, cracks[a2], "#808080", b2).generateImage(), i * 48, 48);
-            for (var x = i * 48 + 24, y = 24; y < 96; y += 48) {
-                var b = y < 48 ? b1 : b2;
-                var grad = ctx.createRadialGradient(0, 0, 4, 0, 0, 12);
-                grad.addColorStop(0.4, RgbaColor.fromHex("#E8E144").lerp(RgbaColor.fromHex("#E86544").lerp(RgbaColor.fromHex("#808080"), b), Curve.arc(b)).toCss());
-                grad.addColorStop(0.5, "#606060");
-                grad.addColorStop(1, "#000000");
-                ctx.fillStyle = grad;
-                ctx.translate(x, y);
-                ctx.rotate(b * Angle.deg90);
-                EarthquakeTurret.path(ctx);
-                ctx.fill();
-                ctx.resetTransform();
-            }
+        for (var i = 0; i < EarthquakeTurret.halfFrameCount; ++i) {
+            ctx.fillStyle = "#808080" + Utils.byteToHex(Math.floor(i / EarthquakeTurret.halfFrameCount * 256));
+            ctx.fillRect(192 + i * 48, 0, 48, 48);
+            var grad = ctx.createRadialGradient(0, 0, 4, 0, 0, 12);
+            var b = i / EarthquakeTurret.halfFrameCount;
+            grad.addColorStop(0.4, RgbaColor.fromHex("#E8E144").lerp(RgbaColor.fromHex("#E86544").lerp(RgbaColor.fromHex("#808080"), b), Curve.arc(b)).toCss());
+            grad.addColorStop(0.5, "#606060");
+            grad.addColorStop(1, "#000000");
+            ctx.fillStyle = grad;
+            ctx.translate(216 + 48 * i, 24);
+            ctx.rotate(b * Angle.deg90);
+            EarthquakeTurret.path(ctx);
+            ctx.fill();
+            ctx.resetTransform();
         }
-        if (!Game.saveImages) {
-            c.saveImage("td_tower_aEFW_earthquake_strip" + EarthquakeTurret.frameCount);
+        if (Game.saveImages) {
+            c.cacheImage("td_tower_aEFW_earthquake_strip" + (EarthquakeTurret.halfFrameCount + 4));
         }
         EarthquakeTurret.images = c.image;
     };
@@ -2632,7 +2778,7 @@ var ArcaneTurret = (function (_super) {
     ArcaneTurret.init = function () {
         var c = new PreRenderedImage(64, 64);
         if (Game.saveImages) {
-            c.saveImage("td_tower_AEFW_arcane_strip1");
+            c.cacheImage("td_tower_AEFW_arcane");
         }
         ArcaneTurret.image = c.image;
     };
@@ -2750,13 +2896,30 @@ var Tile = (function () {
         }
     };
     Tile.init = function () {
-        Tile.grassTex = new NoiseTextureGenerator(64, 64, "#5BA346", 0.075, 0, 0.25).generateImage();
+        var ls_grass = localStorage.getItem("td_tile_grass");
+        if (ls_grass) {
+            var img = new Image();
+            img.src = "data:image/png;base64," + ls_grass;
+            Tile.grassTex = img;
+            console.log("Restored td_tile_grass from cache");
+        }
+        else {
+            var grass = new NoiseTextureGenerator(64, 64, "#5BA346", 0.075, 0, 0.25).generatePrImage();
+            Tile.grassTex = grass.image;
+            grass.cacheImage("td_tile_grass");
+        }
         var pathTex = new NoiseTextureGenerator(64, 64, "#B5947E", 0.04, 0, 0.2);
-        Tile.pathTex = pathTex.generateImage();
+        var path = pathTex.generatePrImage();
+        Tile.pathTex = path.image;
         var grad = new LinearGradientSource(64, 64, 0, 32, 64, 32);
         grad.addColorStop(0, "#E77B65");
         grad.addColorStop(1, pathTex);
-        Tile.spawnTex = grad.generateImage();
+        var spawn = grad.generatePrImage();
+        Tile.spawnTex = spawn.image;
+        if (Game.saveImages) {
+            path.cacheImage("td_tile_path");
+            spawn.cacheImage("td_tile_spawn");
+        }
     };
     Tile.prototype.onClick = function (button, x, y) {
         if (this.type == TileType.Tower && this.turret != null && this.game.selectedTurretElement != null) {
@@ -2775,7 +2938,12 @@ var Tile = (function () {
     return Tile;
 }());
 var Game = (function () {
-    function Game(canvas) {
+    function Game(container) {
+        var canvasWidth = 1152;
+        var canvasHeight = 576;
+        var canvas = document.createElement("canvas");
+        canvas.id = "game-canvas";
+        container.appendChild(canvas);
         this.ctx = canvas.getContext("2d");
         this.canvas = canvas;
         this.prevTime = new Date().getTime();
@@ -2786,12 +2954,12 @@ var Game = (function () {
         this.selectedTurretElement = null;
         this.selectedTilePos = null;
         this.mouseButton = null;
-        var canvasWidth = canvas.width;
+        canvas.width = canvasWidth;
         var mapWidth = Math.floor(canvasWidth / 64) - 3;
         mapWidth = mapWidth % 2 === 0 ? mapWidth - 1 : mapWidth;
         this.mapWidth = mapWidth < 3 ? 3 : mapWidth;
         this.width = (mapWidth + 3) * 64;
-        var canvasHeight = canvas.height;
+        canvas.height = canvasHeight;
         var mapHeight = Math.floor(canvasHeight / 64);
         mapHeight = mapHeight % 2 === 0 ? mapHeight - 1 : mapHeight;
         this.mapHeight = mapHeight < 3 ? 3 : mapHeight;
@@ -2968,36 +3136,34 @@ var Game = (function () {
         path.rect(x + 36, y + 36, 120, 120);
         var tex = new FrostedGlassTextureGenerator(192, 192, "#82614F", "#997663", 0.5);
         this.castle.pushNew(path, this.ctx.createPattern(tex.generateImage(), "repeat"));
-        var points = [
+        var walls = [
             [6, 6, 60, 60], [126, 6, 60, 60], [6, 126, 60, 60], [126, 126, 60, 60],
             [30, 66, 12, 60], [66, 30, 60, 12], [150, 66, 12, 60], [66, 150, 60, 12]
         ];
         path = new Path2D();
-        for (var _i = 0, points_2 = points; _i < points_2.length; _i++) {
-            var p = points_2[_i];
-            path.rect(x + p[0], y + p[1], p[2], p[3]);
+        for (var _i = 0, walls_1 = walls; _i < walls_1.length; _i++) {
+            var w = walls_1[_i];
+            path.rect(x + w[0], y + w[1], w[2], w[3]);
         }
         this.castle.pushNew(path, "#505050");
-        points = [[18, 18, 36, 36], [138, 18, 36, 36], [18, 138, 36, 36], [138, 138, 36, 36]];
         path = new Path2D();
-        for (var _a = 0, points_3 = points; _a < points_3.length; _a++) {
-            var p = points_3[_a];
-            path.rect(x + p[0], y + p[1], p[2], p[3]);
-        }
+        path.rect(x + 18, y + 18, 36, 36);
+        path.rect(x + 138, y + 18, 36, 36);
+        path.rect(x + 18, y + 138, 36, 36);
+        path.rect(x + 138, y + 138, 36, 36);
         this.castle.pushNew(path, "#404040");
-        points = [
-            [6, 6, 12, 12], [30, 6, 12, 12], [54, 6, 12, 12], [126, 6, 12, 12], [150, 6, 12, 12], [174, 6, 12, 12],
-            [6, 30, 12, 12], [54, 30, 12, 12], [78, 30, 12, 12], [102, 30, 12, 12], [126, 30, 12, 12], [174, 30, 12, 12],
-            [6, 54, 12, 12], [30, 54, 12, 12], [54, 54, 12, 12], [126, 54, 12, 12], [150, 54, 12, 12], [174, 54, 12, 12],
-            [30, 78, 12, 12], [150, 78, 12, 12], [30, 102, 12, 12], [150, 102, 12, 12],
-            [6, 126, 12, 12], [30, 126, 12, 12], [54, 126, 12, 12], [126, 126, 12, 12], [150, 126, 12, 12], [174, 126, 12, 12],
-            [6, 150, 12, 12], [54, 150, 12, 12], [78, 150, 12, 12], [102, 150, 12, 12], [126, 150, 12, 12], [174, 150, 12, 12],
-            [6, 174, 12, 12], [30, 174, 12, 12], [54, 174, 12, 12], [126, 174, 12, 12], [150, 174, 12, 12], [174, 174, 12, 12]
+        var pts = [
+            6, 6, 30, 6, 54, 6, 126, 6, 150, 6, 174, 6,
+            6, 30, 54, 30, 78, 30, 102, 30, 126, 30, 174, 30,
+            6, 54, 30, 54, 54, 54, 126, 54, 150, 54, 174, 54,
+            30, 78, 150, 78, 30, 102, 150, 102,
+            6, 126, 30, 126, 54, 126, 126, 126, 150, 126, 174, 126,
+            6, 150, 54, 150, 78, 150, 102, 150, 126, 150, 174, 150,
+            6, 174, 30, 174, 54, 174, 126, 174, 150, 174, 174, 174
         ];
         path = new Path2D();
-        for (var _b = 0, points_4 = points; _b < points_4.length; _b++) {
-            var p = points_4[_b];
-            path.rect(x + p[0], y + p[1], p[2], p[3]);
+        for (var i = 0; i < pts.length; i += 2) {
+            path.rect(x + pts[i], y + pts[i + 1], 12, 12);
         }
         this.castle.pushNew(path, "#606060");
     };
@@ -3069,6 +3235,12 @@ var Game = (function () {
             case 'T':
                 this.selectedTurretElement = null;
                 break;
+            case 'C':
+                if (e.altKey) {
+                    localStorage.clear();
+                    alert("Cache cleared.");
+                }
+                break;
         }
     };
     Game.prototype.onKeyUp = function (e) { };
@@ -3090,9 +3262,6 @@ var Game = (function () {
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h);
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2);
         this.castle.render(c.ctx);
-        if (Game.saveImages) {
-            c.saveImage("td_map");
-        }
         this.preRendered = c.image;
     };
     Game.prototype.render = function () {
@@ -3114,16 +3283,124 @@ var Game = (function () {
         this.ctx.fillText(this.mousePosition.x.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 32);
         this.ctx.fillText(this.mousePosition.y.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 48);
     };
-    Game.saveImages = false;
+    Game.saveImages = true;
     return Game;
 }());
-window.onload = function () {
-    var game = new Game($("#game-canvas").get(0));
+function gen() {
+    var w = 258, h = 286;
+    var c = new PreRenderedImage(w * 6, h * 4);
+    var ctx = c.ctx, i = 0, c1 = "#A01713", c2 = "#FFE2A8", ch = "#CF7C5D";
+    ctx.fillStyle = "#404040";
+    ctx.fillRect(0, 0, w * 6, h * 4);
+    function label(line1, line2) {
+        var x = i % 6 * w + 1;
+        var y = Math.floor(i / 6) * h + 257;
+        ctx.fillStyle = "#C0C0C0";
+        ctx.fillRect(x, y, 256, 28);
+        ctx.fillStyle = "#000000";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.font = "bold 16px serif";
+        ctx.fillText(line1, x + 6, y + 14, 248);
+        if (line2) {
+            ctx.textAlign = "right";
+            ctx.fillText("(" + line2 + ")", x + 250, y + 12, 248);
+        }
+    }
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Euclidean).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Cellular", "Cells, Euclidean");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Manhattan).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Cellular", "Cells, Manhattan");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Euclidean).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Cellular", "Balls, Euclidean");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Manhattan).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Cellular", "Balls, Manhattan");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Euclidean).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Cellular", "Net, Euclidean");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Manhattan).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Cellular", "Net, Manhattan");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Chebyshev).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Cellular", "Cells, Chebyshev");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Minkowski).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Cellular", "Cells, Minkowski");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Chebyshev).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Cellular", "Balls, Chebyshev");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Minkowski).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Cellular", "Balls, Minkowski");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Chebyshev).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Cellular", "Net, Chebyshev");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Minkowski).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Cellular", "Net, Minkowski");
+    ++i;
+    ctx.drawImage(new NoiseTextureGenerator(256, 256, ch, 0.5, 0.5, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Noise");
+    ++i;
+    ctx.drawImage(new PerlinNoiseTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Perlin", "Noise");
+    ++i;
+    ctx.drawImage(new CloudsTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Perlin", "Clouds");
+    ++i;
+    ctx.drawImage(new VelvetTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Perlin", "Velvet");
+    ++i;
+    ctx.drawImage(new GlassTextureGenerator(256, 256, c1, c2, 1, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Perlin", "Glass");
+    ++i;
+    ctx.drawImage(new FrostedGlassTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Perlin", "Frosted glass");
+    ++i;
+    ctx.drawImage(new BarkTextureGenerator(256, 256, c1, c2, 1, 0.75).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Perlin", "Bark");
+    ++i;
+    ctx.drawImage(new CirclesTextureGenerator(256, 256, c1, c2, ch, 1, 4, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Perlin", "Circles");
+    ++i;
+    ctx.drawImage(new CamouflageTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Perlin", "Camouflage");
+    ++i;
+    var grads = [
+        new RadialGradientSource(256, 256, 128, 128, 0, 128),
+        new LinearGradientSource(256, 256, 0, 128, 256, 128)
+    ];
+    for (var _i = 0, grads_1 = grads; _i < grads_1.length; _i++) {
+        var g = grads_1[_i];
+        g.addColorStop(0.000, "#FF0000");
+        g.addColorStop(0.167, "#FFFF00");
+        g.addColorStop(0.333, "#00FF00");
+        g.addColorStop(0.500, "#00FFFF");
+        g.addColorStop(0.667, "#0000FF");
+        g.addColorStop(0.833, "#FF00FF");
+        g.addColorStop(1.000, "#FF0000");
+    }
+    ctx.drawImage(grads[0].generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Gradient", "Radial");
+    ++i;
+    ctx.drawImage(new FisheyeSource(256, 256, grads[1], 0.5, 128, 128, 128).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Gradient", "Linear, Fisheye[+]");
+    ++i;
+    ctx.drawImage(new FisheyeSource(256, 256, grads[1], -0.5, 128, 128, 128).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    label("Gradient", "Linear, Fisheye[-]");
+    c.cacheImage("textures");
+}
+window.addEventListener("load", function () {
+    var game = new Game(document.getElementById("zptd-game-container"));
     game.init();
+    gen();
     function gameLoop() {
         window.requestAnimationFrame(gameLoop);
         game.run();
     }
     gameLoop();
-};
-//# sourceMappingURL=game.js.map
+});

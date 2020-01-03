@@ -4,8 +4,8 @@
     "strictNullChecks": true,
     "noEmitOnError": true,
     "removeComments": true,
-    "sourceMap": true,
-    "target": "es5",
+    "sourceMap": false,
+    "target": "ES2015",
     "outFile": "game.js"
   },
   "exclude": [

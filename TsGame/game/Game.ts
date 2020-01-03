@@ -130,13 +130,26 @@ class Tile {
     }
 
     static init() {
-        Tile.grassTex = new NoiseTextureGenerator(64, 64, "#5BA346", 0.075, 0, 0.25).generateImage()
+        /*let ls_grass = Utils.getImageFromCache("td_tile_grass")
+        if (ls_grass) {
+            Tile.grassTex = ls_grass
+        } else {*/
+        let grass = new NoiseTextureGenerator(64, 64, "#5BA346", 0.075, 0, 0.25).generatePrImage()
+        grass.cacheImage("td_tile_grass")
+        Tile.grassTex = grass.image
+        //}
         let pathTex = new NoiseTextureGenerator(64, 64, "#B5947E", 0.04, 0, 0.2)
-        Tile.pathTex = pathTex.generateImage()
+        let path = pathTex.generatePrImage()
+        Tile.pathTex = path.image
         let grad = new LinearGradientSource(64, 64, 0, 32, 64, 32)
         grad.addColorStop(0, "#E77B65")
         grad.addColorStop(1, pathTex)
-        Tile.spawnTex = grad.generateImage()
+        let spawn = grad.generatePrImage()
+        Tile.spawnTex = spawn.image
+        if (Game.saveImages) {
+            path.cacheImage("td_tile_path")
+            spawn.cacheImage("td_tile_spawn")
+        }
     }
 
     onClick(button: MouseButton, x: number, y: number) {
@@ -158,7 +171,7 @@ class Tile {
 
 class Game {
 
-    static saveImages = false // for debug purposes
+    static saveImages = true // for debug purposes
 
     private preRendered: CanvasImageSource
     private canvas: HTMLCanvasElement
@@ -185,7 +198,12 @@ class Game {
     particles: ParticleSystem
     selectedTurretElement: TurretElement | null
 
-    constructor(canvas: HTMLCanvasElement) {
+    constructor(container: HTMLElement) {
+        let canvasWidth = 1152
+        let canvasHeight = 576
+        let canvas = document.createElement("canvas")
+        canvas.id = "game-canvas"
+        container.appendChild(canvas)
         this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D
         this.canvas = canvas
         this.prevTime = new Date().getTime()
@@ -197,13 +215,13 @@ class Game {
         this.selectedTilePos = null
         this.mouseButton = null
 
-        let canvasWidth = canvas.width
+        canvas.width = canvasWidth
         let mapWidth = Math.floor(canvasWidth / 64) - 3
         mapWidth = mapWidth % 2 === 0 ? mapWidth - 1 : mapWidth
         this.mapWidth = mapWidth < 3 ? 3 : mapWidth
         this.width = (mapWidth + 3) * 64
 
-        let canvasHeight = canvas.height
+        canvas.height = canvasHeight
         let mapHeight = Math.floor(canvasHeight / 64)
         mapHeight = mapHeight % 2 === 0 ? mapHeight - 1 : mapHeight
         this.mapHeight = mapHeight < 3 ? 3 : mapHeight
@@ -371,33 +389,33 @@ class Game {
         path.rect(x + 36, y + 36, 120, 120)
         let tex = new FrostedGlassTextureGenerator(192, 192, "#82614F", "#997663", 0.5)
         this.castle.pushNew(path, this.ctx.createPattern(tex.generateImage(), "repeat"))
-        let points = [
+        let walls = [
             [6, 6, 60, 60], [126, 6, 60, 60], [6, 126, 60, 60], [126, 126, 60, 60],
             [30, 66, 12, 60], [66, 30, 60, 12], [150, 66, 12, 60], [66, 150, 60, 12]
         ]
         path = new Path2D()
-        for (let p of points) {
-            path.rect(x + p[0], y + p[1], p[2], p[3])
+        for (let w of walls) {
+            path.rect(x + w[0], y + w[1], w[2], w[3])
         }
         this.castle.pushNew(path, "#505050")
-        points = [[18, 18, 36, 36], [138, 18, 36, 36], [18, 138, 36, 36], [138, 138, 36, 36]]
         path = new Path2D()
-        for (let p of points) {
-            path.rect(x + p[0], y + p[1], p[2], p[3])
-        }
+        path.rect(x + 18, y + 18, 36, 36)
+        path.rect(x + 138, y + 18, 36, 36)
+        path.rect(x + 18, y + 138, 36, 36)
+        path.rect(x + 138, y + 138, 36, 36)
         this.castle.pushNew(path, "#404040")
-        points = [
-            [6, 6, 12, 12], [30, 6, 12, 12], [54, 6, 12, 12], [126, 6, 12, 12], [150, 6, 12, 12], [174, 6, 12, 12],
-            [6, 30, 12, 12], [54, 30, 12, 12], [78, 30, 12, 12], [102, 30, 12, 12], [126, 30, 12, 12], [174, 30, 12, 12],
-            [6, 54, 12, 12], [30, 54, 12, 12], [54, 54, 12, 12], [126, 54, 12, 12], [150, 54, 12, 12], [174, 54, 12, 12],
-            [30, 78, 12, 12], [150, 78, 12, 12], [30, 102, 12, 12], [150, 102, 12, 12],
-            [6, 126, 12, 12], [30, 126, 12, 12], [54, 126, 12, 12], [126, 126, 12, 12], [150, 126, 12, 12], [174, 126, 12, 12],
-            [6, 150, 12, 12], [54, 150, 12, 12], [78, 150, 12, 12], [102, 150, 12, 12], [126, 150, 12, 12], [174, 150, 12, 12],
-            [6, 174, 12, 12], [30, 174, 12, 12], [54, 174, 12, 12], [126, 174, 12, 12], [150, 174, 12, 12], [174, 174, 12, 12]
+        let pts = [
+            6, 6, 30, 6, 54, 6, 126, 6, 150, 6, 174, 6,
+            6, 30, 54, 30, 78, 30, 102, 30, 126, 30, 174, 30,
+            6, 54, 30, 54, 54, 54, 126, 54, 150, 54, 174, 54,
+            30, 78, 150, 78, 30, 102, 150, 102,
+            6, 126, 30, 126, 54, 126, 126, 126, 150, 126, 174, 126,
+            6, 150, 54, 150, 78, 150, 102, 150, 126, 150, 174, 150,
+            6, 174, 30, 174, 54, 174, 126, 174, 150, 174, 174, 174
         ]
         path = new Path2D()
-        for (let p of points) {
-            path.rect(x + p[0], y + p[1], p[2], p[3])
+        for (let i = 0; i < pts.length; i += 2) {
+            path.rect(x + pts[i], y + pts[i + 1], 12, 12)
         }
         this.castle.pushNew(path, "#606060")
     }
@@ -486,6 +504,12 @@ class Game {
             case 'T':
                 this.selectedTurretElement = null
                 break
+            case 'C':
+                if (e.altKey) {
+                    localStorage.clear()
+                    alert("Cache cleared.")
+                }
+                break
         }
     }
 
@@ -509,7 +533,6 @@ class Game {
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h)
         c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2)
         this.castle.render(c.ctx)
-        if (Game.saveImages) { c.saveImage("td_map") }
         this.preRendered = c.image
     }
 

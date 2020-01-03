@@ -19,7 +19,7 @@ abstract class ColorSource {
 
     protected abstract _getColor(x: number, y: number): RgbaColor;
 
-    generateImage(): CanvasImageSource {
+    generatePrImage(): PreRenderedImage {
         let tex = new PreRenderedImage(this.width, this.height)
         for (let x = 0; x < this.width; ++x) {
             for (let y = 0; y < this.height; ++y) {
@@ -27,8 +27,10 @@ abstract class ColorSource {
                 tex.ctx.fillRect(x, y, 1, 1);
             }
         }
-        return tex.image
+        return tex
     }
+
+    generateImage(): CanvasImageSource { return this.generatePrImage().image }
 
     static get(color: ColorSource | RgbaColor | string | null): ColorSource {
         if (color === null) {
@@ -46,24 +48,75 @@ abstract class ColorSource {
 
 }
 
-class CanvasColorSource extends ColorSource {
+class BufferedColorSource extends ColorSource {
 
-    private ctx: CanvasRenderingContext2D
+    private data: RgbaColor[]
 
-    constructor(canvas: HTMLCanvasElement, ctx?: CanvasRenderingContext2D) {
-        super(canvas.width, canvas.height)
-        this.ctx = ctx === undefined ? canvas.getContext("2d") as CanvasRenderingContext2D : ctx
+    constructor(width: number, height: number, source: ColorSource, scale = 1) {
+        super(width, height)
+        this.data = []
+        let inverseScale = 1 / scale
+        for (let y = 0; y < this.height; ++y) {
+            for (let x = 0; x < this.width; ++x) {
+                this.data.push(source.getColor(x * inverseScale, y * inverseScale))
+            }
+        }
     }
 
     protected _getColor(x: number, y: number): RgbaColor {
-        var data = this.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
-        return new RgbaColor(data[0], data[1], data[2], data[3]);
+        x = Math.floor(x)
+        y = Math.floor(y)
+        return this.data[Utils.flatten(this.width, x, y)]
     }
 
-    generateImage(): CanvasImageSource {
+    generatePrImage(): PreRenderedImage {
+        let tex = new PreRenderedImage(this.width, this.height)
+        for (let y = 0; y < this.height; ++y) {
+            for (let x = 0; x < this.width; ++x) {
+                tex.ctx.fillStyle = this.data[Utils.flatten(this.width, x, y)].toCss()
+                tex.ctx.fillRect(x, y, 1, 1);
+            }
+        }
+        return tex
+    }
+
+}
+
+class CanvasColorSource extends ColorSource {
+
+    private ctx: CanvasRenderingContext2D
+    private data: RgbaColor[] | null
+
+    constructor(canvas: HTMLCanvasElement, buffer: boolean = false) {
+        super(canvas.width, canvas.height)
+        this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D
+        if (buffer) {
+            let data = this.ctx.getImageData(0, 0, this.width, this.height).data;
+            this.data = []
+            let c = this.width * this.height * 4
+            for (let i = 0; i < c; i += 4) {
+                this.data.push(new RgbaColor(data[i], data[i + 1], data[i + 2], data[i + 3]))
+            }
+        } else {
+            this.data = null
+        }
+    }
+
+    protected _getColor(x: number, y: number): RgbaColor {
+        x = Math.floor(x)
+        y = Math.floor(y)
+        if (this.data) {
+            return this.data[Utils.flatten(this.width, x, y)]
+        } else {
+            var data = this.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
+            return new RgbaColor(data[0], data[1], data[2], data[3]);
+        }
+    }
+
+    generatePrImage(): PreRenderedImage {
         let tex = new PreRenderedImage(this.width, this.height)
         tex.ctx.putImageData(this.ctx.getImageData(0, 0, this.width, this.height), 0, 0)
-        return tex.image
+        return tex
     }
 
 }
@@ -248,11 +301,11 @@ class RgbaColorSource extends ColorSource {
 
     protected _getColor(x: number, y: number): RgbaColor { return this.color }
 
-    generateImage(): CanvasImageSource {
+    generatePrImage(): PreRenderedImage {
         let tex = new PreRenderedImage(this.width, this.height)
         tex.ctx.fillStyle = this.color.toCss()
         tex.ctx.fillRect(0, 0, this.width, this.height)
-        return tex.image
+        return tex
     }
 
 }
@@ -269,7 +322,7 @@ abstract class TextureGenerator extends ColorSource {
 }
 
 enum CellularTextureType {
-    Lava,
+    Cells,
     Net,
     Balls
 }
@@ -299,7 +352,7 @@ class CellularTextureGenerator extends TextureGenerator {
         density: number,
         color1: ColorSource | RgbaColor | string | null,
         color2: ColorSource | RgbaColor | string | null,
-        type: CellularTextureType = CellularTextureType.Lava,
+        type: CellularTextureType = CellularTextureType.Cells,
         metric: CellularTextureDistanceMetric = CellularTextureDistanceMetric.Euclidean,
         curve?: (x: number) => number
     ) {
@@ -397,6 +450,8 @@ class CellularTextureGenerator extends TextureGenerator {
     }
 
     protected _getColor(x: number, y: number): RgbaColor {
+        x = Math.round(x)
+        y = Math.round(y)
         return this.color.getColor(x, y).lerp(
             this.color2.getColor(x, y),
             this.curve((this.distances[Utils.flatten(this.width, x, y)] - this.min) / this.range)
@@ -503,7 +558,7 @@ abstract class PerlinTextureGenerator extends TextureGenerator {
                 sx
             ),
             sy
-        )
+        ) * 1.428
     }
 
 }
@@ -681,17 +736,20 @@ class BarkTextureGenerator extends PerlinTextureGenerator {
     private scales: number[]
     private coeficients: number[]
     private gradients: PerlinGradient[]
+    private turbulence: number
 
     constructor(
         width: number, height: number,
         color1: ColorSource | RgbaColor | string | null,
         color2: ColorSource | RgbaColor | string | null,
         scale: number = 1,
+        turbulence: number = 1,
         curve?: (x: number) => number
     ) {
         super(width, height, color1, color2, scale, curve)
         this.scales = [this.scale, this.scale * 2, this.scale * 4, this.scale * 6]
         this.coeficients = [0.5, 0.25, 0.25]
+        this.turbulence = turbulence
         this.gradients = []
         for (let i = 0; i < 4; ++i) {
             this.gradients.push(new PerlinGradient(this.width * this.scales[i], this.height * this.scales[i]))
@@ -701,7 +759,7 @@ class BarkTextureGenerator extends PerlinTextureGenerator {
     protected _getColor(x: number, y: number): RgbaColor {
         let v = 0
         for (let i = 0; i < 3; ++i) {
-            v += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i]
+            v += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i] * this.turbulence
         }
         v = Utils.granulate(Math.sin(2 * x * this.scale * Math.PI + 8 * v), 2)
         v += Utils.granulate(this.perlin(this.gradients[3], x * this.scales[3], y * this.scales[3]), 5)
@@ -935,6 +993,39 @@ class RectangleSource extends ShapeSource {
 
 }
 
+class CircleSource extends ShapeSource {
+
+    private x: number
+    private y: number
+    private r1: number
+    private r2: number
+
+    constructor(
+        width: number, height: number,
+        x: number, y: number, r: number,
+        color: ColorSource | RgbaColor | string | null,
+        background: ColorSource | RgbaColor | string | null
+    ) {
+        super(width, height, color, background)
+        this.x = x
+        this.y = y
+        this.r1 = r
+        this.r2 = r + 1
+    }
+
+    protected _getColor(x: number, y: number): RgbaColor {
+        let _x = x - this.x, _y = y - this.y, d = Math.sqrt(_x * _x + _y * _y)
+        if (d <= this.r1) {
+            return this.color.getColor(x, y)
+        } else if (d >= this.r2) {
+            return this.background.getColor(x, y)
+        } else {
+            return this.color.getColor(x, y).lerp(this.background.getColor(x, y), d - this.r1)
+        }
+    }
+
+}
+
 class EllipseSource extends ShapeSource {
 
     private x: number
@@ -958,7 +1049,7 @@ class EllipseSource extends ShapeSource {
 
     protected _getColor(x: number, y: number): RgbaColor {
         let _x = (x - this.x) / this.r1, _y = (y - this.y) / this.r2
-        return Math.sqrt(_x * _x + _y * _y) <= 1 ? this.color.getColor(x, y) : this.background.getColor(x, y)
+        return _x * _x + _y * _y <= 1 ? this.color.getColor(x, y) : this.background.getColor(x, y)
     }
 
 }
@@ -1156,7 +1247,63 @@ class ScalingSource extends TransformingSource {
     protected reverseTransform(x: number, y: number): Vec2 {
         let v = new Vec2(x, y), dv = v.sub(this.origin)
         if (dv.isZero()) { return v }
-        return v.add(dv.mul(1 / this.scale))
+        return this.origin.add(dv.mul(1 / this.scale))
+    }
+
+}
+
+class FisheyeSource extends TransformingSource {
+
+    private scale: number
+    private radius: number
+    private origin: Vec2
+
+    constructor(
+        width: number, height: number,
+        source: ColorSource,
+        scale: number,
+        originX: number, originY: number,
+        radius: number
+    ) {
+        super(width, height, source)
+        this.scale = Utils.clamp(scale, -1, 1)
+        this.radius = radius
+        this.origin = new Vec2(originX, originY)
+    }
+
+    protected reverseTransform(x: number, y: number): Vec2 {
+        let v = new Vec2(x, y), dv = v.sub(this.origin)
+        if (dv.isZero()) { return v }
+        let d = dv.length() / this.radius
+        if (d >= 1) { return v }
+        if (this.scale < 0) {
+            let coef = Utils.lerp(d, Curve.arc(d), -this.scale)
+            return this.origin.add(dv.mul(coef / d))
+        } else {
+            let coef = Utils.lerp(d, Curve.invArc(d), this.scale)
+            return this.origin.add(dv.mul(coef / d))
+        }
+    }
+
+}
+
+class AntialiasedSource extends ColorSource {
+
+    private source: ColorSource
+
+    constructor(
+        width: number, height: number,
+        source: ColorSource
+    ) {
+        super(width, height)
+        this.source = source
+    }
+
+    protected _getColor(x: number, y: number): RgbaColor {
+        return this.source.getColor(x, y).lerp(this.source.getColor(x + 0.5, y), 0.5).lerp(
+            this.source.getColor(x, y + 0.5).lerp(this.source.getColor(x + 0.5, y + 0.5), 0.5),
+            0.5
+        )
     }
 
 }
