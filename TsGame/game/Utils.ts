@@ -259,23 +259,24 @@ class PreRenderedImage {
     }
 
     cacheImage(id: string) {
-        let a = document.createElement("a")
-        a.setAttribute("download", id + ".png")
-        a.setAttribute(
-            "href",
-            (this.image as HTMLCanvasElement)
-                .toDataURL("image/png")
-                .replace("image/png", "image/octet-stream")
-        );
-        a.setAttribute("target", "_blank")
-        a.click()
-        
-        let element = document.createElement('a')
-        element.setAttribute('download', id + ".txt")
-        element.setAttribute('href', 'data:text/octet-stream;charset=utf-8,' + encodeURIComponent(this.toBase64()))
-        element.click()
+        if (Game.saveImages) {
+            let a = document.createElement("a")
+            a.setAttribute("download", id + ".png")
+            a.setAttribute(
+                "href",
+                (this.image as HTMLCanvasElement)
+                    .toDataURL("image/png")
+                    .replace("image/png", "image/octet-stream")
+            );
+            a.setAttribute("target", "_blank")
+            a.click()
 
-        localStorage.setItem(id, this.toBase64())
+            let element = document.createElement('a')
+            element.setAttribute('download', id + ".txt")
+            element.setAttribute('href', 'data:text/octet-stream;charset=utf-8,' + encodeURIComponent(this.toBase64()))
+            element.click()
+        }
+        //localStorage.setItem(id, this.toBase64())
     }
 
     toBase64() {
@@ -344,7 +345,7 @@ class Vec2 {
         return new Vec2(this.x + v.x, this.y + v.y)
     }
 
-    uadd(x: number, y: number): Vec2 {
+    addu(x: number, y: number): Vec2 {
         return new Vec2(this.x + x, this.y + y)
     }
 
@@ -352,7 +353,7 @@ class Vec2 {
         return new Vec2(this.x - v.x, this.y - v.y)
     }
 
-    usub(x: number, y: number): Vec2 {
+    subu(x: number, y: number): Vec2 {
         return new Vec2(this.x - x, this.y - y)
     }
 
@@ -360,12 +361,16 @@ class Vec2 {
         return this.x * v.x + this.y * v.y
     }
 
-    udot(x: number, y: number): number {
+    dotu(x: number, y: number): number {
         return this.x * x + this.y * y
     }
 
     mul(f: number): Vec2 {
         return new Vec2(this.x * f, this.y * f)
+    }
+
+    angleTo(v: Vec2) {
+        return Utils.getAngle(this.x, this.y, v.x, v.y)
     }
 
     length(): number {
@@ -410,53 +415,6 @@ class Vec2 {
 }
 
 Vec2.init()
-
-class Vec2Set {
-
-    private data: { [value: string]: Vec2 }
-
-    size: number
-
-    constructor() {
-        this.data = {}
-        this.size = 0
-    }
-
-    add(value: Vec2): boolean {
-        let s = value.toString()
-        if (this.data[s] !== undefined) {
-            return false
-        } else {
-            this.data[s] = value
-            ++this.size
-            return true
-        }
-    }
-
-    contains(value: Vec2) {
-        return this.data[value.toString()] !== undefined
-    }
-
-    remove(value: Vec2): boolean {
-        let s = value.toString()
-        if (this.data[s] !== undefined) {
-            delete this.data[value.toString()]
-            --this.size
-            return true
-        } else {
-            return false
-        }
-    }
-
-    values(): Vec2[] {
-        let r: Vec2[] = []
-        for (var v in this.data) {
-            r.push(this.data[v])
-        }
-        return r
-    }
-
-}
 
 class DijkstraNode {
 

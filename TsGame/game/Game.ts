@@ -15,9 +15,7 @@ enum TileType {
 
 class Tile {
 
-    private static grassTex: CanvasImageSource
-    private static spawnTex: CanvasImageSource
-    static pathTex: CanvasImageSource
+    private static tiles: CanvasImageSource
 
     private decor: RenderablePathSet
 
@@ -99,16 +97,16 @@ class Tile {
         if (preRender) {
             switch (this.type) {
                 case TileType.Empty:
-                    ctx.drawImage(Tile.grassTex, this.pos.x, this.pos.y)
+                    ctx.drawImage(Tile.tiles, 0, 0, 64, 64, this.pos.x, this.pos.y, 64, 64)
                     break
                 case TileType.Path:
-                    ctx.drawImage(Tile.pathTex, this.pos.x, this.pos.y)
+                    ctx.drawImage(Tile.tiles, 0, 64, 64, 64, this.pos.x, this.pos.y, 64, 64)
                     break
                 case TileType.Spawn:
-                    ctx.drawImage(Tile.spawnTex, this.pos.x, this.pos.y)
+                    ctx.drawImage(Tile.tiles, 0, 128, 64, 64, this.pos.x, this.pos.y, 64, 64)
                     break
                 case TileType.HQ:
-                    ctx.drawImage(Tile.pathTex, this.pos.x, this.pos.y)
+                    ctx.drawImage(Tile.tiles, 0, 64, 64, 64, this.pos.x, this.pos.y, 64, 64)
                     break
                 case TileType.Tower:
                     ctx.fillStyle = "#808080"
@@ -129,29 +127,6 @@ class Tile {
         }
     }
 
-    static init() {
-        /*let ls_grass = Utils.getImageFromCache("td_tile_grass")
-        if (ls_grass) {
-            Tile.grassTex = ls_grass
-        } else {*/
-        let grass = new NoiseTextureGenerator(64, 64, "#5BA346", 0.075, 0, 0.25).generatePrImage()
-        grass.cacheImage("td_tile_grass")
-        Tile.grassTex = grass.image
-        //}
-        let pathTex = new NoiseTextureGenerator(64, 64, "#B5947E", 0.04, 0, 0.2)
-        let path = pathTex.generatePrImage()
-        Tile.pathTex = path.image
-        let grad = new LinearGradientSource(64, 64, 0, 32, 64, 32)
-        grad.addColorStop(0, "#E77B65")
-        grad.addColorStop(1, pathTex)
-        let spawn = grad.generatePrImage()
-        Tile.spawnTex = spawn.image
-        if (Game.saveImages) {
-            path.cacheImage("td_tile_path")
-            spawn.cacheImage("td_tile_spawn")
-        }
-    }
-
     onClick(button: MouseButton, x: number, y: number) {
         if (this.type == TileType.Tower && this.turret != null && this.game.selectedTurretElement != null) {
             switch (button) {
@@ -167,12 +142,43 @@ class Tile {
         }
     }
 
+    static init(): Promise<void> {
+        return Utils.getImageFromCache("td_tiles").then(
+            tex => { Tile.tiles = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(64, 192)
+                let ctx = c.ctx
+                new NoiseTextureGenerator(64, 64, "#5BA346", 0.075, 0, 0.25).generateInto(ctx, 0, 0)
+                new NoiseTextureGenerator(64, 128, "#B5947E", 0.04, 0, 0.2).generateInto(ctx, 0, 64)
+                let grad = ctx.createLinearGradient(0, 160, 64, 160)
+                grad.addColorStop(0, "#E77B65")
+                grad.addColorStop(1, "#E77B6500")
+                ctx.fillStyle = grad
+                ctx.fillRect(0, 128, 64, 64)
+                c.cacheImage("td_tiles")
+                Tile.tiles = c.image
+                resolve()
+            })
+        )
+    }
+
+    static drawPathGround(ctx: CanvasRenderingContext2D, x: number, y: number) {
+        ctx.drawImage(Tile.tiles, 0, 64, 64, 64, x, y, 64, 64)
+    }
+
+}
+
+enum InitializationStatus {
+    Uninitialized,
+    Initializing,
+    Initialized
 }
 
 class Game {
 
     static saveImages = true // for debug purposes
 
+    private status: InitializationStatus
     private preRendered: CanvasImageSource
     private canvas: HTMLCanvasElement
     private ctx: CanvasRenderingContext2D
@@ -198,7 +204,7 @@ class Game {
     particles: ParticleSystem
     selectedTurretElement: TurretElement | null
 
-    constructor(container: HTMLElement) {
+    private constructor(container: HTMLElement) {
         let canvasWidth = 1152
         let canvasHeight = 576
         let canvas = document.createElement("canvas")
@@ -214,6 +220,7 @@ class Game {
         this.selectedTurretElement = null
         this.selectedTilePos = null
         this.mouseButton = null
+        this.status = InitializationStatus.Uninitialized
 
         canvas.width = canvasWidth
         let mapWidth = Math.floor(canvasWidth / 64) - 3
@@ -230,31 +237,34 @@ class Game {
         this.guiPanel = new Rect(this.width - 192, 0, 192, this.height - 192)
     }
 
-    init() {
-        Tile.init()
-        Turret.init()
-        this.generateMap()
-        this.generateCastle()
-        this.preRender()
-        this.canvas.setAttribute("tabindex", "0")
-        this.canvas.focus()
-        this.canvas.addEventListener("contextmenu", (e: MouseEvent) => {
-            e.preventDefault()
-            return false;
-        }, false)
-        let g = this
-        this.canvas.addEventListener("mousemove", (e: MouseEvent) => g.onMouseMove(e))
-        this.canvas.addEventListener("mousedown", (e: MouseEvent) => g.onMouseDown(e))
-        this.canvas.addEventListener("mouseup", (e: MouseEvent) => g.onMouseUp(e))
-        this.canvas.addEventListener("keydown", (e: KeyboardEvent) => g.onKeyDown(e))
-        this.canvas.addEventListener("keyup", (e: KeyboardEvent) => g.onKeyUp(e))
+    init(): Promise<void> {
+        return Tile.init()
+            .then(() => Turret.initAll())
+            .then(() => this.generateMap())
+            .then(() => this.generateCastle())
+            .then(() => this.preRender())
+            .then(() => new Promise<void>(resolve => {
+                this.canvas.setAttribute("tabindex", "0")
+                this.canvas.focus()
+                this.canvas.addEventListener("contextmenu", (e: MouseEvent) => {
+                    e.preventDefault()
+                    return false;
+                }, false)
+                let g = this
+                this.canvas.addEventListener("mousemove", (e: MouseEvent) => g.onMouseMove(e))
+                this.canvas.addEventListener("mousedown", (e: MouseEvent) => g.onMouseDown(e))
+                this.canvas.addEventListener("mouseup", (e: MouseEvent) => g.onMouseUp(e))
+                this.canvas.addEventListener("keydown", (e: KeyboardEvent) => g.onKeyDown(e))
+                this.canvas.addEventListener("keyup", (e: KeyboardEvent) => g.onKeyUp(e))
+                resolve()
+            }))
     }
 
     private generateMap() {
         let mapGen: TileType[][] = []
         let map: (Tile | null)[][] = []
         let dijkstraMap: (DijkstraNode | null)[][] = []
-        let wallGens = new Vec2Set()
+        let wallGens = new Set<Vec2>()
         for (let x = 0; x < this.mapWidth; ++x) {
             var columnDijkstra: (DijkstraNode | null)[] = []
             var columnGen: TileType[] = []
@@ -286,7 +296,7 @@ class Game {
                     i -= 1
                 }
             }
-            wallGens.remove(wg)
+            wallGens.delete(wg)
             if (mapGen[wg.x][wg.y] !== TileType.WallGen) {
                 continue
             }
@@ -420,30 +430,53 @@ class Game {
         this.castle.pushNew(path, "#606060")
     }
 
-    run() {
-        this.step()
+    private start() {
+        let g = this
         this.render()
+        function gameLoop() {
+            window.requestAnimationFrame(gameLoop)
+            g.step()
+            g.render()
+        }
+        gameLoop()
     }
 
     private step() {
-        let time = new Date().getTime()
-        let timeDiff = (time - this.prevTime) / 1000
-        this.performanceMeter.add(1 / timeDiff)
-        for (let x = 0; x < this.mapWidth; ++x) {
-            for (let y = 0; y < this.mapHeight; ++y) {
-                this.map[x][y].step(timeDiff)
+        switch (this.status) {
+            case InitializationStatus.Uninitialized: {
+                this.status = InitializationStatus.Initializing
+                this.init().then(() => { this.status = InitializationStatus.Initialized })
+                return
+            }
+            case InitializationStatus.Initializing: {
+                let time = new Date().getTime()
+                let timeDiff = (time - this.prevTime) / 1000
+                this.prevTime = time
+                this.time += timeDiff
+                return
+            }
+            case InitializationStatus.Initialized: {
+                let time = new Date().getTime()
+                let timeDiff = (time - this.prevTime) / 1000
+                this.performanceMeter.add(1 / timeDiff)
+                for (let x = 0; x < this.mapWidth; ++x) {
+                    for (let y = 0; y < this.mapHeight; ++y) {
+                        this.map[x][y].step(timeDiff)
+                    }
+                }
+                this.particles.step(timeDiff)
+                if (this.selectedTurretElement !== null) {
+                    this.particles.add(new ElementSparkParticle(
+                        this.mousePosition.x,
+                        this.mousePosition.y,
+                        this.selectedTurretElement
+                    ))
+                }
+                this.prevTime = time
+                this.time += timeDiff
+                return
             }
         }
-        this.particles.step(timeDiff)
-        if (this.selectedTurretElement !== null) {
-            this.particles.add(new ElementSparkParticle(
-                this.mousePosition.x,
-                this.mousePosition.y,
-                this.selectedTurretElement
-            ))
-        }
-        this.prevTime = time
-        this.time += timeDiff
     }
 
     private setMousePosition(e: MouseEvent) {
@@ -455,6 +488,9 @@ class Game {
     }
 
     private onMouseMove(e: MouseEvent) {
+        if (this.status < InitializationStatus.Initialized) {
+            return
+        }
         this.setMousePosition(e)
         if (this.selectedTilePos === null) {
             return
@@ -466,6 +502,9 @@ class Game {
     }
 
     private onMouseDown(e: MouseEvent) {
+        if (this.status < InitializationStatus.Initialized) {
+            return
+        }
         this.setMousePosition(e)
         let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64))
         if (tp.x < this.mapWidth && tp.y < this.mapHeight) {
@@ -475,6 +514,9 @@ class Game {
     }
 
     private onMouseUp(e: MouseEvent) {
+        if (this.status < InitializationStatus.Initialized) {
+            return
+        }
         this.setMousePosition(e)
         if (this.selectedTilePos != null) {
             this.selectedTile?.onClick(
@@ -488,6 +530,9 @@ class Game {
     }
 
     private onKeyDown(e: KeyboardEvent) {
+        if (this.status < InitializationStatus.Initialized) {
+            return 
+        }
         switch (e.key.toUpperCase()) {
             case 'Q':
                 this.selectedTurretElement = TurretElement.Air
@@ -510,6 +555,9 @@ class Game {
                     alert("Cache cleared.")
                 }
                 break
+            case 'G':
+                gen()
+                break
         }
     }
 
@@ -517,43 +565,202 @@ class Game {
 
     private preRender() {
         let c = new PreRenderedImage(this.width, this.height)
-        c.ctx.fillStyle = "#C0C0C0"
-        c.ctx.fillRect(0, 0, this.width, this.height)
+        let ctx = c.ctx
+        ctx.fillStyle = "#C0C0C0"
+        ctx.fillRect(0, 0, this.width, this.height)
         for (let x = 0; x < this.mapWidth; ++x) {
             for (let y = 0; y < this.mapHeight; ++y) {
-                this.map[x][y].render(c.ctx, true)
+                this.map[x][y].render(ctx, true)
             }
         }
-        c.ctx.fillStyle = "#B5947E"
+        ctx.fillStyle = "#B5947E"
         let x = this.guiPanel.x, y = this.height - 192
         for (let i = 0; i < 9; ++i) {
-            c.ctx.drawImage(Tile.pathTex, x + i % 3 * 64, y + Math.floor(i / 3) * 64)
+            Tile.drawPathGround(ctx, x + i % 3 * 64, y + Math.floor(i / 3) * 64)
         }
-        c.ctx.fillStyle = "#606060"
-        c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h)
-        c.ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2)
-        this.castle.render(c.ctx)
+        ctx.fillStyle = "#606060"
+        ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h)
+        ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2)
+        this.castle.render(ctx)
         this.preRendered = c.image
     }
 
     private render() {
-        this.ctx.drawImage(this.preRendered, 0, 0)
-        for (let x = 0; x < this.mapWidth; ++x) {
-            for (let y = 0; y < this.mapHeight; ++y) {
-                this.map[x][y].render(this.ctx, false)
+        switch (this.status) {
+            case InitializationStatus.Uninitialized:
+            case InitializationStatus.Initializing: {
+                this.ctx.fillStyle = "#C0C0C0"
+                this.ctx.fillRect(0, 0, this.width, this.height)
+                this.ctx.fillStyle = "#000000"
+                this.ctx.textAlign = "center"
+                this.ctx.textBaseline = "middle"
+                this.ctx.font = "bold 32px serif"
+                this.ctx.fillText("Loading", this.width / 2, this.height / 2)
+                return
+            }
+            case InitializationStatus.Initialized: {
+                this.ctx.drawImage(this.preRendered, 0, 0)
+                for (let x = 0; x < this.mapWidth; ++x) {
+                    for (let y = 0; y < this.mapHeight; ++y) {
+                        this.map[x][y].render(this.ctx, false)
+                    }
+                }
+                this.particles.render(this.ctx, false)
+                let fps = this.performanceMeter.getFps()
+                this.ctx.fillStyle = "#000000"
+                this.ctx.textAlign = "right"
+                this.ctx.textBaseline = "top"
+                this.ctx.font = "bold 16px serif"
+                if (!isNaN(fps)) {
+                    this.ctx.fillText(Math.floor(fps).toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 16)
+                }
+                this.ctx.fillText(this.mousePosition.x.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 32)
+                this.ctx.fillText(this.mousePosition.y.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 48)
+                return
             }
         }
-        this.particles.render(this.ctx, false)
-        let fps = this.performanceMeter.getFps()
-        this.ctx.fillStyle = "#000000"
-        this.ctx.textAlign = "right"
-        this.ctx.textBaseline = "top"
-        this.ctx.font = "bold 16px serif"
-        if (!isNaN(fps)) {
-            this.ctx.fillText(Math.floor(fps).toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 16)
-        }
-        this.ctx.fillText(this.mousePosition.x.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 32)
-        this.ctx.fillText(this.mousePosition.y.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 48)
     }
 
+    static initializeAndRun() {
+        let container = document.getElementById("zptd-game-container")
+        if (container == null) {
+            throw new Error('Html element with id "zptd-game-container" not found')
+        } else {
+            //gen()
+            new Game(container).start()
+        }
+    }
+
+}
+
+function gen() {
+    let w = 258, h = 286
+    let c = new PreRenderedImage(w * 6, h * 4)
+    let ctx = c.ctx, i = 0, c1 = "#A01713", c2 = "#FFE2A8", ch = "#CF7C5D"
+    ctx.fillStyle = "#404040"
+    ctx.fillRect(0, 0, w * 6, h * 4)
+    function label(line1: string, line2?: string) {
+        let x = i % 6 * w + 1
+        let y = Math.floor(i / 6) * h + 257
+        ctx.fillStyle = "#C0C0C0"
+        ctx.fillRect(x, y, 256, 28)
+        ctx.fillStyle = "#000000"
+        ctx.textAlign = "left"
+        ctx.textBaseline = "middle"
+        ctx.font = "bold 16px serif"
+        ctx.fillText(line1, x + 6, y + 14, 248)
+        if (line2) {
+            ctx.textAlign = "right"
+            ctx.fillText(`(${line2})`, x + 250, y + 12, 248)
+        }
+    }
+    ctx.drawImage(new CellularTextureGenerator(
+        256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Euclidean
+    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Cellular", "Cells, Euclidean")
+    ++i
+    ctx.drawImage(new CellularTextureGenerator(
+        256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Manhattan
+    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Cellular", "Cells, Manhattan")
+    ++i
+    ctx.drawImage(new CellularTextureGenerator(
+        256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Euclidean
+    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Cellular", "Balls, Euclidean")
+    ++i
+    ctx.drawImage(new CellularTextureGenerator(
+        256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Manhattan
+    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Cellular", "Balls, Manhattan")
+    ++i
+    ctx.drawImage(new CellularTextureGenerator(
+        256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Euclidean
+    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Cellular", "Net, Euclidean")
+    ++i
+    ctx.drawImage(new CellularTextureGenerator(
+        256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Manhattan
+    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Cellular", "Net, Manhattan")
+    ++i
+    ctx.drawImage(new CellularTextureGenerator(
+        256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Chebyshev
+    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Cellular", "Cells, Chebyshev")
+    ++i
+    ctx.drawImage(new CellularTextureGenerator(
+        256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Minkowski
+    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Cellular", "Cells, Minkowski")
+    ++i
+    ctx.drawImage(new CellularTextureGenerator(
+        256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Chebyshev
+    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Cellular", "Balls, Chebyshev")
+    ++i
+    ctx.drawImage(new CellularTextureGenerator(
+        256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Minkowski
+    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Cellular", "Balls, Minkowski")
+    ++i
+    ctx.drawImage(new CellularTextureGenerator(
+        256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Chebyshev
+    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Cellular", "Net, Chebyshev")
+    ++i
+    ctx.drawImage(new CellularTextureGenerator(
+        256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Minkowski
+    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Cellular", "Net, Minkowski")
+    ++i
+    ctx.drawImage(new NoiseTextureGenerator(256, 256, ch, 0.5, 0.5, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Noise")
+    ++i
+    ctx.drawImage(new PerlinNoiseTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Perlin", "Noise")
+    ++i
+    ctx.drawImage(new CloudsTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Perlin", "Clouds")
+    ++i
+    ctx.drawImage(new VelvetTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Perlin", "Velvet")
+    ++i
+    ctx.drawImage(new GlassTextureGenerator(256, 256, c1, c2, 1, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Perlin", "Glass")
+    ++i
+    ctx.drawImage(new FrostedGlassTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Perlin", "Frosted glass")
+    ++i
+    ctx.drawImage(new BarkTextureGenerator(256, 256, c1, c2, 1, 0.75).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Perlin", "Bark")
+    ++i
+    ctx.drawImage(new CirclesTextureGenerator(256, 256, c1, c2, ch, 1, 4, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Perlin", "Circles")
+    ++i
+    ctx.drawImage(new CamouflageTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Perlin", "Camouflage")
+    ++i
+    let grads = [
+        new RadialGradientSource(256, 256, 128, 128, 0, 128),
+        new LinearGradientSource(256, 256, 0, 128, 256, 128)
+    ]
+    for (const g of grads) {
+        g.addColorStop(0.000, "#FF0000")
+        g.addColorStop(0.167, "#FFFF00")
+        g.addColorStop(0.333, "#00FF00")
+        g.addColorStop(0.500, "#00FFFF")
+        g.addColorStop(0.667, "#0000FF")
+        g.addColorStop(0.833, "#FF00FF")
+        g.addColorStop(1.000, "#FF0000")
+    }
+    ctx.drawImage(grads[0].generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Gradient", "Radial")
+    ++i
+    ctx.drawImage(new FisheyeSource(256, 256, grads[1], 0.5, 128, 128, 128).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Gradient", "Linear, Fisheye[+]")
+    ++i
+    ctx.drawImage(new FisheyeSource(256, 256, grads[1], -0.5, 128, 128, 128).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    label("Gradient", "Linear, Fisheye[-]")
+    c.saveImage("textures")
 }

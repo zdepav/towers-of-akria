@@ -64,25 +64,28 @@ class Turret {
         }
     }
 
-    static init() {
-        AirTurret.init()
-        FireTurret.init()
-        EarthTurret.init()
-        WaterTurret.init()
-
-        IceTurret.init()
-        AcidTurret.init()
-        CannonTurret.init()
-        ArcherTurret.init()
-        LightningTurret.init()
-        FlamethrowerTurret.init()
-
-        SunTurret.init()
-        MoonTurret.init()
-        PlasmaTurret.init()
-        EarthquakeTurret.init()
-
-        ArcaneTurret.init()
+    static initAll(): Promise<void[]> {
+        return Promise.all([
+            // 1 elements
+            AirTurret.init(),
+            FireTurret.init(),
+            EarthTurret.init(),
+            WaterTurret.init(),
+            // 2 elements
+            IceTurret.init(),
+            AcidTurret.init(),
+            CannonTurret.init(),
+            ArcherTurret.init(),
+            LightningTurret.init(),
+            FlamethrowerTurret.init(),
+            // 3 elements
+            SunTurret.init(),
+            MoonTurret.init(),
+            PlasmaTurret.init(),
+            EarthquakeTurret.init(),
+            // 4 elements
+            ArcaneTurret.init()
+        ])
     }
 
 }
@@ -158,30 +161,36 @@ class AirTurret extends Turret {
         }
     }
 
-    static init() {
-        let c = new PreRenderedImage(48, 16)
-        let renderable = new RenderablePathSet()
-        let path = new Path2D()
-        path.ellipse(36, 8, 12, 8, 0, 0, Angle.deg180)
-        let grad = c.ctx.createLinearGradient(24, 8, 24, 16)
-        renderable.pushNew(path, grad)
-        path = new Path2D()
-        path.ellipse(12, 8, 12, 8, 0, Angle.deg180, 0)
-        grad = c.ctx.createLinearGradient(24, 8, 24, 0)
-        renderable.pushNew(path, grad)
-        path = new Path2D()
-        path.arc(24, 8, 8, 0, Angle.deg360)
-        grad = c.ctx.createRadialGradient(24, 8, 8, 24, 8, 4)
-        renderable.pushNew(path, grad)
-        for (const rp of renderable.paths) {
-            rp.path.closePath()
-            const gr = rp.fill as CanvasGradient;
-            gr.addColorStop(0, "#B2A5FF")
-            gr.addColorStop(1, "#A0A0A0")
-        }
-        renderable.render(c.ctx)
-        if (Game.saveImages) { c.cacheImage("td_tower_Aefw_air") }
-        AirTurret.image = c.image
+    static init(): Promise<void> {
+        return Utils.getImageFromCache("td_tower_Aefw_air").then(
+            tex => { AirTurret.image = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(48, 16)
+                let renderable = new RenderablePathSet()
+                let path = new Path2D()
+                path.ellipse(36, 8, 12, 8, 0, 0, Angle.deg180)
+                let grad = c.ctx.createLinearGradient(24, 8, 24, 16)
+                renderable.pushNew(path, grad)
+                path = new Path2D()
+                path.ellipse(12, 8, 12, 8, 0, Angle.deg180, 0)
+                grad = c.ctx.createLinearGradient(24, 8, 24, 0)
+                renderable.pushNew(path, grad)
+                path = new Path2D()
+                path.arc(24, 8, 8, 0, Angle.deg360)
+                grad = c.ctx.createRadialGradient(24, 8, 8, 24, 8, 4)
+                renderable.pushNew(path, grad)
+                for (const rp of renderable.paths) {
+                    rp.path.closePath()
+                    const gr = rp.fill as CanvasGradient;
+                    gr.addColorStop(0, "#B2A5FF")
+                    gr.addColorStop(1, "#A0A0A0")
+                }
+                renderable.render(c.ctx)
+                c.cacheImage("td_tower_Aefw_air")
+                AirTurret.image = c.image
+                resolve()
+            })
+        )
     }
 
 }
@@ -230,14 +239,20 @@ class EarthTurret extends Turret {
         }
     }
 
-    static init() {
-        let c = new PreRenderedImage(48, 192)
-        EarthTurret.preRender1(c.ctx, 0)
-        EarthTurret.preRender2(c.ctx, 48)
-        EarthTurret.preRender3(c.ctx, 96)
-        EarthTurret.preRender4(c.ctx, 144)
-        if (Game.saveImages) { c.cacheImage("td_tower_aEfw_earth") }
-        EarthTurret.images = c.image
+    static init(): Promise<void> {
+        return Utils.getImageFromCache("td_tower_aEfw_earth").then(
+            tex => { EarthTurret.images = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(48, 192)
+                EarthTurret.preRender1(c.ctx, 0)
+                EarthTurret.preRender2(c.ctx, 48)
+                EarthTurret.preRender3(c.ctx, 96)
+                EarthTurret.preRender4(c.ctx, 144)
+                c.cacheImage("td_tower_aEfw_earth")
+                EarthTurret.images = c.image
+                resolve()
+            })
+        )
     }
 
     private static preRender1(ctx: CanvasRenderingContext2D, y: number) {
@@ -340,7 +355,7 @@ class EarthTurret extends Turret {
         grad = new RadialGradientSource(48, 48, 24, 24, 10, 4)
         grad.addColorStop(0, tex2)
         grad.addColorStop(1, "#B6FF00")
-        ctx.drawImage(new CircleSource(48, 48, 24, 24, 10.5, grad, src).generateImage(), 0, y)
+        new CircleSource(48, 48, 24, 24, 10.5, grad, src).generateInto(ctx, 0, y)
     }
 
 }
@@ -410,42 +425,48 @@ class FireTurret extends Turret {
         }
     }
 
-    static init() {
-        let c = new PreRenderedImage(48, 48)
-        let texLava = new CellularTextureGenerator(48, 48, 36, "#FF5020", "#C00000", CellularTextureType.Balls)
-        let texRock = new CellularTextureGenerator(48, 48, 144, "#662D22", "#44150D", CellularTextureType.Balls)
-        let renderable = new RenderablePathSet()
-        let path = new Path2D()
-        for (let k = 0; k < 36; ++k) {
-            let radius = 20 + 4 * Math.random()
-            let a = k * Angle.deg10
-            if (k === 0) {
-                path.moveTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24))
-            } else {
-                path.lineTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24))
-            }
-        }
-        path.closePath()
-        renderable.pushNew(path, c.ctx.createPattern(texRock.generateImage(), "no-repeat"))
-        let grad = c.ctx.createRadialGradient(24, 24, 24, 24, 24, 10)
-        grad.addColorStop(0, "#300000")
-        grad.addColorStop(1, "#30000000")
-        renderable.pushNew(path, grad)
-        path = new Path2D()
-        for (let k = 0; k < 18; ++k) {
-            let radius = 9 + 2 * Math.random()
-            let a = k * Angle.deg20
-            if (k === 0) {
-                path.moveTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24))
-            } else {
-                path.lineTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24))
-            }
-        }
-        path.closePath()
-        renderable.pushNew(path, c.ctx.createPattern(texLava.generateImage(), "no-repeat"))
-        renderable.render(c.ctx)
-        if (Game.saveImages) { c.cacheImage("td_tower_aeFw_fire") }
-        FireTurret.image = c.image
+    static init(): Promise<void> {
+        return Utils.getImageFromCache("td_tower_aeFw_fire").then(
+            tex => { FireTurret.image = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(48, 48)
+                let texLava = new CellularTextureGenerator(48, 48, 36, "#FF5020", "#C00000", CellularTextureType.Balls)
+                let texRock = new CellularTextureGenerator(48, 48, 144, "#662D22", "#44150D", CellularTextureType.Balls)
+                let renderable = new RenderablePathSet()
+                let path = new Path2D()
+                for (let k = 0; k < 36; ++k) {
+                    let radius = 20 + 4 * Math.random()
+                    let a = k * Angle.deg10
+                    if (k === 0) {
+                        path.moveTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24))
+                    } else {
+                        path.lineTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24))
+                    }
+                }
+                path.closePath()
+                renderable.pushNew(path, c.ctx.createPattern(texRock.generateImage(), "no-repeat"))
+                let grad = c.ctx.createRadialGradient(24, 24, 24, 24, 24, 10)
+                grad.addColorStop(0, "#300000")
+                grad.addColorStop(1, "#30000000")
+                renderable.pushNew(path, grad)
+                path = new Path2D()
+                for (let k = 0; k < 18; ++k) {
+                    let radius = 9 + 2 * Math.random()
+                    let a = k * Angle.deg20
+                    if (k === 0) {
+                        path.moveTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24))
+                    } else {
+                        path.lineTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24))
+                    }
+                }
+                path.closePath()
+                renderable.pushNew(path, c.ctx.createPattern(texLava.generateImage(), "no-repeat"))
+                renderable.render(c.ctx)
+                c.cacheImage("td_tower_aeFw_fire")
+                FireTurret.image = c.image
+                resolve()
+            })
+        )
     }
 
 }
@@ -500,16 +521,22 @@ class WaterTurret extends Turret {
         }
     }
 
-    static init() {
-        let sandTex = new NoiseTextureGenerator(48, 48, "#F2EBC1", 0.08, 0, 1).generateImage()
-        let groundTex = new NoiseTextureGenerator(48, 48, "#B9B5A0", 0.05, 0, 1).generateImage()
-        let c = new PreRenderedImage(48, 192)
-        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), 1, 1, 46, 46)
-        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -2, 46, 52, 52)
-        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -5, 91, 58, 58)
-        c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -8, 136)
-        if (Game.saveImages) { c.cacheImage("td_tower_aefW_water") }
-        WaterTurret.images = c.image
+    static init(): Promise<void> {
+        return Utils.getImageFromCache("td_tower_aefW_water").then(
+            tex => { WaterTurret.images = tex },
+            () => new Promise<void>(resolve => {
+                let sandTex = new NoiseTextureGenerator(48, 48, "#F2EBC1", 0.08, 0, 1).generateImage()
+                let groundTex = new NoiseTextureGenerator(48, 48, "#B9B5A0", 0.05, 0, 1).generateImage()
+                let c = new PreRenderedImage(48, 192)
+                c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), 1, 1, 46, 46)
+                c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -2, 46, 52, 52)
+                c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -5, 91, 58, 58)
+                c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -8, 136)
+                c.cacheImage("td_tower_aefW_water")
+                WaterTurret.images = c.image
+                resolve()
+            })
+        )
     }
 
     private static preRender(groundTex: CanvasImageSource, sandTex: CanvasImageSource): CanvasImageSource {
@@ -616,19 +643,25 @@ class IceTurret extends Turret {
         }
     }
 
-    static init() {
-        let tex = new CellularTextureGenerator(64, 64, 64, "#D1EFFF", "#70BECC", CellularTextureType.Cells)
-        let c = new PreRenderedImage(64, 192)
-        let c2 = new PreRenderedImage(64, 64)
-        let fill = c2.ctx.createPattern(tex.generateImage(), "repeat") as CanvasPattern
-        IceTurret.preRender(c2.ctx, 0, fill, true)
-        c.ctx.drawImage(c2.image, 0, 0)
-        c.ctx.drawImage(c2.image, 0, 64)
-        c.ctx.drawImage(c2.image, 0, 128)
-        IceTurret.preRender(c.ctx, 0, "#FFFFFF80")
-        IceTurret.preRender(c.ctx, 128, "#51AFCC60")
-        if (Game.saveImages) { c.cacheImage("td_tower_AefW_ice") }
-        IceTurret.images = c.image
+    static init(): Promise<void> {
+        return Utils.getImageFromCache("td_tower_AefW_ice").then(
+            tex => { IceTurret.images = tex },
+            () => new Promise<void>(resolve => {
+                let tex = new CellularTextureGenerator(64, 64, 64, "#D1EFFF", "#70BECC", CellularTextureType.Cells)
+                let c = new PreRenderedImage(64, 192)
+                let c2 = new PreRenderedImage(64, 64)
+                let fill = c2.ctx.createPattern(tex.generateImage(), "repeat") as CanvasPattern
+                IceTurret.preRender(c2.ctx, 0, fill, true)
+                c.ctx.drawImage(c2.image, 0, 0)
+                c.ctx.drawImage(c2.image, 0, 64)
+                c.ctx.drawImage(c2.image, 0, 128)
+                IceTurret.preRender(c.ctx, 0, "#FFFFFF80")
+                IceTurret.preRender(c.ctx, 128, "#51AFCC60")
+                c.cacheImage("td_tower_AefW_ice")
+                IceTurret.images = c.image
+                resolve()
+            })
+        )
     }
 
     private static mkBranch(ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, size: number) {
@@ -741,20 +774,26 @@ class AcidTurret extends Turret {
         }
     }
 
-    static init() {
-        let acidTex = new CellularTextureGenerator(
-            32, 32, 9,
-            "#E0FF00",
-            "#5B7F00",
-            CellularTextureType.Balls
-        ).generateImage()
+    static init(): Promise<void> {
         AcidTurret.frameCount = 50
-        let c = new PreRenderedImage(48 * AcidTurret.frameCount, 144)
-        for (let i = 0; i < AcidTurret.frameCount; ++i) {
-            AcidTurret.preRenderFrame(acidTex, c.ctx, i)
-        }
-        if (Game.saveImages) { c.cacheImage("td_tower_aEfW_acid_strip" + AcidTurret.frameCount) }
-        AcidTurret.images = c.image
+        return Utils.getImageFromCache("td_tower_aEfW_acid_strip" + AcidTurret.frameCount).then(
+            tex => { AcidTurret.images = tex },
+            () => new Promise<void>(resolve => {
+                let acidTex = new CellularTextureGenerator(
+                    32, 32, 9,
+                    "#E0FF00",
+                    "#5B7F00",
+                    CellularTextureType.Balls
+                ).generateImage()
+                let c = new PreRenderedImage(48 * AcidTurret.frameCount, 144)
+                for (let i = 0; i < AcidTurret.frameCount; ++i) {
+                    AcidTurret.preRenderFrame(acidTex, c.ctx, i)
+                }
+                c.cacheImage("td_tower_aEfW_acid_strip" + AcidTurret.frameCount)
+                AcidTurret.images = c.image
+                resolve()
+            })
+        )
     }
 
     private static preRenderFrame(texture: CanvasImageSource, targetCtx: CanvasRenderingContext2D, frame: number) {
@@ -874,41 +913,47 @@ class CannonTurret extends Turret {
         }
     }
 
-    static init() {
-        let c = new PreRenderedImage(64, 32)
-        let ctx = c.ctx
-        let grad = ctx.createLinearGradient(20, 16, 40, 16)
-        grad.addColorStop(0.000, "#543B2C")
-        grad.addColorStop(0.125, "#664936")
-        grad.addColorStop(0.250, "#6C4D38")
-        grad.addColorStop(0.375, "#6F4F3A")
-        grad.addColorStop(0.500, "#70503B")
-        grad.addColorStop(0.625, "#6F4F3A")
-        grad.addColorStop(0.750, "#6C4D38")
-        grad.addColorStop(0.875, "#664936")
-        grad.addColorStop(1.000, "#543B2C")
-        ctx.fillStyle = grad
-        ctx.fillRect(20, 3, 20, 26)
-        ctx.beginPath()
-        ctx.arc(20, 16, 7, Angle.deg90, Angle.deg270)
-        ctx.arcTo(42, 9, 52, 12, 50)
-        ctx.arc(54, 12, 2, Angle.deg180, Angle.deg360)
-        ctx.lineTo(56, 20)
-        ctx.arc(54, 20, 2, 0, Angle.deg180)
-        ctx.arcTo(45, 23, 38, 23, 50)
-        ctx.closePath()
-        ctx.strokeStyle = "#101010"
-        ctx.lineWidth = 2
-        ctx.stroke()
-        ctx.fillStyle = "#303030"
-        ctx.fill()
-        ctx.beginPath()
-        ctx.moveTo(52, 12)
-        ctx.lineTo(52, 20)
-        ctx.lineWidth = 1
-        ctx.stroke()
-        if (Game.saveImages) { c.cacheImage("td_tower_aEFw_cannon") }
-        CannonTurret.image = c.image
+    static init(): Promise<void> {
+        return Utils.getImageFromCache("td_tower_aEFw_cannon").then(
+            tex => { CannonTurret.image = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(64, 32)
+                let ctx = c.ctx
+                let grad = ctx.createLinearGradient(20, 16, 40, 16)
+                grad.addColorStop(0.000, "#543B2C")
+                grad.addColorStop(0.125, "#664936")
+                grad.addColorStop(0.250, "#6C4D38")
+                grad.addColorStop(0.375, "#6F4F3A")
+                grad.addColorStop(0.500, "#70503B")
+                grad.addColorStop(0.625, "#6F4F3A")
+                grad.addColorStop(0.750, "#6C4D38")
+                grad.addColorStop(0.875, "#664936")
+                grad.addColorStop(1.000, "#543B2C")
+                ctx.fillStyle = grad
+                ctx.fillRect(20, 3, 20, 26)
+                ctx.beginPath()
+                ctx.arc(20, 16, 7, Angle.deg90, Angle.deg270)
+                ctx.arcTo(42, 9, 52, 12, 50)
+                ctx.arc(54, 12, 2, Angle.deg180, Angle.deg360)
+                ctx.lineTo(56, 20)
+                ctx.arc(54, 20, 2, 0, Angle.deg180)
+                ctx.arcTo(45, 23, 38, 23, 50)
+                ctx.closePath()
+                ctx.strokeStyle = "#101010"
+                ctx.lineWidth = 2
+                ctx.stroke()
+                ctx.fillStyle = "#303030"
+                ctx.fill()
+                ctx.beginPath()
+                ctx.moveTo(52, 12)
+                ctx.lineTo(52, 20)
+                ctx.lineWidth = 1
+                ctx.stroke()
+                c.cacheImage("td_tower_aEFw_cannon")
+                CannonTurret.image = c.image
+                resolve()
+            })
+        )
     }
 }
 
@@ -950,10 +995,16 @@ class ArcherTurret extends Turret {
         }
     }
 
-    static init() {
-        let c = new PreRenderedImage(64, 64)
-        if (Game.saveImages) { c.cacheImage("td_tower_AEfw_archer") }
-        ArcherTurret.image = c.image
+    static init(): Promise<void> {
+        return Utils.getImageFromCache("td_tower_AEfw_archer").then(
+            tex => { ArcherTurret.image = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(64, 64)
+                c.cacheImage("td_tower_AEfw_archer")
+                ArcherTurret.image = c.image
+                resolve()
+            })
+        )
     }
 }
 
@@ -1002,47 +1053,53 @@ class LightningTurret extends Turret {
         }
     }
 
-    static init() {
-        let c = new PreRenderedImage(48, 48)
-        let ctx = c.ctx
-        let grad = ctx.createRadialGradient(24, 24, 0, 24, 24, 18)
-        grad.addColorStop(0, "#FFFFFF")
-        grad.addColorStop(0.33, "#A97FFF")
-        grad.addColorStop(1, "#D6BFFF")
-        ctx.fillStyle = grad
-        ctx.beginPath()
-        ctx.moveTo(42, 24)
-        for (let i = 1; i < 16; ++i) {
-            let r = i % 2 == 0 ? 21 : 7
-            let a = i * Angle.deg45 / 2
-            ctx.lineTo(Utils.ldx(r, a, 24), Utils.ldy(r, a, 24))
-        }
-        ctx.closePath()
-        ctx.fill()
-        grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 3)
-        grad.addColorStop(0, "#F8F2FF")
-        grad.addColorStop(1, "#C199FF")
-        ctx.fillStyle = grad
-        let j = true
-        for (let i = 0; i < 8; ++i, j = !j) {
-            let a = i * Angle.deg45
-            ctx.translate(Utils.ldx(18, a, 24), Utils.ldy(18, a, 24))
-            if (j) {
-                ctx.rotate(Angle.deg45)
-            }
-            ctx.fillRect(-3, -3, 6, 6)
-            ctx.resetTransform()
-        }
-        grad = ctx.createRadialGradient(42, 24, 0, 42, 24, 8)
-        grad.addColorStop(0, "#FFFFFFC0")
-        grad.addColorStop(1, "#F8F2FF00")
-        ctx.fillStyle = grad
-        ctx.beginPath()
-        ctx.arc(42, 24, 8, 0, Angle.deg360)
-        ctx.closePath()
-        ctx.fill()
-        if (Game.saveImages) { c.cacheImage("td_tower_AeFw_lightning") }
-        LightningTurret.image = c.image
+    static init(): Promise<void> {
+        return Utils.getImageFromCache("td_tower_AeFw_lightning").then(
+            tex => { LightningTurret.image = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(48, 48)
+                let ctx = c.ctx
+                let grad = ctx.createRadialGradient(24, 24, 0, 24, 24, 18)
+                grad.addColorStop(0, "#FFFFFF")
+                grad.addColorStop(0.33, "#A97FFF")
+                grad.addColorStop(1, "#D6BFFF")
+                ctx.fillStyle = grad
+                ctx.beginPath()
+                ctx.moveTo(42, 24)
+                for (let i = 1; i < 16; ++i) {
+                    let r = i % 2 == 0 ? 21 : 7
+                    let a = i * Angle.deg45 / 2
+                    ctx.lineTo(Utils.ldx(r, a, 24), Utils.ldy(r, a, 24))
+                }
+                ctx.closePath()
+                ctx.fill()
+                grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 3)
+                grad.addColorStop(0, "#F8F2FF")
+                grad.addColorStop(1, "#C199FF")
+                ctx.fillStyle = grad
+                let j = true
+                for (let i = 0; i < 8; ++i, j = !j) {
+                    let a = i * Angle.deg45
+                    ctx.translate(Utils.ldx(18, a, 24), Utils.ldy(18, a, 24))
+                    if (j) {
+                        ctx.rotate(Angle.deg45)
+                    }
+                    ctx.fillRect(-3, -3, 6, 6)
+                    ctx.resetTransform()
+                }
+                grad = ctx.createRadialGradient(42, 24, 0, 42, 24, 8)
+                grad.addColorStop(0, "#FFFFFFC0")
+                grad.addColorStop(1, "#F8F2FF00")
+                ctx.fillStyle = grad
+                ctx.beginPath()
+                ctx.arc(42, 24, 8, 0, Angle.deg360)
+                ctx.closePath()
+                ctx.fill()
+                c.cacheImage("td_tower_AeFw_lightning")
+                LightningTurret.image = c.image
+                resolve()
+            })
+        )
     }
 }
 
@@ -1084,10 +1141,16 @@ class FlamethrowerTurret extends Turret {
         }
     }
 
-    static init() {
-        let c = new PreRenderedImage(64, 64)
-        if (Game.saveImages) { c.cacheImage("td_tower_aeFW_flamethrower") }
-        FlamethrowerTurret.image = c.image
+    static init(): Promise<void> {
+        return Utils.getImageFromCache("td_tower_aeFW_flamethrower").then(
+            tex => { FlamethrowerTurret.image = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(64, 64)
+                c.cacheImage("td_tower_aeFW_flamethrower")
+                FlamethrowerTurret.image = c.image
+                resolve()
+            })
+        )
     }
 }
 
@@ -1140,32 +1203,38 @@ class SunTurret extends Turret {
         }
     }
 
-    static init() {
+    static init(): Promise<void> {
         SunTurret.frameCount = 90
-        let c = new PreRenderedImage(64, 64)
-        let ctx = c.ctx
-        let grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32)
-        grad.addColorStop(0.00000, "#FFFF40")   //  0
-        grad.addColorStop(0.09375, "#FFFD3D")   //  3
-        grad.addColorStop(0.18750, "#FFFA37")   //  6
-        grad.addColorStop(0.28125, "#FFF42A")   //  9
-        grad.addColorStop(0.37500, "#FFE000")   // 12
-        grad.addColorStop(0.40625, "#FFFFC0")   // 13
-        grad.addColorStop(1.00000, "#FFFFC000") // 32
-        ctx.fillStyle = grad
-        ctx.beginPath()
-        for (let i = 0; i < 12; ++i) {
-            let a0 = i * Angle.deg30
-            let a1 = a0 + Angle.deg10
-            let a2 = a0 + Angle.deg30
-            ctx.arc(32, 32, 32, a0, a1)
-            ctx.lineTo(Utils.ldx(12, a1, 32), Utils.ldy(12, a1, 32))
-            ctx.arc(32, 32, 12, a1, a2)
-            ctx.lineTo(Utils.ldx(32, a2, 32), Utils.ldy(32, a2, 32))
-        }
-        ctx.fill()
-        if (Game.saveImages) { c.cacheImage("td_tower_AEFw_sun") }
-        SunTurret.image = c.image
+        return Utils.getImageFromCache("td_tower_AEFw_sun").then(
+            tex => { SunTurret.image = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(64, 64)
+                let ctx = c.ctx
+                let grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32)
+                grad.addColorStop(0.00000, "#FFFF40")   //  0
+                grad.addColorStop(0.09375, "#FFFD3D")   //  3
+                grad.addColorStop(0.18750, "#FFFA37")   //  6
+                grad.addColorStop(0.28125, "#FFF42A")   //  9
+                grad.addColorStop(0.37500, "#FFE000")   // 12
+                grad.addColorStop(0.40625, "#FFFFC0")   // 13
+                grad.addColorStop(1.00000, "#FFFFC000") // 32
+                ctx.fillStyle = grad
+                ctx.beginPath()
+                for (let i = 0; i < 12; ++i) {
+                    let a0 = i * Angle.deg30
+                    let a1 = a0 + Angle.deg10
+                    let a2 = a0 + Angle.deg30
+                    ctx.arc(32, 32, 32, a0, a1)
+                    ctx.lineTo(Utils.ldx(12, a1, 32), Utils.ldy(12, a1, 32))
+                    ctx.arc(32, 32, 12, a1, a2)
+                    ctx.lineTo(Utils.ldx(32, a2, 32), Utils.ldy(32, a2, 32))
+                }
+                ctx.fill()
+                c.cacheImage("td_tower_AEFw_sun")
+                SunTurret.image = c.image
+                resolve()
+            })
+        )
     }
 
 }
@@ -1216,31 +1285,37 @@ class MoonTurret extends Turret {
         }
     }
 
-    static init() {
+    static init(): Promise<void> {
         MoonTurret.frameCount = 50
-        let c = new PreRenderedImage(MoonTurret.frameCount * 64, 64)
-        let colorA = ColorSource.get("#E0E0E0")
-        let colorB = ColorSource.get("#FFFFFF00")
-        let s: ColorSource = new CellularTextureGenerator(64, 32, 49, "#A0A0A0", colorA, CellularTextureType.Balls)
-        for (let i = 0; i < 3; ++i) {
-            s = new CellularTextureGenerator(64, 32, 49, s, colorA, CellularTextureType.Cells)
-        }
-        s = new BufferedColorSource(64, 32, s)
-        let p = new PerlinNoiseTextureGenerator(64, 64, "#FFFFFF00", "#FFFFFF80", 0.4)
-        for (let i = 0; i < MoonTurret.frameCount; ++i) {
-            let coef = i / MoonTurret.frameCount
-            let t1 = new TranslatingSource(64, 64, s, -64 * coef, 0)
-            let ns: ColorSource = new ScalingSource(64, 64, t1, 0.5, 32, 32)
-            let t2 = new TranslatingSource(64, 64, p, 64 * coef, 0)
-            let grad = new RadialGradientSource(64, 64, 32, 32, 16, 32)
-            grad.addColorStop(0, t2)
-            grad.addColorStop(1, colorB)
-            ns = new FisheyeSource(64, 64, ns, 0.5, 32, 32, 16)
-            ns = new CircleSource(64, 64, 32, 32, 16, ns, grad)
-            c.ctx.drawImage(ns.generateImage(), i * 64, 0)
-        }
-        if (Game.saveImages) { c.cacheImage("td_tower_AEfW_moon_strip" + MoonTurret.frameCount) }
-        MoonTurret.images = c.image
+        return Utils.getImageFromCache("td_tower_AEfW_moon_strip" + MoonTurret.frameCount).then(
+            tex => { MoonTurret.images = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(MoonTurret.frameCount * 64, 64)
+                let colorA = ColorSource.get("#E0E0E0")
+                let colorB = ColorSource.get("#FFFFFF00")
+                let s: ColorSource = new CellularTextureGenerator(64, 32, 49, "#A0A0A0", colorA, CellularTextureType.Balls)
+                for (let i = 0; i < 3; ++i) {
+                    s = new CellularTextureGenerator(64, 32, 49, s, colorA, CellularTextureType.Cells)
+                }
+                s = new BufferedColorSource(64, 32, s)
+                let p = new PerlinNoiseTextureGenerator(64, 64, "#FFFFFF00", "#FFFFFF80", 0.4)
+                for (let i = 0; i < MoonTurret.frameCount; ++i) {
+                    let coef = i / MoonTurret.frameCount
+                    let t1 = new TranslatingSource(64, 64, s, -64 * coef, 0)
+                    let ns: ColorSource = new ScalingSource(64, 64, t1, 0.5, 32, 32)
+                    let t2 = new TranslatingSource(64, 64, p, 64 * coef, 0)
+                    let grad = new RadialGradientSource(64, 64, 32, 32, 16, 32)
+                    grad.addColorStop(0, t2)
+                    grad.addColorStop(1, colorB)
+                    ns = new FisheyeSource(64, 64, ns, 0.5, 32, 32, 16)
+                    ns = new CircleSource(64, 64, 32, 32, 16, ns, grad)
+                    ns.generateInto(c.ctx, i * 64, 0)
+                }
+                c.cacheImage("td_tower_AEfW_moon_strip" + MoonTurret.frameCount)
+                MoonTurret.images = c.image
+                resolve()
+            })
+        )
     }
 }
 
@@ -1289,36 +1364,42 @@ class PlasmaTurret extends Turret {
         }
     }
 
-    static init() {
+    static init(): Promise<void> {
         PlasmaTurret.frameCount = 65
-        let background = "#552BA800"
-        let color1 = new PerlinNoiseTextureGenerator(64, 64, "#4B007A00", "#FFFFFF", 0.5)
-        let tex1a = new CirclesTextureGenerator(64, 64, "#A389FFC0", color1, background, 0.4, 2, 0.7)
-        let tex1b = new CirclesTextureGenerator(64, 64, "#A389FFC0", color1, background, 0.28, 3, 0.7)
-        let color2 = new PerlinNoiseTextureGenerator(64, 64, "#552BA840", "#AF84FF", 0.5)
-        let back2 = new LerpingSource(64, 64, background, color2, 0.5)
-        let tex2a = new CirclesTextureGenerator(64, 64, color2, back2, background, 0.4, 2, 0.1)
-        let tex2b = new CirclesTextureGenerator(64, 64, color2, back2, background, 0.28, 3, 0.1)
-        let c = new PreRenderedImage(64 * PlasmaTurret.frameCount, 128)
-        PlasmaTurret.preRender(c.ctx, tex1a, tex2a, 0)
-        PlasmaTurret.preRender(c.ctx, tex1b, tex2b, 64)
-        if (Game.saveImages) { c.cacheImage("td_tower_AeFW_plasma_strip" + PlasmaTurret.frameCount) }
-        PlasmaTurret.images = c.image
+        return Utils.getImageFromCache("td_tower_AeFW_plasma_strip" + PlasmaTurret.frameCount).then(
+            tex => { PlasmaTurret.images = tex },
+            () => new Promise<void>(resolve => {
+                let background = "#552BA800"
+                let color1 = new PerlinNoiseTextureGenerator(64, 64, "#4B007A00", "#FFFFFF", 0.5)
+                let tex1a = new CirclesTextureGenerator(64, 64, "#A389FFC0", color1, background, 0.4, 2, 0.7)
+                let tex1b = new CirclesTextureGenerator(64, 64, "#A389FFC0", color1, background, 0.28, 3, 0.7)
+                let color2 = new PerlinNoiseTextureGenerator(64, 64, "#552BA840", "#AF84FF", 0.5)
+                let back2 = new LerpingSource(64, 64, background, color2, 0.5)
+                let tex2a = new CirclesTextureGenerator(64, 64, color2, back2, background, 0.4, 2, 0.1)
+                let tex2b = new CirclesTextureGenerator(64, 64, color2, back2, background, 0.28, 3, 0.1)
+                let c = new PreRenderedImage(64 * PlasmaTurret.frameCount, 128)
+                PlasmaTurret.preRender(c.ctx, tex1a, tex2a, 0)
+                PlasmaTurret.preRender(c.ctx, tex1b, tex2b, 64)
+                c.cacheImage("td_tower_AeFW_plasma_strip" + PlasmaTurret.frameCount)
+                PlasmaTurret.images = c.image
+                resolve()
+            })
+        )
     }
 
     private static preRender(ctx: CanvasRenderingContext2D, tex1: ColorSource, tex2: ColorSource, y: number) {
-        y += 32
+        let back = RgbaColor.transparent.source()
         for (let i = 0; i < PlasmaTurret.frameCount; ++i) {
-            let a = i * Angle.deg360 / PlasmaTurret.frameCount, x = i * 64 + 32
-            let src = new AddingSource(
-                64, 64,
-                new RotatingSource(64, 64, tex1, a, 32, 32),
-                new RotatingSource(64, 64, tex2, -a, 32, 32)
-            )
-            ctx.fillStyle = ctx.createPattern(src.generateImage(), "repeat") as CanvasPattern
-            ctx.beginPath()
-            ctx.arc(x, y, 30, 0, Angle.deg360)
-            ctx.fill()
+            let a = i * Angle.deg360 / PlasmaTurret.frameCount
+            new CircleSource(
+                64, 64, 32, 32, 32,
+                new AddingSource(
+                    64, 64,
+                    new RotatingSource(64, 64, tex1, a, 32, 32),
+                    new RotatingSource(64, 64, tex2, -a, 32, 32)
+                ),
+                back
+            ).generateInto(ctx, i * 64, y)
         }
     }
 
@@ -1385,43 +1466,54 @@ class EarthquakeTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return new Promise<void>(resolve => {
-            EarthquakeTurret.baseFrameCount = 12
-            EarthquakeTurret.halfFrameCount = 24
-            EarthquakeTurret.totalFrameCount = 48
-            let c = new PreRenderedImage(192 + EarthquakeTurret.halfFrameCount * 48, 48)
-            let ctx = c.ctx
-            for (let i = 0; i < 4; ++i) {
-                ctx.drawImage(new CellularTextureGenerator(
-                    48, 48, Utils.randInt(32, 128), "#808080",
-                    new PerlinNoiseTextureGenerator(48, 48, RgbaColor.black, "#808080", 0.75),
-                    CellularTextureType.Cells,
-                    CellularTextureDistanceMetric.Manhattan,
-                    Curve.sqr
-                ).generateImage(), i * 48, 0)
-            }
-            for (let i = 0; i < EarthquakeTurret.halfFrameCount; ++i) {
-                ctx.fillStyle = "#808080" + Utils.byteToHex(Math.floor(i / EarthquakeTurret.halfFrameCount * 256))
-                ctx.fillRect(192 + i * 48, 0, 48, 48)
-                let grad = ctx.createRadialGradient(0, 0, 4, 0, 0, 12)
-                let b = i / EarthquakeTurret.halfFrameCount
-                grad.addColorStop(0.4, RgbaColor.fromHex("#E8E144").lerp(
-                    RgbaColor.fromHex("#E86544").lerp(RgbaColor.fromHex("#808080"), b),
-                    Curve.arc(b)
-                ).toCss())
-                grad.addColorStop(0.5, "#606060")
-                grad.addColorStop(1, "#000000")
-                ctx.fillStyle = grad
-                ctx.translate(216 + 48 * i, 24)
-                ctx.rotate(b * Angle.deg90)
-                EarthquakeTurret.path(ctx)
-                ctx.fill()
-                ctx.resetTransform()
-            }
-            if (Game.saveImages) { c.cacheImage("td_tower_aEFW_earthquake_strip" + (EarthquakeTurret.halfFrameCount + 4)) }
-            EarthquakeTurret.images = c.image
-            resolve()
-        })
+        EarthquakeTurret.baseFrameCount = 12
+        EarthquakeTurret.halfFrameCount = 24
+        EarthquakeTurret.totalFrameCount = 48
+        return Utils.getImageFromCache("td_tower_aEFW_earthquake_strip" + (EarthquakeTurret.halfFrameCount + 4)).then(
+            tex => { EarthquakeTurret.images = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(192 + EarthquakeTurret.halfFrameCount * 48, 48)
+                let ctx = c.ctx
+                for (let i = 0; i < 4; ++i) {
+                    let cel = new CellularTextureGenerator(
+                        48, 48, Utils.randInt(32, 128), "#808080",
+                        new PerlinNoiseTextureGenerator(48, 48, RgbaColor.black, "#808080", 0.75),
+                        CellularTextureType.Cells,
+                        CellularTextureDistanceMetric.Manhattan,
+                        Curve.sqr
+                    )
+                    cel = new CellularTextureGenerator(
+                        48, 48, Utils.randInt(32, 128), cel,
+                        new PerlinNoiseTextureGenerator(48, 48, RgbaColor.black, "#808080", 0.75),
+                        CellularTextureType.Cells,
+                        CellularTextureDistanceMetric.Chebyshev,
+                        Curve.sqr
+                    )
+                    cel.generateInto(ctx, i * 48, 0)
+                }
+                for (let i = 0; i < EarthquakeTurret.halfFrameCount; ++i) {
+                    ctx.fillStyle = "#808080" + Utils.byteToHex(Math.floor(i / EarthquakeTurret.halfFrameCount * 256))
+                    ctx.fillRect(192 + i * 48, 0, 48, 48)
+                    let grad = ctx.createRadialGradient(0, 0, 4, 0, 0, 12)
+                    let b = i / EarthquakeTurret.halfFrameCount
+                    grad.addColorStop(0.4, RgbaColor.fromHex("#E8E144").lerp(
+                        RgbaColor.fromHex("#E86544").lerp(RgbaColor.fromHex("#808080"), b),
+                        Curve.arc(b)
+                    ).toCss())
+                    grad.addColorStop(0.5, "#606060")
+                    grad.addColorStop(1, "#000000")
+                    ctx.fillStyle = grad
+                    ctx.translate(216 + 48 * i, 24)
+                    ctx.rotate(b * Angle.deg90)
+                    EarthquakeTurret.path(ctx)
+                    ctx.fill()
+                    ctx.resetTransform()
+                }
+                c.cacheImage("td_tower_aEFW_earthquake_strip" + (EarthquakeTurret.halfFrameCount + 4))
+                EarthquakeTurret.images = c.image
+                resolve()
+            })
+        )
     }
 
     static path(ctx: CanvasRenderingContext2D) {
@@ -1444,14 +1536,19 @@ class EarthquakeTurret extends Turret {
 
 class ArcaneTurret extends Turret {
 
-    private static image: CanvasImageSource
+    private static images: CanvasImageSource
+    private static frameCount: number
+
+    private frame: number
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
+        this.frame = 0
     }
 
     step(time: number) {
         super.step(time)
+        this.frame = (this.frame + time * 25) % ArcaneTurret.frameCount
     }
 
     render(ctx: CanvasRenderingContext2D, preRender: boolean) {
@@ -1459,17 +1556,79 @@ class ArcaneTurret extends Turret {
         if (preRender) {
             return
         }
-        ctx.drawImage(ArcaneTurret.image, this.tile.pos.x, this.tile.pos.y)
+        ctx.drawImage(
+            ArcaneTurret.images,
+            Math.floor(this.frame) * 64, 0, 64, 64,
+            this.tile.pos.x, this.tile.pos.y, 64, 64
+        )
     }
 
     addType(type: TurretElement) { }
 
     static init(): Promise<void> {
-        return new Promise<void>(resolve => {
-            let c = new PreRenderedImage(64, 64)
-            if (Game.saveImages) { c.cacheImage("td_tower_AEFW_arcane") }
-            ArcaneTurret.image = c.image
-            resolve()
-        })
+        ArcaneTurret.frameCount = 50
+        return Utils.getImageFromCache("td_tower_AEFW_arcane").then(
+            tex => { ArcaneTurret.images = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(ArcaneTurret.frameCount * 64, 64)
+                let r: ColorSource = this.prepareGradient(RgbaColor.red)
+                let g: ColorSource = new RotatingSource(
+                    64, 64,
+                    this.prepareGradient(RgbaColor.green),
+                    Angle.deg60,
+                    32, 32
+                )
+                let b: ColorSource = new RotatingSource(
+                    64, 64,
+                    this.prepareGradient(RgbaColor.blue),
+                    Angle.deg120,
+                    32, 32
+                )
+                let rgb: ColorSource = new BufferedColorSource(
+                    64, 64,
+                    new AddingSource(
+                        64, 64, r,
+                        new AddingSource(64, 64, g, b)
+                    )
+                )
+                let v: ColorSource = new BufferedColorSource(
+                    64, 64,
+                    new VelvetTextureGenerator(64, 64, "#FFFFFF00", "#FFFFFF", 0.5)
+                )
+                let i = 0
+                function curve(x: number): number {
+                    return Math.cos(i * Angle.deg360 / ArcaneTurret.frameCount + x * Angle.deg360) / 2 + 0.5
+                }
+                let glass = new GlassTextureGenerator(64, 64, "#606060", "#A0A0A0", 0.5, 0.5, curve)
+                for (; i < ArcaneTurret.frameCount; ++i) {
+                    let ic = i * 64 / ArcaneTurret.frameCount
+                    let s: ColorSource = new TranslatingSource(192, 64, v, 0, ic)
+                    s = new PolarSource(64, 64, s, 192, 64)
+                    s = new FisheyeSource(64, 64, s, 0.5, 32, 32, 24)
+                    s = new BlendingSource(64, 64, rgb, s)
+                    let grad = new RadialGradientSource(64, 64, 32, 32, 0, 4)
+                    grad.addColorStop(0, RgbaColor.white)
+                    grad.addColorStop(1, s)
+                    let ground: ColorSource = new RectangleSource(64, 64, 8, 8, 48, 48, glass, RgbaColor.transparent)
+                    new CircleSource(64, 64, 32, 32, 24, grad, ground).generateInto(c.ctx, i * 64, 0)
+                }
+                c.cacheImage("td_tower_AEFW_arcane")
+                ArcaneTurret.images = c.image
+                resolve()
+            })
+        )
+    }
+
+    static prepareGradient(color: RgbaColor): LinearGradientSource {
+        let grad = new LinearGradientSource(64, 64, 32, 16, 32, 48)
+        grad.addColorStop(0, RgbaColor.black)
+        grad.addColorStop(1, RgbaColor.black)
+        for (let i = 0; i < 8; ++i) {
+            let c = RgbaColor.black.lerp(color, Curve.sin(i / 8))
+            grad.addColorStop(i / 16, c)
+            grad.addColorStop(32 - i / 16, c)
+        }
+        grad.addColorStop(0.5, color)
+        return grad
     }
 }

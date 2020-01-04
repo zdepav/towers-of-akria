@@ -19,14 +19,18 @@ abstract class ColorSource {
 
     protected abstract _getColor(x: number, y: number): RgbaColor;
 
-    generatePrImage(): PreRenderedImage {
-        let tex = new PreRenderedImage(this.width, this.height)
-        for (let x = 0; x < this.width; ++x) {
-            for (let y = 0; y < this.height; ++y) {
-                tex.ctx.fillStyle = this._getColor(x, y).toCss()
-                tex.ctx.fillRect(x, y, 1, 1);
+    generateInto(ctx: CanvasRenderingContext2D, x: number, y: number) {
+        for (let _x = 0; _x < this.width; ++_x) {
+            for (let _y = 0; _y < this.height; ++_y) {
+                ctx.fillStyle = this._getColor(_x, _y).toCss()
+                ctx.fillRect(x + _x, y + _y, 1, 1);
             }
         }
+    }
+
+    generatePrImage(): PreRenderedImage {
+        let tex = new PreRenderedImage(this.width, this.height)
+        this.generateInto(tex.ctx, 0, 0)
         return tex
     }
 
@@ -69,15 +73,13 @@ class BufferedColorSource extends ColorSource {
         return this.data[Utils.flatten(this.width, x, y)]
     }
 
-    generatePrImage(): PreRenderedImage {
-        let tex = new PreRenderedImage(this.width, this.height)
-        for (let y = 0; y < this.height; ++y) {
-            for (let x = 0; x < this.width; ++x) {
-                tex.ctx.fillStyle = this.data[Utils.flatten(this.width, x, y)].toCss()
-                tex.ctx.fillRect(x, y, 1, 1);
+    generateInto(ctx: CanvasRenderingContext2D, x: number, y: number) {
+        for (let _y = 0; _y < this.height; ++_y) {
+            for (let _x = 0; _x < this.width; ++_x) {
+                ctx.fillStyle = this.data[Utils.flatten(this.width, _x, _y)].toCss()
+                ctx.fillRect(x + _x, y + _y, 1, 1);
             }
         }
-        return tex
     }
 
 }
@@ -113,10 +115,8 @@ class CanvasColorSource extends ColorSource {
         }
     }
 
-    generatePrImage(): PreRenderedImage {
-        let tex = new PreRenderedImage(this.width, this.height)
-        tex.ctx.putImageData(this.ctx.getImageData(0, 0, this.width, this.height), 0, 0)
-        return tex
+    generateInto(ctx: CanvasRenderingContext2D, x: number, y: number) {
+        ctx.drawImage(this.ctx.canvas, 0, 0)
     }
 
 }
@@ -301,11 +301,9 @@ class RgbaColorSource extends ColorSource {
 
     protected _getColor(x: number, y: number): RgbaColor { return this.color }
 
-    generatePrImage(): PreRenderedImage {
-        let tex = new PreRenderedImage(this.width, this.height)
-        tex.ctx.fillStyle = this.color.toCss()
-        tex.ctx.fillRect(0, 0, this.width, this.height)
-        return tex
+    generateInto(ctx: CanvasRenderingContext2D, x: number, y: number) {
+        ctx.fillStyle = this.color.toCss()
+        ctx.fillRect(x, y, this.width, this.height)
     }
 
 }
@@ -536,7 +534,7 @@ abstract class PerlinTextureGenerator extends TextureGenerator {
     }
 
     protected dotGridGradient(gradient: PerlinGradient, ix: number, iy: number, x: number, y: number): number {
-        return gradient.get(ix, iy).udot(x - ix, y - iy);
+        return gradient.get(ix, iy).dotu(x - ix, y - iy);
     }
 
     protected perlin(gradient: PerlinGradient, x: number, y: number): number {
@@ -987,8 +985,8 @@ class RectangleSource extends ShapeSource {
     }
 
     protected _getColor(x: number, y: number): RgbaColor {
-        let _x = (x - this.x) / this.w, _y = (y - this.y) / this.h
-        return (_x >= 0 || _x < 1 || _y >= 0 || _y < 1) ? this.color.getColor(x, y) : this.background.getColor(x, y)
+        let _x = x - this.x, _y = y - this.y
+        return (_x >= 0 && _x < this.w && _y >= 0 && _y < this.h) ? this.color.getColor(x, y) : this.background.getColor(x, y)
     }
 
 }
@@ -1230,24 +1228,28 @@ class RotatingSource extends TransformingSource {
 
 class ScalingSource extends TransformingSource {
 
-    private scale: number
+    private inverseScale: Vec2
     private origin: Vec2
 
     constructor(
         width: number, height: number,
         source: ColorSource,
-        scale: number,
+        scale: number | Vec2,
         originX: number, originY: number
     ) {
         super(width, height, source)
-        this.scale = scale
+        if (scale instanceof Vec2) {
+            this.inverseScale = new Vec2(1 / scale.x, 1 / scale.y)
+        } else {
+            this.inverseScale = new Vec2(1 / scale, 1 / scale)
+        }
         this.origin = new Vec2(originX, originY)
     }
 
     protected reverseTransform(x: number, y: number): Vec2 {
         let v = new Vec2(x, y), dv = v.sub(this.origin)
         if (dv.isZero()) { return v }
-        return this.origin.add(dv.mul(1 / this.scale))
+        return this.origin.addu(dv.x * this.inverseScale.x, dv.y * this.inverseScale.y)
     }
 
 }
@@ -1283,6 +1285,31 @@ class FisheyeSource extends TransformingSource {
             let coef = Utils.lerp(d, Curve.invArc(d), this.scale)
             return this.origin.add(dv.mul(coef / d))
         }
+    }
+
+}
+
+class PolarSource extends TransformingSource {
+
+    private origin: Vec2
+    private coef: Vec2
+
+    constructor(width: number, height: number, source: ColorSource, sourceWidth: number, sourceHeight: number) {
+        super(width, height, source)
+        this.source = source
+        this.origin = new Vec2(this.width / 2, this.height / 2)
+        this.coef = new Vec2(
+            sourceWidth / Angle.deg360,
+            sourceHeight * 2 / Math.min(this.width, this.height)
+        )
+    }
+
+    protected reverseTransform(x: number, y: number): Vec2 {
+        let v = new Vec2(x, y)
+        return new Vec2(
+            this.origin.angleTo(v) * this.coef.x,
+            v.sub(this.origin).length() * this.coef.y
+        )
     }
 
 }

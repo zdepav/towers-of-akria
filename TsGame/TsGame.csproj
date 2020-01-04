@@ -87,7 +87,6 @@
   <ItemGroup>
     <TypeScriptCompile Include="game\generators.ts" />
     <TypeScriptCompile Include="game\Game.ts" />
-    <TypeScriptCompile Include="game\main.ts" />
     <TypeScriptCompile Include="game\particles.ts" />
     <TypeScriptCompile Include="game\TurretType.ts" />
     <TypeScriptCompile Include="game\turrets.ts" />

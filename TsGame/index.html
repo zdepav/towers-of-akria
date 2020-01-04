@@ -1,12 +1,14 @@
 ﻿<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>TD Game</title>
-    <link rel="stylesheet" href="game.css" type="text/css" />
-    <script src="jquery-3.4.1.min.js"></script>
-    <script src="game.js"></script>
-  </head>
+<head>
+  <meta charset="utf-8" />
+  <title>TD Game</title>
+  <link rel="stylesheet" href="game.css" type="text/css" />
+  <script type="text/javascript" src="game.js"></script>
+  <script type="text/javascript">
+    window.addEventListener("load", () => { Game.initializeAndRun() })
+  </script>
+</head>
   <body>
     <h1>TD Game</h1>
     <div id="zptd-game-container"></div>
