@@ -78,26 +78,6 @@ class Utils {
     static ld(distance, direction, startX = 0, startY = 0) {
         return new Vec2(startX + distance * Math.cos(direction), startY + distance * Math.sin(direction));
     }
-    static rotatePoint(x, y, originX, originY, angle) {
-        x -= originX;
-        y -= originY;
-        let c = Math.cos(angle), s = Math.sin(angle);
-        return new Vec2(x * c - y * s + originX, x * s + y * c + originY);
-    }
-    static getAngle(x1, y1, x2, y2) {
-        return Math.atan2(y2 - y1, x2 - x1);
-    }
-    static angleBetween(angle1, angle2) {
-        angle1 %= Angle.deg360;
-        angle2 %= Angle.deg360;
-        let diff = Math.abs(angle2 - angle1);
-        if (diff <= Angle.deg180) {
-            return (angle1 + angle2) / 2;
-        }
-        else {
-            return ((angle1 + angle2) / 2 + Angle.deg180) % Angle.deg360;
-        }
-    }
     static rand(min, max) {
         if (max <= min) {
             return min;
@@ -109,6 +89,9 @@ class Utils {
             return min;
         }
         return Math.floor(Math.random() * (max - min) + min);
+    }
+    static randSign(num) {
+        return (Math.floor(Math.random() * 2) * 2 - 1) * num;
     }
     static isString(obj) {
         return typeof obj === 'string' || obj instanceof String;
@@ -269,7 +252,17 @@ class Vec2 {
         return new Vec2(this.x * f, this.y * f);
     }
     angleTo(v) {
-        return Utils.getAngle(this.x, this.y, v.x, v.y);
+        return Math.atan2(v.y - this.y, v.x - this.x);
+    }
+    rotate(angle) {
+        let c = Math.cos(angle), s = Math.sin(angle);
+        return new Vec2(this.x * c - this.y * s, this.x * s + this.y * c);
+    }
+    rotateAround(origin, angle) {
+        let x = this.x - origin.x;
+        let y = this.y - origin.y;
+        let c = Math.cos(angle), s = Math.sin(angle);
+        return new Vec2(x * c - y * s, x * s + y * c).add(origin);
     }
     length() {
         if (this.len === null) {
@@ -299,6 +292,12 @@ class Vec2 {
         let len = Utils.ldx(1, a2);
         return new Vec2(Utils.ldx(len, a), Utils.ldy(len, a));
     }
+    static onEllipse(r1, r2, angle, center) {
+        if (center === undefined) {
+            center = Vec2.zero;
+        }
+        return new Vec2(Utils.ldx(r1, angle, center.x), Utils.ldy(r2, angle, center.y));
+    }
     static init() {
         Vec2.zero = new Vec2(0, 0);
     }
@@ -323,6 +322,20 @@ class Angle {
     }
     static rand() {
         return Math.random() * Angle.deg360;
+    }
+    static wrap(angle) {
+        return (angle < 0 ? (Angle.deg360 - (-angle) % Angle.deg360) : angle) % Angle.deg360;
+    }
+    static between(angle1, angle2) {
+        angle1 = Angle.wrap(angle1);
+        angle2 = Angle.wrap(angle2);
+        let diff = Math.abs(angle2 - angle1);
+        if (diff <= Angle.deg180) {
+            return (angle1 + angle2) / 2;
+        }
+        else {
+            return ((angle1 + angle2) / 2 + Angle.deg180) % Angle.deg360;
+        }
     }
     static init() {
         Angle.rad2deg = 180 / Math.PI;
@@ -485,10 +498,6 @@ class RgbaColor {
         return new RgbaColor(this.r * c.r, this.g * c.g, this.b * c.b, this.a * c.a);
     }
     add(c) {
-        let a = false;
-        if (a) {
-            console.log(`${this} + ${c} = ${new RgbaColor(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.pa())}`);
-        }
         return new RgbaColor(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.pa());
     }
     blend(c) {
@@ -499,7 +508,8 @@ class RgbaColor {
             return this;
         }
         else {
-            return new RgbaColor(this.r + c.pr(), this.g + c.pg(), this.b + c.pb(), this.a + c.a * (255 - this.a) / 255);
+            let ra = (255 - c.a) / 255;
+            return new RgbaColor(this.r * ra + c.pr(), this.g * ra + c.pg(), this.b * ra + c.pb(), this.a + c.a * (255 - this.a) / 255);
         }
     }
     withRed(r) { return new RgbaColor(r, this.g, this.b, this.a); }
@@ -1071,11 +1081,10 @@ class RotatingSource extends TransformingSource {
     constructor(width, height, source, angle, originX, originY) {
         super(width, height, source);
         this.angle = angle;
-        this.originX = originX;
-        this.originY = originY;
+        this.origin = new Vec2(originX, originY);
     }
     reverseTransform(x, y) {
-        return Utils.rotatePoint(x, y, this.originX, this.originY, -this.angle);
+        return new Vec2(x, y).rotateAround(this.origin, -this.angle);
     }
 }
 class ScalingSource extends TransformingSource {
@@ -1775,7 +1784,7 @@ class WaterTurret extends Turret {
                 let ob = layer[(i + 7) % 8];
                 let o = layer[i];
                 let oa = layer[(i + 1) % 8];
-                let angle = Utils.angleBetween(Utils.getAngle(ob.pt.x, ob.pt.y, o.pt.x, o.pt.y), Utils.getAngle(o.pt.x, o.pt.y, oa.pt.x, oa.pt.y));
+                let angle = Angle.between(ob.pt.angleTo(o.pt), o.pt.angleTo(oa.pt));
                 o.pt_a = Utils.ld(5, angle, o.pt.x, o.pt.y);
                 o.pt_b = Utils.ld(5, angle + Angle.deg180, o.pt.x, o.pt.y);
             }
@@ -2551,10 +2560,25 @@ class ArcaneTurret extends Turret {
     constructor(tile, type) {
         super(tile, type);
         this.frame = 0;
+        this.orbits = [];
+        for (let i = 0; i < 12; ++i) {
+            this.orbits.push({
+                r1: Utils.rand(36, 64),
+                r2: Utils.rand(64, 92),
+                angle: Angle.rand(),
+                pos: Angle.rand(),
+                speed: Utils.randSign(Utils.rand(Angle.deg120, Angle.deg240)),
+                size: Utils.rand(1.5, 2.5)
+            });
+        }
     }
     step(time) {
         super.step(time);
         this.frame = (this.frame + time * 25) % ArcaneTurret.frameCount;
+        for (let i = 0; i < 12; ++i) {
+            let pt = this.orbits[i];
+            pt.pos = Angle.wrap(pt.pos + time * pt.speed);
+        }
     }
     render(ctx, preRender) {
         super.render(ctx, preRender);
@@ -2562,10 +2586,19 @@ class ArcaneTurret extends Turret {
             return;
         }
         ctx.drawImage(ArcaneTurret.images, Math.floor(this.frame) * 64, 0, 64, 64, this.tile.pos.x, this.tile.pos.y, 64, 64);
+        for (let i = 0; i < 12; ++i) {
+            ctx.fillStyle = ArcaneTurret.orbitColors[i % 4];
+            let pt = this.orbits[i];
+            let v = Vec2.onEllipse(pt.r1, pt.r2, pt.pos).rotate(pt.angle).add(this.center);
+            ctx.beginPath();
+            ctx.arc(v.x, v.y, pt.size, 0, Angle.deg360);
+            ctx.fill();
+        }
     }
     addType(type) { }
     static init() {
         ArcaneTurret.frameCount = 50;
+        ArcaneTurret.orbitColors = new TurretType([1, 1, 1, 1]).toColorArray();
         return Utils.getImageFromCache("td_tower_AEFW_arcane").then(tex => { ArcaneTurret.images = tex; }, () => new Promise(resolve => {
             let c = new PreRenderedImage(ArcaneTurret.frameCount * 64, 64);
             let r = this.prepareGradient(RgbaColor.red);
@@ -2577,7 +2610,7 @@ class ArcaneTurret extends Turret {
             function curve(x) {
                 return Math.cos(i * Angle.deg360 / ArcaneTurret.frameCount + x * Angle.deg360) / 2 + 0.5;
             }
-            let glass = new GlassTextureGenerator(64, 64, "#606060", "#A0A0A0", 0.5, 0.5, curve);
+            let glass = new GlassTextureGenerator(64, 64, "#707070", "#909090", 0.5, 0.5, curve);
             for (; i < ArcaneTurret.frameCount; ++i) {
                 let ic = i * 64 / ArcaneTurret.frameCount;
                 let s = new TranslatingSource(192, 64, v, 0, ic);
@@ -2587,8 +2620,7 @@ class ArcaneTurret extends Turret {
                 let grad = new RadialGradientSource(64, 64, 32, 32, 0, 4);
                 grad.addColorStop(0, RgbaColor.white);
                 grad.addColorStop(1, s);
-                let ground = new RectangleSource(64, 64, 8, 8, 48, 48, glass, RgbaColor.transparent);
-                new CircleSource(64, 64, 32, 32, 24, grad, ground).generateInto(c.ctx, i * 64, 0);
+                new CircleSource(64, 64, 32, 32, 24, grad, ArcaneTurret.prepareGround(glass)).generateInto(c.ctx, i * 64, 0);
             }
             c.cacheImage("td_tower_AEFW_arcane");
             ArcaneTurret.images = c.image;
@@ -2606,6 +2638,18 @@ class ArcaneTurret extends Turret {
         }
         grad.addColorStop(0.5, color);
         return grad;
+    }
+    static prepareGround(base) {
+        let l1 = new BlendingSource(64, 64, base, "#FFFFFF40");
+        let l2 = new BlendingSource(64, 64, base, "#FFFFFF20");
+        let d1 = new BlendingSource(64, 64, base, "#00000040");
+        let d2 = new BlendingSource(64, 64, base, "#00000020");
+        let ground = new RectangleSource(64, 64, 0, 0, 62, 62, l1, base);
+        ground = new RectangleSource(64, 64, 2, 2, 62, 62, d1, ground);
+        ground = new RectangleSource(64, 64, 2, 2, 60, 60, base, ground);
+        ground = new RectangleSource(64, 64, 6, 6, 50, 50, d2, ground);
+        ground = new RectangleSource(64, 64, 8, 8, 50, 50, l2, ground);
+        return new RectangleSource(64, 64, 8, 8, 48, 48, base, ground);
     }
 }
 var TileType;

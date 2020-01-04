@@ -1,10 +1,10 @@
-﻿/// <reference path='utils.ts'/>
+﻿/// <reference path="game.d.ts"/>
 
 class Particle {
 
-    step(time: number) { }
+    step(time: number): void{ }
 
-    render(ctx: CanvasRenderingContext2D) { }
+    render(ctx: CanvasRenderingContext2D): void{ }
 
     isDead(): boolean { return true }
 }
@@ -28,11 +28,11 @@ class SmokeParticle extends Particle {
         this.startSize = startSize
     }
 
-    step(time: number) {
+    step(time: number): void{
         this.life += time
     }
 
-    render(ctx: CanvasRenderingContext2D) {
+    render(ctx: CanvasRenderingContext2D): void {
         if (this.life >= 1) {
             return
         }
@@ -69,13 +69,13 @@ class ElementSparkParticle extends Particle {
         this.color = TurretType.getColor(type) + "40"
     }
 
-    step(time: number) {
+    step(time: number): void {
         this.life += time * 2
         this.x += this.vx
         this.y += this.vy
     }
 
-    render(ctx: CanvasRenderingContext2D) {
+    render(ctx: CanvasRenderingContext2D): void {
         if (this.life >= 1) {
             return
         }
@@ -105,12 +105,12 @@ class ParticleSystem {
         this.count = 0
     }
 
-    add(p: Particle) {
+    add(p: Particle): void {
         this.parts[this.count] = p
         ++this.count
     }
 
-    step(time: number) {
+    step(time: number): void {
         if (this.count === 0) {
             return
         }
@@ -128,7 +128,7 @@ class ParticleSystem {
         this.count = j
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean) {
+    render(ctx: CanvasRenderingContext2D, preRender: boolean): void{
         if (preRender) {
             return
         }

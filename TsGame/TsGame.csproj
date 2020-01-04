@@ -85,11 +85,32 @@
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="game\Angle.ts" />
+    <TypeScriptCompile Include="game\Curve.ts" />
+    <TypeScriptCompile Include="game\PerformanceMeter.ts" />
+    <TypeScriptCompile Include="game\Tile.ts" />
+    <TypeScriptCompile Include="game\turrets\AcidTurret.ts" />
+    <TypeScriptCompile Include="game\turrets\AirTurret.ts" />
+    <TypeScriptCompile Include="game\turrets\ArcaneTurret.ts" />
+    <TypeScriptCompile Include="game\turrets\ArcherTurret.ts" />
+    <TypeScriptCompile Include="game\turrets\CannonTurret.ts" />
+    <TypeScriptCompile Include="game\turrets\EarthquakeTurret.ts" />
+    <TypeScriptCompile Include="game\turrets\EarthTurret.ts" />
+    <TypeScriptCompile Include="game\turrets\FireTurret.ts" />
+    <TypeScriptCompile Include="game\turrets\FlamethrowerTurret.ts" />
     <TypeScriptCompile Include="game\generators.ts" />
     <TypeScriptCompile Include="game\Game.ts" />
+    <TypeScriptCompile Include="game\turrets\IceTurret.ts" />
+    <TypeScriptCompile Include="game\turrets\LightningTurret.ts" />
     <TypeScriptCompile Include="game\particles.ts" />
-    <TypeScriptCompile Include="game\TurretType.ts" />
-    <TypeScriptCompile Include="game\turrets.ts" />
+    <TypeScriptCompile Include="game\turrets\MoonTurret.ts" />
+    <TypeScriptCompile Include="game\turrets\PlasmaTurret.ts" />
+    <TypeScriptCompile Include="game\turrets\SunTurret.ts" />
+    <TypeScriptCompile Include="game\turrets\turrets.d.ts" />
+    <TypeScriptCompile Include="game\turrets\TurretType.ts" />
+    <TypeScriptCompile Include="game\turrets\Turret.ts" />
+    <TypeScriptCompile Include="game\turrets\WaterTurret.ts" />
+    <TypeScriptCompile Include="game\Vec2.ts" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{4A0DDDB5-7A95-4FBF-97CC-616D07737A77}" />
@@ -98,6 +119,7 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="game\game.d.ts" />
     <TypeScriptCompile Include="game\utils.ts" />
   </ItemGroup>
   <PropertyGroup>

@@ -1,4 +1,6 @@
-﻿enum TurretElement {
+﻿/// <reference path="../game.d.ts"/>
+
+enum TurretElement {
     Air,
     Earth,
     Fire,
@@ -15,7 +17,7 @@ class TurretType {
 
     copy(): TurretType { return new TurretType(this.type.slice()) }
 
-    add(elem: TurretElement) {
+    add(elem: TurretElement): TurretType {
         ++this.type[elem]
         return this
     }
@@ -36,7 +38,7 @@ class TurretType {
         return c
     }
 
-    contains(type: TurretElement) { return this.type[type] > 0 }
+    contains(type: TurretElement): boolean { return this.type[type] > 0 }
 
     toArray(): TurretElement[] {
         let arr: TurretElement[] = []
@@ -78,6 +80,22 @@ class TurretType {
             default:
                 return "#000000"
         }
+    }
+
+}
+
+class TurretInfo {
+
+    name: string
+    description: string
+    range: number
+    dps: string
+
+    constructor(name: string, description: string, range: number, dps: string) {
+        this.name = name
+        this.description = description
+        this.range = range
+        this.dps = dps
     }
 
 }

@@ -6,7 +6,11 @@
     "removeComments": true,
     "sourceMap": false,
     "target": "ES2015",
-    "outFile": "game.js"
+    "outFile": "game.js",
+    "types": [
+      "game/game.d.ts",
+      "game/turrets/turrets.d.ts"
+    ]
   },
   "exclude": [
     "node_modules",
