@@ -1,6 +1,4 @@
-﻿/// <reference path="../game.d.ts"/>
-
-enum TurretElement {
+﻿enum TurretElement {
     Air,
     Earth,
     Fire,
@@ -10,32 +8,34 @@ enum TurretElement {
 class TurretType {
 
     private type: number[]
+    private c: number
+
+    get air(): number { return this.type[TurretElement.Air] }
+
+    get earth(): number { return this.type[TurretElement.Earth] }
+
+    get fire(): number { return this.type[TurretElement.Fire] }
+
+    get water(): number { return this.type[TurretElement.Water] }
+
+    get count(): number { return this.c }
 
     constructor(type?: number[]) {
         this.type = type === undefined ? [0, 0, 0, 0] : type
+        this.c = 0
+        for (let i = 0; i < 4; ++i) {
+            this.c += this.type[i]
+        }
     }
 
     copy(): TurretType { return new TurretType(this.type.slice()) }
 
     add(elem: TurretElement): TurretType {
-        ++this.type[elem]
-        return this
-    }
-
-    air(): number { return this.type[TurretElement.Air] }
-
-    earth(): number { return this.type[TurretElement.Earth] }
-
-    fire(): number { return this.type[TurretElement.Fire] }
-
-    water(): number { return this.type[TurretElement.Water] }
-
-    count(): number {
-        let c = 0
-        for (let i = 0; i < 4; ++i) {
-            c += this.type[i]
+        let ntype: number[] = []
+        for (let e = TurretElement.Air; e <= TurretElement.Water; ++e) {
+            ntype[e] = e === elem ? this.type[e] + 1 : this.type[e]
         }
-        return c
+        return new TurretType(ntype)
     }
 
     contains(type: TurretElement): boolean { return this.type[type] > 0 }
@@ -80,22 +80,6 @@ class TurretType {
             default:
                 return "#000000"
         }
-    }
-
-}
-
-class TurretInfo {
-
-    name: string
-    description: string
-    range: number
-    dps: string
-
-    constructor(name: string, description: string, range: number, dps: string) {
-        this.name = name
-        this.description = description
-        this.range = range
-        this.dps = dps
     }
 
 }

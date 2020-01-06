@@ -85,9 +85,67 @@
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
-    <TypeScriptCompile Include="game\Angle.ts" />
-    <TypeScriptCompile Include="game\Curve.ts" />
-    <TypeScriptCompile Include="game\PerformanceMeter.ts" />
+    <TypeScriptCompile Include="game\enemies\effects\AcidEffect.ts" />
+    <TypeScriptCompile Include="game\enemies\effects\BurningEffect.ts" />
+    <TypeScriptCompile Include="game\enemies\effects\Effect.ts" />
+    <TypeScriptCompile Include="game\enemies\effects\EffectSet.ts" />
+    <TypeScriptCompile Include="game\enemies\effects\FreezeEffect.ts" />
+    <TypeScriptCompile Include="game\enemies\effects\LeveledEffect.ts" />
+    <TypeScriptCompile Include="game\enemies\effects\StunEffect.ts" />
+    <TypeScriptCompile Include="game\enemies\effects\WetEffect.ts" />
+    <TypeScriptCompile Include="game\enemies\EnemySet.ts" />
+    <TypeScriptCompile Include="game\enemies\Enemy.ts" />
+    <TypeScriptCompile Include="game\generators\combinations\AddingSource.ts" />
+    <TypeScriptCompile Include="game\generators\AntialiasedSource.ts" />
+    <TypeScriptCompile Include="game\generators\textures\BarkTextureGenerator.ts" />
+    <TypeScriptCompile Include="game\generators\combinations\BlendingSource.ts" />
+    <TypeScriptCompile Include="game\generators\BufferedColorSource.ts" />
+    <TypeScriptCompile Include="game\generators\textures\CamouflageTextureGenerator.ts" />
+    <TypeScriptCompile Include="game\generators\CanvasColorSource.ts" />
+    <TypeScriptCompile Include="game\generators\textures\CellularTextureGenerator.ts" />
+    <TypeScriptCompile Include="game\generators\shapes\CircleSource.ts" />
+    <TypeScriptCompile Include="game\generators\textures\CirclesTextureGenerator.ts" />
+    <TypeScriptCompile Include="game\generators\textures\CloudsTextureGenerator.ts" />
+    <TypeScriptCompile Include="game\generators\combinations\CombiningSource.ts" />
+    <TypeScriptCompile Include="game\generators\shapes\EllipseSource.ts" />
+    <TypeScriptCompile Include="game\generators\transformations\FisheyeSource.ts" />
+    <TypeScriptCompile Include="game\generators\textures\FrostedGlassTextureGenerator.ts" />
+    <TypeScriptCompile Include="game\generators\textures\GlassTextureGenerator.ts" />
+    <TypeScriptCompile Include="game\generators\GradientSource.ts" />
+    <TypeScriptCompile Include="game\generators\combinations\LerpingSource.ts" />
+    <TypeScriptCompile Include="game\generators\LinearGradientSource.ts" />
+    <TypeScriptCompile Include="game\generators\combinations\MultiplyingSource.ts" />
+    <TypeScriptCompile Include="game\generators\textures\NoiseTextureGenerator.ts" />
+    <TypeScriptCompile Include="game\generators\shapes\PathSource.ts" />
+    <TypeScriptCompile Include="game\generators\PerlinGradient.ts" />
+    <TypeScriptCompile Include="game\generators\textures\PerlinNoiseTextureGenerator.ts" />
+    <TypeScriptCompile Include="game\generators\textures\PerlinTextureGenerator.ts" />
+    <TypeScriptCompile Include="game\generators\transformations\PolarSource.ts" />
+    <TypeScriptCompile Include="game\generators\RadialGradientSource.ts" />
+    <TypeScriptCompile Include="game\generators\shapes\RectangleSource.ts" />
+    <TypeScriptCompile Include="game\generators\RgbaColor.ts" />
+    <TypeScriptCompile Include="game\generators\RgbaColorSource.ts" />
+    <TypeScriptCompile Include="game\generators\transformations\RotatingSource.ts" />
+    <TypeScriptCompile Include="game\generators\transformations\ScalingSource.ts" />
+    <TypeScriptCompile Include="game\generators\shapes\ShapeSource.ts" />
+    <TypeScriptCompile Include="game\generators\textures\TextureGenerator.ts" />
+    <TypeScriptCompile Include="game\generators\transformations\TransformingSource.ts" />
+    <TypeScriptCompile Include="game\generators\transformations\TranslatingSource.ts" />
+    <TypeScriptCompile Include="game\generators\textures\VelvetTextureGenerator.ts" />
+    <TypeScriptCompile Include="game\particles\BubbleParticle.ts" />
+    <TypeScriptCompile Include="game\particles\ElementSparkParticle.ts" />
+    <TypeScriptCompile Include="game\particles\LineParticle.ts" />
+    <TypeScriptCompile Include="game\particles\Particle.ts" />
+    <TypeScriptCompile Include="game\particles\PlasmaBeamParticle.ts" />
+    <TypeScriptCompile Include="game\particles\SmokeParticle.ts" />
+    <TypeScriptCompile Include="game\projectiles\Projectile.ts" />
+    <TypeScriptCompile Include="game\projectiles\ProjectileSet.ts" />
+    <TypeScriptCompile Include="game\turrets\TurretInfo.ts" />
+    <TypeScriptCompile Include="game\utils\Angle.ts" />
+    <TypeScriptCompile Include="game\utils\Curve.ts" />
+    <TypeScriptCompile Include="game\utils\Expirable.ts" />
+    <TypeScriptCompile Include="game\utils\ExpirableSet.ts" />
+    <TypeScriptCompile Include="game\utils\PerformanceMeter.ts" />
     <TypeScriptCompile Include="game\Tile.ts" />
     <TypeScriptCompile Include="game\turrets\AcidTurret.ts" />
     <TypeScriptCompile Include="game\turrets\AirTurret.ts" />
@@ -98,19 +156,23 @@
     <TypeScriptCompile Include="game\turrets\EarthTurret.ts" />
     <TypeScriptCompile Include="game\turrets\FireTurret.ts" />
     <TypeScriptCompile Include="game\turrets\FlamethrowerTurret.ts" />
-    <TypeScriptCompile Include="game\generators.ts" />
+    <TypeScriptCompile Include="game\generators\ColorSource.ts" />
     <TypeScriptCompile Include="game\Game.ts" />
     <TypeScriptCompile Include="game\turrets\IceTurret.ts" />
     <TypeScriptCompile Include="game\turrets\LightningTurret.ts" />
-    <TypeScriptCompile Include="game\particles.ts" />
+    <TypeScriptCompile Include="game\particles\ParticleSystem.ts" />
     <TypeScriptCompile Include="game\turrets\MoonTurret.ts" />
     <TypeScriptCompile Include="game\turrets\PlasmaTurret.ts" />
     <TypeScriptCompile Include="game\turrets\SunTurret.ts" />
-    <TypeScriptCompile Include="game\turrets\turrets.d.ts" />
     <TypeScriptCompile Include="game\turrets\TurretType.ts" />
     <TypeScriptCompile Include="game\turrets\Turret.ts" />
     <TypeScriptCompile Include="game\turrets\WaterTurret.ts" />
-    <TypeScriptCompile Include="game\Vec2.ts" />
+    <TypeScriptCompile Include="game\utils\PreRenderedImage.ts" />
+    <TypeScriptCompile Include="game\utils\Rect.ts" />
+    <TypeScriptCompile Include="game\utils\RenderablePath.ts" />
+    <TypeScriptCompile Include="game\utils\RenderablePathSet.ts" />
+    <TypeScriptCompile Include="game\utils\Utils.ts" />
+    <TypeScriptCompile Include="game\utils\Vec2.ts" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{4A0DDDB5-7A95-4FBF-97CC-616D07737A77}" />
@@ -119,8 +181,7 @@
     <Folder Include="Properties\" />
   </ItemGroup>
   <ItemGroup>
-    <TypeScriptCompile Include="game\game.d.ts" />
-    <TypeScriptCompile Include="game\utils.ts" />
+    <TypeScriptCompile Include="game\utils\DijkstraNode.ts" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

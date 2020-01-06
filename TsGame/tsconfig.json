@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "allowJs": false,
     "noImplicitAny": true,
     "strictNullChecks": true,
     "noEmitOnError": true,
@@ -7,11 +8,11 @@
     "sourceMap": false,
     "target": "ES2015",
     "outFile": "game.js",
-    "types": [
-      "game/game.d.ts",
-      "game/turrets/turrets.d.ts"
-    ]
+    "module": "System"
   },
+  "include": [
+    "./game/**/*.ts"
+  ],
   "exclude": [
     "node_modules",
     "wwwroot"

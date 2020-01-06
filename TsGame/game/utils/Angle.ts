@@ -48,32 +48,33 @@
         }
     }
 
-    static init(): void {
-        Angle.rad2deg = 180 / Math.PI
-        Angle.deg10 = Math.PI / 18
-        Angle.deg15 = Math.PI / 12
-        Angle.deg18 = Math.PI / 10
-        Angle.deg20 = Math.PI / 9
-        Angle.deg30 = Math.PI / 6
-        Angle.deg36 = Math.PI / 5
-        Angle.deg45 = Math.PI / 4
-        Angle.deg60 = Math.PI / 3
-        Angle.deg72 = Math.PI / 2.5
-        Angle.deg90 = Math.PI / 2
-        Angle.deg120 = Math.PI * 2 / 3
-        Angle.deg135 = Math.PI * 0.75
-        Angle.deg150 = Math.PI * 5 / 6
-        Angle.deg180 = Math.PI
-        Angle.deg210 = Math.PI * 7 / 6
-        Angle.deg225 = Math.PI * 1.25
-        Angle.deg240 = Math.PI * 4 / 3
-        Angle.deg270 = Math.PI * 1.5
-        Angle.deg300 = Math.PI * 5 / 3
-        Angle.deg315 = Math.PI * 1.75
-        Angle.deg330 = Math.PI * 11 / 6
-        Angle.deg360 = Math.PI * 2
+    static init(): Promise<void> {
+        return new Promise<void>(resolve => {
+            Angle.rad2deg = 180 / Math.PI
+            Angle.deg10 = Math.PI / 18
+            Angle.deg15 = Math.PI / 12
+            Angle.deg18 = Math.PI / 10
+            Angle.deg20 = Math.PI / 9
+            Angle.deg30 = Math.PI / 6
+            Angle.deg36 = Math.PI / 5
+            Angle.deg45 = Math.PI / 4
+            Angle.deg60 = Math.PI / 3
+            Angle.deg72 = Math.PI / 2.5
+            Angle.deg90 = Math.PI / 2
+            Angle.deg120 = Math.PI * 2 / 3
+            Angle.deg135 = Math.PI * 0.75
+            Angle.deg150 = Math.PI * 5 / 6
+            Angle.deg180 = Math.PI
+            Angle.deg210 = Math.PI * 7 / 6
+            Angle.deg225 = Math.PI * 1.25
+            Angle.deg240 = Math.PI * 4 / 3
+            Angle.deg270 = Math.PI * 1.5
+            Angle.deg300 = Math.PI * 5 / 3
+            Angle.deg315 = Math.PI * 1.75
+            Angle.deg330 = Math.PI * 11 / 6
+            Angle.deg360 = Math.PI * 2
+            resolve()
+        })
     }
 
 }
-
-Angle.init()

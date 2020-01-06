@@ -1,5 +1,3 @@
-/// <reference path="../game.d.ts"/>
-
 class Turret {
 
     protected center: Vec2
@@ -11,6 +9,8 @@ class Turret {
     game: Game
 
     get ready(): boolean { return this.cooldown <= 0 }
+
+    get range(): number { return 0 }
 
     constructor(tile: Tile, type?: TurretType) {
         this.game = tile.game
@@ -36,7 +36,7 @@ class Turret {
      * @param type upgrade type
      */
     upgradeCostMultiplier(type: TurretElement): number {
-        switch (this.type.count()) {
+        switch (this.type.count) {
             case 0: return 1
             case 1: return this.type.contains(type) ? 1 : 2
             case 2: return this.type.contains(type) ? 2 : 4
@@ -62,7 +62,18 @@ class Turret {
         }
     }
 
-    getInfo(type?: TurretType): TurretInfo | undefined { return undefined }
+    static getInfo(type: TurretType): TurretInfo | undefined { return undefined }
+
+    getCurrentInfo(): TurretInfo | undefined { return undefined }
+
+    getInfoAfterUpgrade(type: TurretElement): TurretInfo | undefined {
+        switch (type) {
+            case TurretElement.Air: return AirTurret.getInfo(this.type.add(type))
+            case TurretElement.Earth: return EarthTurret.getInfo(this.type.add(type))
+            case TurretElement.Fire: return FireTurret.getInfo(this.type.add(type))
+            case TurretElement.Water: return WaterTurret.getInfo(this.type.add(type))
+        }
+    }
 
     static initAll(): Promise<void[]> {
         return Promise.all([
