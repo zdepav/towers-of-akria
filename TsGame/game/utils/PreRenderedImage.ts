@@ -26,23 +26,13 @@
 
     cacheImage(id: string): void {
         if (Game.saveImages) {
-            let a = document.createElement("a")
-            a.setAttribute("download", id + ".png")
-            a.setAttribute(
-                "href",
-                (this.image as HTMLCanvasElement)
-                    .toDataURL("image/png")
-                    .replace("image/png", "image/octet-stream")
-            )
-            a.setAttribute("target", "_blank")
-            a.click()
-
+            this.saveImage(id)
             let element = document.createElement('a')
             element.setAttribute('download', id + ".txt")
             element.setAttribute('href', 'data:text/octet-stream;charset=utf-8,' + encodeURIComponent(this.toBase64()))
             element.click()
         }
-        //localStorage.setItem(id, this.toBase64())
+        localStorage.setItem(id, this.toBase64())
     }
 
     toBase64(): string {

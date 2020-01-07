@@ -56,16 +56,16 @@ class FireTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
-                this.tile.turret = new LightningTurret(this.tile, this.type.add(type))
+                this.tile.turret = new LightningTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Earth:
-                this.tile.turret = new CannonTurret(this.tile, this.type.add(type))
+                this.tile.turret = new CannonTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Fire:
                 this.type.add(type)
                 break
             case TurretElement.Water:
-                this.tile.turret = new FlamethrowerTurret(this.tile, this.type.add(type))
+                this.tile.turret = new FlamethrowerTurret(this.tile, this.type.with(type))
                 break
         }
     }
@@ -82,11 +82,14 @@ class FireTurret extends Turret {
     getCurrentInfo(): TurretInfo | undefined { return FireTurret.getInfo(this.type) }
 
     getInfoAfterUpgrade(type: TurretElement): TurretInfo | undefined {
+        if (this.type.count >= 4) {
+            return undefined
+        }
         switch (type) {
-            case TurretElement.Air: return LightningTurret.getInfo(this.type.add(type))
-            case TurretElement.Earth: return CannonTurret.getInfo(this.type.add(type))
-            case TurretElement.Fire: return FireTurret.getInfo(this.type.add(type))
-            case TurretElement.Water: return FlamethrowerTurret.getInfo(this.type.add(type))
+            case TurretElement.Air: return LightningTurret.getInfo(this.type.with(type))
+            case TurretElement.Earth: return CannonTurret.getInfo(this.type.with(type))
+            case TurretElement.Fire: return FireTurret.getInfo(this.type.with(type))
+            case TurretElement.Water: return FlamethrowerTurret.getInfo(this.type.with(type))
         }
     }
 

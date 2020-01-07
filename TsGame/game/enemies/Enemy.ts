@@ -11,6 +11,7 @@ abstract class Enemy extends Expirable {
     private speedMultiplier: number
 
     protected hp: number
+    protected startHp: number
     protected armor: number
     protected effects: EffectSet
 
@@ -38,6 +39,7 @@ abstract class Enemy extends Expirable {
         this.speedMultiplier = 1
         this.position = this.currTilePos
         this.hp = hp
+        this.startHp = hp
         this.armor = armor
         this.effects = new EffectSet()
         this.game = game
@@ -75,7 +77,7 @@ abstract class Enemy extends Expirable {
     abstract render(ctx: CanvasRenderingContext2D): void
 
     dealDamage(ammount: number): void {
-        this.hp = Math.max(this.hp - ammount / this.armorProtection, 0)
+        this.hp = Math.max(this.hp - ammount * this.game.towerDamageMultiplier / this.armorProtection, 0)
     }
 
     corodeArmor(ammount: number): void {

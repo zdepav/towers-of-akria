@@ -19,7 +19,7 @@ class PolarSource extends TransformingSource {
         let v = new Vec2(x, y)
         return new Vec2(
             this.origin.angleTo(v) * this.coef.x,
-            v.sub(this.origin).length() * this.coef.y
+            v.sub(this.origin).length * this.coef.y
         )
     }
 

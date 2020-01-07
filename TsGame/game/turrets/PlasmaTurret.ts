@@ -10,7 +10,7 @@ class PlasmaTurret extends Turret {
 
     private frame: number
 
-    get range(): number { return 64 + this.type.air * 64 + this.type.water * 32 + this.type.fire * 32 }
+    get range(): number { return 32 + this.type.air * 64 + this.type.water * 32 + this.type.fire * 32 }
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
@@ -32,8 +32,8 @@ class PlasmaTurret extends Turret {
                     e.addEffect(new BurningEffect(1))
                 }
                 this.game.spawnParticle(new PlasmaBeamParticle(this.center.x, this.center.y, e.x, e.y))
+                this.cooldown = 0.5
             }
-            this.cooldown = 0.5
         }
     }
 
@@ -56,7 +56,7 @@ class PlasmaTurret extends Turret {
                 this.type.add(type)
                 break
             case TurretElement.Earth:
-                this.tile.turret = new ArcaneTurret(this.tile, this.type.add(type))
+                this.tile.turret = new ArcaneTurret(this.tile, this.type.with(type))
                 break
         }
     }
@@ -65,20 +65,23 @@ class PlasmaTurret extends Turret {
         return new TurretInfo(
             PlasmaTurret.turretName,
             PlasmaTurret.turretDescription,
-            64 + type.air * 64 + type.water * 16 + type.fire * 16,
+            32 + type.air * 64 + type.water * 32 + type.fire * 32,
             `${type.count * 10}`
 
         )
     }
 
-    getCurrentInfo(): TurretInfo | undefined { return IceTurret.getInfo(this.type) }
+    getCurrentInfo(): TurretInfo | undefined { return PlasmaTurret.getInfo(this.type) }
 
     getInfoAfterUpgrade(type: TurretElement): TurretInfo | undefined {
+        if (this.type.count >= 4) {
+            return undefined
+        }
         switch (type) {
-            case TurretElement.Air: return PlasmaTurret.getInfo(this.type.add(type))
-            case TurretElement.Earth: return ArcaneTurret.getInfo(this.type.add(type))
-            case TurretElement.Fire: return PlasmaTurret.getInfo(this.type.add(type))
-            case TurretElement.Water: return PlasmaTurret.getInfo(this.type.add(type))
+            case TurretElement.Air: return PlasmaTurret.getInfo(this.type.with(type))
+            case TurretElement.Earth: return ArcaneTurret.getInfo(this.type.with(type))
+            case TurretElement.Fire: return PlasmaTurret.getInfo(this.type.with(type))
+            case TurretElement.Water: return PlasmaTurret.getInfo(this.type.with(type))
         }
     }
 

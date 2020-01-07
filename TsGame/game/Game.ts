@@ -25,14 +25,16 @@ class Game {
     private guiPanel: Rect
     private map: Tile[][]
     private enemies: EnemySet
-    projectiles: ProjectileSet
-    particles: ParticleSystem
+    private wavePlanner: EnemyWavePlanner
+    private projectiles: ProjectileSet
+    private particles: ParticleSystem
     private prevTime: number
     private time: number
     private performanceMeter: PerformanceMeter
     private mousePosition: Vec2
     private selectedTilePos: Vec2 | null
     private mouseButton: MouseButton | null
+    private arcaneTowerCount: number
 
     private get selectedTile(): Tile | null {
         return this.selectedTilePos !== null ? this.map[this.selectedTilePos.x][this.selectedTilePos.y] : null
@@ -43,6 +45,8 @@ class Game {
     width: number
     height: number
     selectedTurretElement: TurretElement | null
+
+    get towerDamageMultiplier(): number { return this.arcaneTowerCount * 0.25 + 1 }
 
     private constructor(container: HTMLElement) {
         let canvasWidth = 1152
@@ -63,6 +67,8 @@ class Game {
         this.selectedTilePos = null
         this.mouseButton = null
         this.status = InitializationStatus.Uninitialized
+        this.arcaneTowerCount = 0
+        this.wavePlanner = new EnemyWavePlanner(this)
 
         canvas.width = canvasWidth
         let mapWidth = Math.floor(canvasWidth / 64) - 3
@@ -238,6 +244,7 @@ class Game {
                     }
                 }
             }
+            this.wavePlanner.spawnTile = map[0][startY] as Tile
             this.map = map as Tile[][] // all tiles are initialized by now
             while (true) {
                 if (path.previous !== null) {
@@ -323,11 +330,18 @@ class Game {
                 let time = new Date().getTime()
                 let timeDiff = (time - this.prevTime) / 1000
                 this.performanceMeter.add(1 / timeDiff)
+                let arcaneTowerCount = 0
                 for (let x = 0; x < this.mapWidth; ++x) {
                     for (let y = 0; y < this.mapHeight; ++y) {
-                        this.map[x][y].step(timeDiff)
+                        let t = this.map[x][y]
+                        t.step(timeDiff)
+                        if (t.turret instanceof ArcaneTurret) {
+                            ++arcaneTowerCount
+                        }
                     }
                 }
+                this.arcaneTowerCount = arcaneTowerCount
+                this.wavePlanner.step(timeDiff)
                 this.enemies.step(timeDiff)
                 this.particles.step(timeDiff)
                 if (this.selectedTurretElement !== null) {
@@ -582,6 +596,8 @@ class Game {
         }
         return enemies
     }
+
+    spawnEnemy(e: Enemy) { this.enemies.add(e) }
 
     spawnParticle(p: Particle) { this.particles.add(p) }
 

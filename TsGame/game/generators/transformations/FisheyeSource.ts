@@ -22,7 +22,7 @@ class FisheyeSource extends TransformingSource {
     protected reverseTransform(x: number, y: number): Vec2 {
         let v = new Vec2(x, y), dv = v.sub(this.origin)
         if (dv.isZero()) { return v }
-        let d = dv.length() / this.radius
+        let d = dv.length / this.radius
         if (d >= 1) { return v }
         if (this.scale < 0) {
             let coef = Utils.lerp(d, Curve.arc(d), -this.scale)

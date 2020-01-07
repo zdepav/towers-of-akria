@@ -26,10 +26,10 @@ class FlamethrowerTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
-                this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type))
+                this.tile.turret = new PlasmaTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Earth:
-                this.tile.turret = new EarthquakeTurret(this.tile, this.type.add(type))
+                this.tile.turret = new EarthquakeTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Fire:
             case TurretElement.Water:

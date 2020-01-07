@@ -85,6 +85,7 @@
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="game\enemies\BasicEnemy.ts" />
     <TypeScriptCompile Include="game\enemies\effects\AcidEffect.ts" />
     <TypeScriptCompile Include="game\enemies\effects\BurningEffect.ts" />
     <TypeScriptCompile Include="game\enemies\effects\Effect.ts" />
@@ -95,6 +96,7 @@
     <TypeScriptCompile Include="game\enemies\effects\WetEffect.ts" />
     <TypeScriptCompile Include="game\enemies\EnemySet.ts" />
     <TypeScriptCompile Include="game\enemies\Enemy.ts" />
+    <TypeScriptCompile Include="game\enemies\EnemyWavePlanner.ts" />
     <TypeScriptCompile Include="game\generators\combinations\AddingSource.ts" />
     <TypeScriptCompile Include="game\generators\AntialiasedSource.ts" />
     <TypeScriptCompile Include="game\generators\textures\BarkTextureGenerator.ts" />

@@ -19,8 +19,10 @@ abstract class LeveledEffect extends Effect {
 
     protected doMerge(effect: LeveledEffect): void {
         if (effect.strength > this.strength) {
+            if (this.duration < effect.duration) {
+                this.duration = this.duration + (effect.duration - this.duration) * this.strength / effect.strength
+            }
             this.strength = effect.strength
-            this.duration = effect.duration + this.duration * (1 + effect.strength - this.strength)
         } else if (effect.strength < this.strength) {
             this.duration += effect.duration * (1 + this.strength - effect.strength)
         } else {

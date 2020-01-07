@@ -37,10 +37,10 @@ class LightningTurret extends Turret {
                 this.type.add(type)
                 break
             case TurretElement.Earth:
-                this.tile.turret = new SunTurret(this.tile, this.type.add(type))
+                this.tile.turret = new SunTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Water:
-                this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type))
+                this.tile.turret = new PlasmaTurret(this.tile, this.type.with(type))
                 break
         }
     }

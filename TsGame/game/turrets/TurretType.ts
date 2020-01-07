@@ -30,10 +30,15 @@ class TurretType {
 
     copy(): TurretType { return new TurretType(this.type.slice()) }
 
-    add(elem: TurretElement): TurretType {
+    add(type: TurretElement): void {
+        ++this.type[type]
+        ++this.c
+    }
+
+    with(type: TurretElement): TurretType {
         let ntype: number[] = []
         for (let e = TurretElement.Air; e <= TurretElement.Water; ++e) {
-            ntype[e] = e === elem ? this.type[e] + 1 : this.type[e]
+            ntype[e] = e === type ? this.type[e] + 1 : this.type[e]
         }
         return new TurretType(ntype)
     }

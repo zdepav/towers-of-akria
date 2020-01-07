@@ -7,6 +7,8 @@ class ArcaneTurret extends Turret {
     private static orbitCount: number = 16
     private static maxCooldown: number = 16
     private static orbitColors: string[]
+    private static turretName = "Arcane Tower"
+    private static turretDescription = "Increases damage of all other towers by 25%, can instantly kill any enemy with a cooldown of 16 seconds"
 
     private frame: number
     private orbits: {
@@ -17,6 +19,8 @@ class ArcaneTurret extends Turret {
         speed: number
         size: number
     }[]
+
+    get range(): number { return 96 }
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
@@ -43,16 +47,20 @@ class ArcaneTurret extends Turret {
             pt.pos = Angle.wrap(pt.pos + time * pt.speed)
         }
         if (this.ready) {
-            let target = this.game.getMousePosition()
-            if (this.center.distanceTo(target) < this.range) {
+            let enemy = this.game.findEnemy(this.center, this.range)
+            if (enemy !== null) {
                 for (let i = 0; i < ArcaneTurret.orbitCount; ++i) {
                     let pt = this.orbits[i]
                     let v = Vec2.onEllipse(pt.r1, pt.r2, pt.pos).rotate(pt.angle).add(this.center)
                     this.game.spawnParticle(new LineParticle(
-                        v.x, v.y, target.x, target.y,
-                        pt.size / 2.5, ArcaneTurret.orbitColors[i % 4]
+                        v.x, v.y,
+                        enemy.x, enemy.y,
+                        pt.size / 2.5,
+                        ArcaneTurret.orbitColors[i % 4],
+                        pt.size - 0.5
                     ))
                 }
+                enemy.dealDamage(Infinity)
                 this.cooldown = ArcaneTurret.maxCooldown
             }
         }
@@ -76,6 +84,18 @@ class ArcaneTurret extends Turret {
     }
 
     addType(type: TurretElement): void { }
+
+    static getInfo(type: TurretType): TurretInfo | undefined {
+        return new TurretInfo(
+            ArcaneTurret.turretName,
+            ArcaneTurret.turretDescription,
+            96, `-`
+        )
+    }
+
+    getCurrentInfo(): TurretInfo | undefined { return ArcaneTurret.getInfo(this.type) }
+
+    getInfoAfterUpgrade(type: TurretElement): TurretInfo | undefined { return undefined }
 
     static init(): Promise<void> {
         ArcaneTurret.orbitColors = new TurretType([1, 1, 1, 1]).toColorArray()

@@ -37,14 +37,14 @@ class CannonTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
-                this.tile.turret = new SunTurret(this.tile, this.type.add(type))
+                this.tile.turret = new SunTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Earth:
             case TurretElement.Fire:
                 this.type.add(type)
                 break
             case TurretElement.Water:
-                this.tile.turret = new EarthquakeTurret(this.tile, this.type.add(type))
+                this.tile.turret = new EarthquakeTurret(this.tile, this.type.with(type))
                 break
         }
     }

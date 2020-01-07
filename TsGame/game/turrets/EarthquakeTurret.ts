@@ -6,8 +6,22 @@ class EarthquakeTurret extends Turret {
     private static baseFrameCount = 12
     private static halfFrameCount = 24
     private static totalFrameCount = 48
+    private static turretName = "Earthquake Tower"
+    private static turretDescription = "Periodically damages and stuns all enemies in range"
 
     private frame: number
+
+    get range(): number { return 64 + this.type.count * 32 }
+
+    get ready(): boolean {
+        if (!super.ready) {
+            return false
+        } else if (this.type.count == 4) {
+            return this.frame % EarthquakeTurret.baseFrameCount < 3
+        } else {
+            return this.frame % EarthquakeTurret.halfFrameCount < 3
+        }
+    }
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
@@ -17,6 +31,15 @@ class EarthquakeTurret extends Turret {
     step(time: number): void {
         super.step(time)
         this.frame = (this.frame + time * 25) % EarthquakeTurret.totalFrameCount
+        if (this.ready) {
+            let enemies = this.game.findEnemiesInRange(this.center, this.range)
+            if (enemies.length > 0) {
+                let e = enemies[Math.floor(Math.random() * enemies.length)]
+                e.dealDamage((this.type.count === 4 ? 15 : 20) * Math.random())
+                e.addEffect(new StunEffect(0.2))
+            }
+            this.cooldown = 0.25
+        }
     }
 
     render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
@@ -43,13 +66,36 @@ class EarthquakeTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
-                this.tile.turret = new ArcaneTurret(this.tile, this.type.add(type))
+                this.tile.turret = new ArcaneTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Earth:
             case TurretElement.Fire:
             case TurretElement.Water:
                 this.type.add(type)
                 break
+        }
+    }
+
+    static getInfo(type: TurretType): TurretInfo | undefined {
+        return new TurretInfo(
+            EarthquakeTurret.turretName,
+            EarthquakeTurret.turretDescription[type.water],
+            64 + type.count * 32,
+            `${type.count * 10 - 10}`
+        )
+    }
+
+    getCurrentInfo(): TurretInfo | undefined { return EarthquakeTurret.getInfo(this.type) }
+
+    getInfoAfterUpgrade(type: TurretElement): TurretInfo | undefined {
+        if (this.type.count >= 4) {
+            return undefined
+        }
+        switch (type) {
+            case TurretElement.Air: return ArcaneTurret.getInfo(this.type.with(type))
+            case TurretElement.Earth: return EarthquakeTurret.getInfo(this.type.with(type))
+            case TurretElement.Fire: return EarthquakeTurret.getInfo(this.type.with(type))
+            case TurretElement.Water: return EarthquakeTurret.getInfo(this.type.with(type))
         }
     }
 

@@ -7,7 +7,7 @@ class EarthTurret extends Turret {
     private static turretDescription1 = "High damage but low accuracy"
     private static turretDescription2 = "High damage but low accuracy, can stun enemies"
 
-    get range(): number { return 128 + type.earth * 16 }
+    get range(): number { return 128 + this.type.earth * 16 }
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
@@ -31,16 +31,16 @@ class EarthTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
-                this.tile.turret = new ArcherTurret(this.tile, this.type.add(type))
+                this.tile.turret = new ArcherTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Earth:
                 this.type.add(type)
                 break
             case TurretElement.Fire:
-                this.tile.turret = new CannonTurret(this.tile, this.type.add(type))
+                this.tile.turret = new CannonTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Water:
-                this.tile.turret = new AcidTurret(this.tile, this.type.add(type))
+                this.tile.turret = new AcidTurret(this.tile, this.type.with(type))
                 break
         }
     }
@@ -57,11 +57,14 @@ class EarthTurret extends Turret {
     getCurrentInfo(): TurretInfo | undefined { return EarthTurret.getInfo(this.type) }
 
     getInfoAfterUpgrade(type: TurretElement): TurretInfo | undefined {
+        if (this.type.count >= 4) {
+            return undefined
+        }
         switch (type) {
-            case TurretElement.Air: return ArcherTurret.getInfo(this.type.add(type))
-            case TurretElement.Earth: return EarthTurret.getInfo(this.type.add(type))
-            case TurretElement.Fire: return CannonTurret.getInfo(this.type.add(type))
-            case TurretElement.Water: return AcidTurret.getInfo(this.type.add(type))
+            case TurretElement.Air: return ArcherTurret.getInfo(this.type.with(type))
+            case TurretElement.Earth: return EarthTurret.getInfo(this.type.with(type))
+            case TurretElement.Fire: return CannonTurret.getInfo(this.type.with(type))
+            case TurretElement.Water: return AcidTurret.getInfo(this.type.with(type))
         }
     }
 

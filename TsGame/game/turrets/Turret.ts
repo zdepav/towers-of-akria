@@ -23,7 +23,7 @@ class Turret {
 
     step(time: number): void {
         if (this.cooldown > 0) {
-            this.cooldown = Math.max(0, time)
+            this.cooldown = Math.max(0, this.cooldown - time)
         }
     }
 
@@ -48,16 +48,16 @@ class Turret {
     addType(type: TurretElement): void {
         switch (type) {
             case TurretElement.Air:
-                this.tile.turret = new AirTurret(this.tile, this.type.add(type))
+                this.tile.turret = new AirTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Earth:
-                this.tile.turret = new EarthTurret(this.tile, this.type.add(type))
+                this.tile.turret = new EarthTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Fire:
-                this.tile.turret = new FireTurret(this.tile, this.type.add(type))
+                this.tile.turret = new FireTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Water:
-                this.tile.turret = new WaterTurret(this.tile, this.type.add(type))
+                this.tile.turret = new WaterTurret(this.tile, this.type.with(type))
                 break
         }
     }
@@ -68,10 +68,10 @@ class Turret {
 
     getInfoAfterUpgrade(type: TurretElement): TurretInfo | undefined {
         switch (type) {
-            case TurretElement.Air: return AirTurret.getInfo(this.type.add(type))
-            case TurretElement.Earth: return EarthTurret.getInfo(this.type.add(type))
-            case TurretElement.Fire: return FireTurret.getInfo(this.type.add(type))
-            case TurretElement.Water: return WaterTurret.getInfo(this.type.add(type))
+            case TurretElement.Air: return AirTurret.getInfo(this.type.with(type))
+            case TurretElement.Earth: return EarthTurret.getInfo(this.type.with(type))
+            case TurretElement.Fire: return FireTurret.getInfo(this.type.with(type))
+            case TurretElement.Water: return WaterTurret.getInfo(this.type.with(type))
         }
     }
 

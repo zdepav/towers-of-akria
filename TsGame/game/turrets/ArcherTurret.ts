@@ -35,10 +35,10 @@ class ArcherTurret extends Turret {
                 this.type.add(type)
                 break
             case TurretElement.Fire:
-                this.tile.turret = new SunTurret(this.tile, this.type.add(type))
+                this.tile.turret = new SunTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Water:
-                this.tile.turret = new MoonTurret(this.tile, this.type.add(type))
+                this.tile.turret = new MoonTurret(this.tile, this.type.with(type))
                 break
         }
     }
@@ -50,18 +50,21 @@ class ArcherTurret extends Turret {
             ArcherTurret.turretName,
             ArcherTurret.turretDescription,
             160 + a * 64 + e * 16,
-            16 + a * 4 + e * 12
+            `${16 + a * 4 + e * 12}`
         )
     }
 
     getCurrentInfo(): TurretInfo | undefined { return AcidTurret.getInfo(this.type) }
 
     getInfoAfterUpgrade(type: TurretElement): TurretInfo | undefined {
+        if (this.type.count >= 4) {
+            return undefined
+        }
         switch (type) {
-            case TurretElement.Air: return MoonTurret.getInfo(this.type.add(type))
-            case TurretElement.Earth: return AcidTurret.getInfo(this.type.add(type))
-            case TurretElement.Fire: return EarthquakeTurret.getInfo(this.type.add(type))
-            case TurretElement.Water: return AcidTurret.getInfo(this.type.add(type))
+            case TurretElement.Air: return MoonTurret.getInfo(this.type.with(type))
+            case TurretElement.Earth: return AcidTurret.getInfo(this.type.with(type))
+            case TurretElement.Fire: return EarthquakeTurret.getInfo(this.type.with(type))
+            case TurretElement.Water: return AcidTurret.getInfo(this.type.with(type))
         }
     }
 

@@ -45,10 +45,10 @@ class IceTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Earth:
-                this.tile.turret = new MoonTurret(this.tile, this.type.add(type))
+                this.tile.turret = new MoonTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Fire:
-                this.tile.turret = new PlasmaTurret(this.tile, this.type.add(type))
+                this.tile.turret = new PlasmaTurret(this.tile, this.type.with(type))
                 break
             case TurretElement.Air:
             case TurretElement.Water:
@@ -70,11 +70,14 @@ class IceTurret extends Turret {
     getCurrentInfo(): TurretInfo | undefined { return IceTurret.getInfo(this.type) }
 
     getInfoAfterUpgrade(type: TurretElement): TurretInfo | undefined {
+        if (this.type.count >= 4) {
+            return undefined
+        }
         switch (type) {
-            case TurretElement.Air: return IceTurret.getInfo(this.type.add(type))
-            case TurretElement.Earth: return MoonTurret.getInfo(this.type.add(type))
-            case TurretElement.Fire: return PlasmaTurret.getInfo(this.type.add(type))
-            case TurretElement.Water: return IceTurret.getInfo(this.type.add(type))
+            case TurretElement.Air: return IceTurret.getInfo(this.type.with(type))
+            case TurretElement.Earth: return MoonTurret.getInfo(this.type.with(type))
+            case TurretElement.Fire: return PlasmaTurret.getInfo(this.type.with(type))
+            case TurretElement.Water: return IceTurret.getInfo(this.type.with(type))
         }
     }
 

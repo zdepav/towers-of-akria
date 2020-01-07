@@ -32,11 +32,15 @@ class PlasmaBeamParticle extends Particle {
         if (this.life <= 0) {
             return
         }
-        ctx.strokeStyle = this.rgb + Utils.byteToHex(255 * this.life)
         ctx.beginPath()
         ctx.moveTo(this.a.x, this.a.y)
         let n = this.n.mul(1 - this.life), c1 = this.c1.add(n), c2 = this.c2.sub(n)
         ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, this.b.x, this.b.y)
+        ctx.strokeStyle = this.rgb + Utils.byteToHex(128 * this.life)
+        ctx.lineWidth = 3
+        ctx.stroke()
+        ctx.strokeStyle = this.rgb + Utils.byteToHex(255 * this.life)
+        ctx.lineWidth = 1
         ctx.stroke()
     }
 

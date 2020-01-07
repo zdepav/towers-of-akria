@@ -4,23 +4,44 @@ class MoonTurret extends Turret {
 
     private static images: CanvasImageSource
     private static frameCount = 50
+    private static turretName = "Moon Tower"
+    private static turretDescription = "Damages and slows down all enemies in range"
 
     private frame: number
+    private rays: { target: Vec2, color: string }[]
+
+    get range(): number { return this.type.count * 64 - 32 }
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
         this.frame = Utils.rand(0, MoonTurret.frameCount)
+        this.rays = []
     }
 
     step(time: number): void {
         super.step(time)
         this.frame = (this.frame + time * 25) % MoonTurret.frameCount
+        this.rays.splice(0, this.rays.length)
+        for (const e of this.game.findEnemiesInRange(this.center, this.range)) {
+            let d = 1 - (this.center.distanceTo(e.pos) - 32) / (this.range - 32)
+            e.dealDamage(time * (d * 20 + (this.type.count - 2) * 10))
+            this.rays.push({ target: e.pos, color: "#FFFFFF" + Utils.byteToHex(d * 255) })
+            e.addEffect(new FreezeEffect(0.2, 2))
+        }
     }
 
     render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
         super.render(ctx, preRender)
         if (preRender) {
             return
+        }
+        ctx.lineWidth = 7
+        for (const r of this.rays) {
+            ctx.strokeStyle = r.color
+            ctx.beginPath()
+            ctx.moveTo(this.center.x, this.center.y)
+            ctx.lineTo(r.target.x, r.target.y)
+            ctx.stroke()
         }
         let r = 28 + 4 * (this.type.count - 3)
         ctx.drawImage(MoonTurret.images, Math.floor(this.frame) * 64, 0, 64, 64, this.center.x - r, this.center.y - r, r * 2, r * 2)
@@ -37,8 +58,31 @@ class MoonTurret extends Turret {
                 this.type.add(type)
                 break
             case TurretElement.Fire:
-                this.tile.turret = new ArcaneTurret(this.tile, this.type.add(type))
+                this.tile.turret = new ArcaneTurret(this.tile, this.type.with(type))
                 break
+        }
+    }
+
+    static getInfo(type: TurretType): TurretInfo | undefined {
+        return new TurretInfo(
+            MoonTurret.turretName,
+            MoonTurret.turretDescription,
+            type.count * 64 - 32,
+            type.count === 4 ? "20-40" : "10-30"
+        )
+    }
+
+    getCurrentInfo(): TurretInfo | undefined { return MoonTurret.getInfo(this.type) }
+
+    getInfoAfterUpgrade(type: TurretElement): TurretInfo | undefined {
+        if (this.type.count >= 4) {
+            return undefined
+        }
+        switch (type) {
+            case TurretElement.Air: return MoonTurret.getInfo(this.type.with(type))
+            case TurretElement.Earth: return MoonTurret.getInfo(this.type.with(type))
+            case TurretElement.Fire: return ArcaneTurret.getInfo(this.type.with(type))
+            case TurretElement.Water: return MoonTurret.getInfo(this.type.with(type))
         }
     }
 

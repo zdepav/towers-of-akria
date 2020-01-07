@@ -2,21 +2,15 @@
 
 class StunEffect extends Effect {
 
-    duration: number
-
     constructor(duration: number) {
-        super()
-        this.duration = duration
+        super(duration)
     }
 
-    get expired(): boolean { return this.duration <= 0 }
-
     step(time: number): void {
-        if (this.duration <= 0) {
-            return
+        super.step(time)
+        if (this.duration > 0) {
+            this.affectedEnemy?.addSpeedMultiplier(0)
         }
-        this.affectedEnemy?.addSpeedMultiplier(0)
-        this.duration -= time
     }
 
     colorize(color: RgbaColor): RgbaColor {
