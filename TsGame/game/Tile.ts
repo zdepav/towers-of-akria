@@ -1,4 +1,4 @@
-﻿enum TileType {
+enum TileType {
     Unknown,
     Empty,
     WallGen,
@@ -19,7 +19,6 @@ class Tile {
     type: TileType
     turret: Turret | null // only has value for tower tiles
     next: Tile | null // only has value for spawn/path tiles
-    enemies: Enemy[] | null // only used for spawn/path/hq tiles
 
     constructor(game: Game, x: number, y: number, type: TileType, ctx: CanvasRenderingContext2D) {
         this.game = game
@@ -28,7 +27,6 @@ class Tile {
         this.pos = new Vec2(x, y)
         this.decor = new RenderablePathSet()
         this.next = null
-        this.enemies = null
         if (type === TileType.Path || type === TileType.Spawn || type === TileType.HQ) {
             let path = new Path2D()
             for (let i = 0; i < 4; ++i) {
@@ -50,7 +48,6 @@ class Tile {
                     }
                 }
             }
-            this.enemies = []
             if (type === TileType.Spawn) {
                 let gradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32)
                 gradient.addColorStop(0, "#CB5E48")
@@ -75,10 +72,6 @@ class Tile {
             this.decor.pushNew(path1, "#337F1C")
             this.decor.pushNew(path2, "#479131")
         } else if (type === TileType.Tower) {
-            this.decor.pushPolygon([0, 0, 62, 0, 62, 2, 2, 2, 2, 62, 0, 62], "#A0A0A0", x, y)
-            this.decor.pushPolygon([62, 2, 64, 2, 64, 64, 2, 64, 2, 62, 62, 62], "#606060", x, y)
-            this.decor.pushPolygon([56, 8, 58, 8, 58, 58, 8, 58, 8, 56, 56, 56], "#909090", x, y)
-            this.decor.pushPolygon([6, 6, 56, 6, 56, 8, 8, 8, 8, 56, 6, 56], "#707070", x, y)
             this.turret = new Turret(this)
         }
     }
@@ -86,8 +79,6 @@ class Tile {
     step(time: number): void {
         if (this.type === TileType.Tower && this.turret != null) {
             this.turret.step(time)
-        } else if (this.enemies !== null) {
-            this.enemies.splice(0, this.enemies.length)
         }
     }
 
@@ -107,14 +98,17 @@ class Tile {
                     ctx.drawImage(Tile.tiles, 0, 64, 64, 64, this.pos.x, this.pos.y, 64, 64)
                     break
                 case TileType.Tower:
-                    ctx.fillStyle = "#808080"
-                    ctx.fillRect(this.pos.x, this.pos.y, 64, 64)
+                    ctx.drawImage(Tile.tiles, 0, 192, 64, 64, this.pos.x, this.pos.y, 64, 64)
                     break
             }
             this.decor.render(ctx)
+        } else if (this.type === TileType.Tower && this.turret != null) {
+            this.turret.render(ctx)
         }
-        else if (this.type === TileType.Tower && this.turret != null) {
-            this.turret.render(ctx, preRender)
+    }
+
+    renderOverlay(ctx: CanvasRenderingContext2D): void {
+        if (this.type === TileType.Tower && this.turret != null) {
             var elems = this.turret.getType().toColorArray()
             var x = this.pos.x + 2
             var y = this.pos.y + 2
@@ -127,13 +121,8 @@ class Tile {
     }
 
     onClick(button: MouseButton, x: number, y: number): void {
-        if (this.type == TileType.Tower && this.turret != null && this.game.selectedTurretElement != null) {
+        if (this.type == TileType.Tower && this.turret != null) {
             switch (button) {
-                case MouseButton.Left:
-                    if (this.turret.upgradeCostMultiplier(this.game.selectedTurretElement) > 0) {
-                        this.turret.addType(this.game.selectedTurretElement)
-                    }
-                    break
                 case MouseButton.Right:
                     this.turret = new Turret(this)
                     break
@@ -143,7 +132,7 @@ class Tile {
 
     static init(): Promise<void> {
         return Utils.getImageFromCache("td_tiles").then(tex => { Tile.tiles = tex; }, () => new Promise<void>(resolve => {
-            let c = new PreRenderedImage(64, 192)
+            let c = new PreRenderedImage(64, 256)
             let ctx = c.ctx
             new NoiseTextureGenerator(64, 64, "#5BA346", 0.075, 0, 0.25).generateInto(ctx, 0, 0)
             new NoiseTextureGenerator(64, 128, "#B5947E", 0.04, 0, 0.2).generateInto(ctx, 0, 64)
@@ -152,6 +141,14 @@ class Tile {
             grad.addColorStop(1, "#E77B6500")
             ctx.fillStyle = grad
             ctx.fillRect(0, 128, 64, 64)
+            ctx.fillStyle = "#808080"
+            ctx.fillRect(0, 192, 64, 64)
+            let rps = new RenderablePathSet()
+            rps.pushPolygon([0, 0, 62, 0, 62, 2, 2, 2, 2, 62, 0, 62], "#A0A0A0", 0, 192)
+            rps.pushPolygon([62, 2, 64, 2, 64, 64, 2, 64, 2, 62, 62, 62], "#606060", 0, 192)
+            rps.pushPolygon([56, 8, 58, 8, 58, 58, 8, 58, 8, 56, 56, 56], "#909090", 0, 192)
+            rps.pushPolygon([6, 6, 56, 6, 56, 8, 8, 8, 8, 56, 6, 56], "#707070", 0, 192)
+            rps.render(ctx)
             c.cacheImage("td_tiles")
             Tile.tiles = c.image
             resolve()
@@ -162,4 +159,7 @@ class Tile {
         ctx.drawImage(Tile.tiles, 0, 64, 64, 64, x, y, 64, 64)
     }
 
+    static drawTowerGround(ctx: CanvasRenderingContext2D, x: number, y: number): void {
+        ctx.drawImage(Tile.tiles, 0, 192, 64, 64, x, y, 64, 64)
+    }
 }

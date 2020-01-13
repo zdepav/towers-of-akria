@@ -1,4 +1,4 @@
-﻿/// <reference path="../ColorSource.ts"/>
+/// <reference path="../ColorSource.ts"/>
 
 abstract class ShapeSource extends ColorSource {
 
@@ -14,5 +14,4 @@ abstract class ShapeSource extends ColorSource {
         this.color = ColorSource.get(color ?? RgbaColor.white)
         this.background = ColorSource.get(background ?? RgbaColor.black)
     }
-
 }

@@ -1,4 +1,4 @@
-﻿class RenderablePath {
+class RenderablePath {
 
     path: Path2D
     fill: string | CanvasPattern | CanvasGradient
@@ -12,5 +12,4 @@
         ctx.fillStyle = this.fill
         ctx.fill(this.path)
     }
-
 }

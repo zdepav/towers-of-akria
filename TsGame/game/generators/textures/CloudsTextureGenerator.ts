@@ -1,4 +1,4 @@
-﻿/// <reference path="PerlinTextureGenerator.ts"/>
+/// <reference path="PerlinTextureGenerator.ts"/>
 
 class CloudsTextureGenerator extends PerlinTextureGenerator {
 
@@ -36,5 +36,4 @@ class CloudsTextureGenerator extends PerlinTextureGenerator {
         }
         return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve(v / 2 + 0.5))
     }
-
 }

@@ -1,4 +1,4 @@
-﻿/// <reference path="ColorSource.ts"/>
+/// <reference path="ColorSource.ts"/>
 
 class AntialiasedSource extends ColorSource {
 
@@ -15,5 +15,4 @@ class AntialiasedSource extends ColorSource {
             0.5
         )
     }
-
 }

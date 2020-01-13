@@ -1,4 +1,4 @@
-﻿/// <reference path="PerlinTextureGenerator.ts"/>
+/// <reference path="PerlinTextureGenerator.ts"/>
 
 class PerlinNoiseTextureGenerator extends PerlinTextureGenerator {
 
@@ -21,5 +21,4 @@ class PerlinNoiseTextureGenerator extends PerlinTextureGenerator {
             this.curve(this.perlin(this.gradient, x * this.scale, y * this.scale) / 2 + 0.5)
         )
     }
-
 }

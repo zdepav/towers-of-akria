@@ -1,4 +1,4 @@
-﻿class TurretInfo {
+class TurretInfo {
 
     name: string
     description: string
@@ -11,5 +11,4 @@
         this.range = range
         this.dps = dps
     }
-
 }

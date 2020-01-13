@@ -1,4 +1,4 @@
-﻿/// <reference path="TextureGenerator.ts"/>
+/// <reference path="TextureGenerator.ts"/>
 
 abstract class PerlinTextureGenerator extends TextureGenerator {
 
@@ -44,5 +44,4 @@ abstract class PerlinTextureGenerator extends TextureGenerator {
             sy
         ) * 1.428
     }
-
 }

@@ -1,4 +1,4 @@
-﻿class RgbaColor {
+class RgbaColor {
 
     static transparent: RgbaColor
     static black: RgbaColor
@@ -162,5 +162,4 @@
             resolve()
         })
     }
-
 }

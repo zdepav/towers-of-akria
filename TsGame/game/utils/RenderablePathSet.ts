@@ -1,4 +1,4 @@
-﻿class RenderablePathSet {
+class RenderablePathSet {
 
     paths: RenderablePath[]
 
@@ -35,5 +35,4 @@
             this.paths[i].render(ctx)
         }
     }
-
 }

@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class LightningTurret extends Turret {
 
@@ -16,15 +16,16 @@ class LightningTurret extends Turret {
         this.animationTimer = (this.animationTimer + time * (this.type.air + this.type.fire - 1) * 0.5) % 1
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
         ctx.translate(this.center.x, this.center.y)
         ctx.rotate(-Math.floor(this.animationTimer * 8) * Angle.deg45)
         ctx.drawImage(LightningTurret.image, -24, -24)
         ctx.resetTransform()
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        ctx.drawImage(LightningTurret.image, x + 8, y + 8)
     }
 
     addType(type: TurretElement): void {
@@ -90,5 +91,4 @@ class LightningTurret extends Turret {
             resolve()
         }))
     }
-
 }

@@ -1,4 +1,4 @@
-﻿/// <reference path="PerlinTextureGenerator.ts"/>
+/// <reference path="PerlinTextureGenerator.ts"/>
 
 class FrostedGlassTextureGenerator extends PerlinTextureGenerator {
 
@@ -33,5 +33,4 @@ class FrostedGlassTextureGenerator extends PerlinTextureGenerator {
             this.curve(this.perlin(this.gradients[6], _x, _y) / 2 + 0.5)
         )
     }
-
 }

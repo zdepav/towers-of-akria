@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class MoonTurret extends Turret {
 
@@ -30,12 +30,9 @@ class MoonTurret extends Turret {
         }
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
-        ctx.lineWidth = 7
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
+        ctx.lineWidth = 5
         for (const r of this.rays) {
             ctx.strokeStyle = r.color
             ctx.beginPath()
@@ -45,6 +42,11 @@ class MoonTurret extends Turret {
         }
         let r = 28 + 4 * (this.type.count - 3)
         ctx.drawImage(MoonTurret.images, Math.floor(this.frame) * 64, 0, 64, 64, this.center.x - r, this.center.y - r, r * 2, r * 2)
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        let r = 28 + 4 * (type.count - 3)
+        ctx.drawImage(MoonTurret.images, 0, 0, 64, 64, x + 32 - r, y + 32 - r, r * 2, r * 2)
     }
 
     addType(type: TurretElement): void {
@@ -86,6 +88,26 @@ class MoonTurret extends Turret {
         }
     }
 
+    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+        if (this.type.count >= 4) {
+            return
+        }
+        switch (type) {
+            case TurretElement.Air:
+                MoonTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Earth:
+                MoonTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Fire:
+                ArcaneTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Water:
+                MoonTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+        }
+    }
+
     static init(): Promise<void> {
         return Utils.getImageFromCache("td_tower_AEfW_moon_strip" + MoonTurret.frameCount).then(tex => { MoonTurret.images = tex; }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(MoonTurret.frameCount * 64, 64)
@@ -114,5 +136,4 @@ class MoonTurret extends Turret {
             resolve()
         }))
     }
-
 }

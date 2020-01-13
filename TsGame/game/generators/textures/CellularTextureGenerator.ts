@@ -1,4 +1,4 @@
-﻿/// <reference path="TextureGenerator.ts"/>
+/// <reference path="TextureGenerator.ts"/>
 
 enum CellularTextureType {
     Cells,
@@ -136,5 +136,4 @@ class CellularTextureGenerator extends TextureGenerator {
             this.curve((this.distances[Utils.flatten(this.width, x, y)] - this.min) / this.range)
         )
     }
-
 }

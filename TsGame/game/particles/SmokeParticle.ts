@@ -1,4 +1,4 @@
-﻿/// <reference path="Particle.ts"/>
+/// <reference path="Particle.ts"/>
 
 class SmokeParticle extends Particle {
 
@@ -35,5 +35,4 @@ class SmokeParticle extends Particle {
         ctx.arc(this.x, this.y, r, 0, Angle.deg360)
         ctx.fill()
     }
-
 }

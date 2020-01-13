@@ -1,4 +1,4 @@
-﻿class PerformanceMeter {
+class PerformanceMeter {
 
     private queue: number[]
     private sum: number
@@ -19,5 +19,4 @@
     getFps(): number {
         return this.queue.length > 0 ? this.sum / this.queue.length : NaN
     }
-
 }

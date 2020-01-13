@@ -14,10 +14,16 @@ var InitializationStatus;
 })(InitializationStatus || (InitializationStatus = {}));
 class Game {
     constructor(container) {
-        let canvasWidth = 1152;
-        let canvasHeight = 576;
+        this.width = 1152;
+        this.height = 704;
+        this.mapWidth = 15;
+        this.mapHeight = 9;
         let canvas = document.createElement("canvas");
         canvas.id = "game-canvas";
+        canvas.width = this.width;
+        canvas.height = this.height;
+        canvas.style.border = "2px solid #606060";
+        canvas.style.outline = "none";
         container.appendChild(canvas);
         this.ctx = canvas.getContext("2d");
         this.canvas = canvas;
@@ -28,25 +34,30 @@ class Game {
         this.projectiles = new ProjectileSet();
         this.particles = new ParticleSystem();
         this.enemies = new EnemySet();
-        this.selectedTurretElement = null;
-        this.selectedTilePos = null;
+        this.hoveredTilePos = null;
+        this.selectedTile = null;
         this.mouseButton = null;
         this.status = InitializationStatus.Uninitialized;
-        canvas.width = canvasWidth;
-        let mapWidth = Math.floor(canvasWidth / 64) - 3;
-        mapWidth = mapWidth % 2 === 0 ? mapWidth - 1 : mapWidth;
-        this.mapWidth = mapWidth < 3 ? 3 : mapWidth;
-        this.width = (mapWidth + 3) * 64;
-        canvas.height = canvasHeight;
-        let mapHeight = Math.floor(canvasHeight / 64);
-        mapHeight = mapHeight % 2 === 0 ? mapHeight - 1 : mapHeight;
-        this.mapHeight = mapHeight < 3 ? 3 : mapHeight;
-        this.height = mapHeight * 64;
-        this.guiPanel = new Rect(this.width - 192, 0, 192, this.height - 192);
+        this.arcaneTowerCount = 0;
+        this.wavePlanner = new EnemyWavePlanner(this);
+        this.guiPanels = [
+            new GuiPanel(this, 0, 0, this.width, this.height),
+            new GuiPanel(this, 960, 0, 192, 384),
+            new GuiPanel(this, 0, 576, 1152, 704)
+        ];
+        this.guiPanels[0].addItem(this.guiPanels[1]);
+        this.guiPanels[0].addItem(this.guiPanels[2]);
+        this.upgradeButtons = [];
+        for (let e = TurretElement.Air, x = 4; e <= TurretElement.Water; ++e, x += 287) {
+            let button = new TurretUpgradeButton(this, x, 582, 283, 118, e);
+            this.upgradeButtons.push(button);
+            this.guiPanels[2].addItem(button);
+        }
     }
-    get selectedTile() {
-        return this.selectedTilePos !== null ? this.map[this.selectedTilePos.x][this.selectedTilePos.y] : null;
+    get hoveredTile() {
+        return this.hoveredTilePos !== null ? this.map[this.hoveredTilePos.x][this.hoveredTilePos.y] : null;
     }
+    get towerDamageMultiplier() { return this.arcaneTowerCount * 0.25 + 1; }
     init() {
         return RgbaColor.init()
             .then(() => Angle.init())
@@ -210,6 +221,7 @@ class Game {
                     }
                 }
             }
+            this.wavePlanner.spawnTile = map[0][startY];
             this.map = map;
             while (true) {
                 if (path.previous !== null) {
@@ -220,6 +232,7 @@ class Game {
                 else
                     break;
             }
+            this.map[0][startY].next = this.map[1][startY];
             resolve();
         });
     }
@@ -292,23 +305,42 @@ class Game {
             }
             case InitializationStatus.Initialized: {
                 let time = new Date().getTime();
-                let timeDiff = (time - this.prevTime) / 1000;
+                let timeDiff = (time - this.prevTime) / 1000 * 4;
                 this.performanceMeter.add(1 / timeDiff);
+                let arcaneTowerCount = 0;
                 for (let x = 0; x < this.mapWidth; ++x) {
                     for (let y = 0; y < this.mapHeight; ++y) {
-                        this.map[x][y].step(timeDiff);
+                        let t = this.map[x][y];
+                        t.step(timeDiff);
+                        if (t.type == TileType.Tower) {
+                            if (this.selectedTile == t) {
+                                this.markTile(t);
+                            }
+                            if (t.turret instanceof ArcaneTurret) {
+                                ++arcaneTowerCount;
+                            }
+                        }
                     }
                 }
+                this.arcaneTowerCount = arcaneTowerCount;
+                this.wavePlanner.step(timeDiff);
                 this.enemies.step(timeDiff);
                 this.particles.step(timeDiff);
-                if (this.selectedTurretElement !== null) {
-                    this.particles.add(new ElementSparkParticle(this.mousePosition.x, this.mousePosition.y, this.selectedTurretElement));
-                }
                 this.prevTime = time;
                 this.time += timeDiff;
                 return;
             }
         }
+    }
+    markTile(tile) {
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 4, tile.pos.y + 4, new Vec2(1, 0)));
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 4, tile.pos.y + 4, new Vec2(0, 1)));
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 60, tile.pos.y + 4, new Vec2(-1, 0)));
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 60, tile.pos.y + 4, new Vec2(0, 1)));
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 4, tile.pos.y + 60, new Vec2(1, 0)));
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 4, tile.pos.y + 60, new Vec2(0, -1)));
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 60, tile.pos.y + 60, new Vec2(-1, 0)));
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 60, tile.pos.y + 60, new Vec2(0, -1)));
     }
     getMousePosition() { return this.mousePosition.copy(); }
     setMousePosition(e) {
@@ -320,12 +352,13 @@ class Game {
             return;
         }
         this.setMousePosition(e);
-        if (this.selectedTilePos === null) {
+        this.guiPanels[0].onMouseMove();
+        if (this.hoveredTilePos === null) {
             return;
         }
         let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64));
-        if (!tp.equals(this.selectedTilePos)) {
-            this.selectedTilePos = null;
+        if (!tp.equals(this.hoveredTilePos)) {
+            this.hoveredTilePos = null;
         }
     }
     onMouseDown(e) {
@@ -333,9 +366,10 @@ class Game {
             return;
         }
         this.setMousePosition(e);
+        this.guiPanels[0].onMouseDown(e.button);
         let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64));
         if (tp.x < this.mapWidth && tp.y < this.mapHeight) {
-            this.selectedTilePos = tp;
+            this.hoveredTilePos = tp;
             this.mouseButton = e.button;
         }
     }
@@ -345,9 +379,14 @@ class Game {
             return;
         }
         this.setMousePosition(e);
-        if (this.selectedTilePos != null) {
+        this.guiPanels[0].onMouseUp(e.button);
+        if (this.hoveredTilePos) {
+            this.selectedTile = this.hoveredTile;
+            for (const b of this.upgradeButtons) {
+                b.targetTile = this.selectedTile;
+            }
             (_a = this.selectedTile) === null || _a === void 0 ? void 0 : _a.onClick(this.mouseButton, this.mousePosition.x % 64, this.mousePosition.y % 64);
-            this.selectedTilePos = null;
+            this.hoveredTilePos = null;
         }
         this.mouseButton = null;
     }
@@ -356,21 +395,6 @@ class Game {
             return;
         }
         switch (e.key.toUpperCase()) {
-            case 'Q':
-                this.selectedTurretElement = TurretElement.Air;
-                break;
-            case 'W':
-                this.selectedTurretElement = TurretElement.Earth;
-                break;
-            case 'E':
-                this.selectedTurretElement = TurretElement.Fire;
-                break;
-            case 'R':
-                this.selectedTurretElement = TurretElement.Water;
-                break;
-            case 'T':
-                this.selectedTurretElement = null;
-                break;
             case 'C':
                 if (e.altKey) {
                     localStorage.clear();
@@ -395,13 +419,14 @@ class Game {
                 }
             }
             ctx.fillStyle = "#B5947E";
-            let x = this.guiPanel.x, y = this.height - 192;
+            let x = this.guiPanels[1].x, y = this.guiPanels[1].bottom;
             for (let i = 0; i < 9; ++i) {
                 Tile.drawPathGround(ctx, x + i % 3 * 64, y + Math.floor(i / 3) * 64);
             }
             ctx.fillStyle = "#606060";
-            ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h);
-            ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2);
+            ctx.fillRect(this.guiPanels[1].x, this.guiPanels[1].y, 2, this.guiPanels[1].h);
+            ctx.fillRect(this.guiPanels[1].x, this.guiPanels[1].bottom - 2, this.guiPanels[1].w, 2);
+            ctx.fillRect(this.guiPanels[2].x, this.guiPanels[2].y, this.guiPanels[2].w, 2);
             this.preRendered = c.image;
             resolve();
         });
@@ -421,119 +446,56 @@ class Game {
                 return;
             }
             case InitializationStatus.Initialized: {
-                this.ctx.drawImage(this.preRendered, 0, 0);
+                ctx.drawImage(this.preRendered, 0, 0);
                 for (let x = 0; x < this.mapWidth; ++x) {
                     for (let y = 0; y < this.mapHeight; ++y) {
                         this.map[x][y].render(ctx, false);
                     }
                 }
+                this.guiPanels[0].render(ctx);
                 this.enemies.render(ctx);
-                ctx.drawImage(Game.castleImage, this.guiPanel.x, this.height - 192);
+                ctx.drawImage(Game.castleImage, this.guiPanels[1].x, this.guiPanels[1].bottom);
                 this.particles.render(ctx);
+                for (let x = 0; x < this.mapWidth; ++x) {
+                    for (let y = 0; y < this.mapHeight; ++y) {
+                        this.map[x][y].renderOverlay(ctx);
+                    }
+                }
                 let fps = this.performanceMeter.getFps();
                 ctx.fillStyle = "#000000";
-                ctx.textAlign = "right";
+                ctx.textAlign = "left";
                 ctx.textBaseline = "top";
-                ctx.font = "bold 16px serif";
+                ctx.font = "bold 12px monospace";
                 if (!isNaN(fps)) {
-                    ctx.fillText(Math.floor(fps).toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 16);
+                    let f = Math.floor(fps * 10);
+                    ctx.fillText(`FPS:         ${Math.floor(f / 10)}.${f % 10}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 6);
                 }
-                ctx.fillText(this.mousePosition.x.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 32);
-                ctx.fillText(this.mousePosition.y.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 48);
+                ctx.fillText(`Enemies:     ${this.enemies.count}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 20);
+                ctx.fillText(`Particles:   ${this.particles.count}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 34);
+                ctx.fillText(`Projectiles: ${this.projectiles.count}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 48);
                 return;
             }
         }
     }
-    registerEnemy(enemy) {
-        var _a;
-        let x = Utils.clamp(enemy.x / 64, 0, this.mapWidth - 1);
-        let y = Utils.clamp(enemy.y / 64, 0, this.mapHeight - 1);
-        (_a = this.map[x][y].enemies) === null || _a === void 0 ? void 0 : _a.push(enemy);
-    }
-    findEnemy(point, maxDistance) {
-        if (this.enemies.count == 0) {
-            return null;
-        }
-        let x1 = Utils.clamp(point.x - maxDistance, 0, this.mapWidth - 1);
-        let x2 = Utils.clamp(point.x + maxDistance, 0, this.mapWidth - 1);
-        let y1 = Utils.clamp(point.y - maxDistance, 0, this.mapHeight - 1);
-        let y2 = Utils.clamp(point.y + maxDistance, 0, this.mapHeight - 1);
-        let t;
-        maxDistance *= maxDistance;
-        for (let x = x1; x <= x2; ++x) {
-            for (let y = y1; y <= y2; ++y) {
-                t = this.map[x][y];
-                if (t.enemies === null || t.enemies.length === 0) {
-                    continue;
-                }
-                for (const e of t.enemies) {
-                    let dist = point.sqrDistanceTo(e.pos);
-                    if (dist <= maxDistance) {
-                        return e;
-                    }
-                }
-            }
-        }
-        return null;
-    }
-    findNearestEnemy(point, maxDistance) {
-        if (this.enemies.count == 0) {
-            return null;
-        }
-        let closestEnemy = null;
-        let lowestDistance = Infinity;
-        let x1 = Utils.clamp(point.x - maxDistance, 0, this.mapWidth - 1);
-        let x2 = Utils.clamp(point.x + maxDistance, 0, this.mapWidth - 1);
-        let y1 = Utils.clamp(point.y - maxDistance, 0, this.mapHeight - 1);
-        let y2 = Utils.clamp(point.y + maxDistance, 0, this.mapHeight - 1);
-        let t;
-        maxDistance *= maxDistance;
-        for (let x = x1; x <= x2; ++x) {
-            for (let y = y1; y <= y2; ++y) {
-                t = this.map[x][y];
-                if (t.enemies === null || t.enemies.length === 0) {
-                    continue;
-                }
-                for (const e of t.enemies) {
-                    let dist = point.sqrDistanceTo(e.pos);
-                    if (dist <= maxDistance && dist < lowestDistance) {
-                        lowestDistance = dist;
-                        closestEnemy = e;
-                    }
-                }
-            }
-        }
-        return closestEnemy;
-    }
-    findEnemiesInRange(point, maxDistance) {
-        if (this.enemies.count == 0) {
-            return [];
-        }
-        let enemies = [];
-        let x1 = Utils.clamp(point.x - maxDistance, 0, this.mapWidth - 1);
-        let x2 = Utils.clamp(point.x + maxDistance, 0, this.mapWidth - 1);
-        let y1 = Utils.clamp(point.y - maxDistance, 0, this.mapHeight - 1);
-        let y2 = Utils.clamp(point.y + maxDistance, 0, this.mapHeight - 1);
-        let t;
-        maxDistance *= maxDistance;
-        for (let x = x1; x <= x2; ++x) {
-            for (let y = y1; y <= y2; ++y) {
-                t = this.map[x][y];
-                if (t.enemies === null || t.enemies.length === 0) {
-                    continue;
-                }
-                for (const e of t.enemies) {
-                    if (point.sqrDistanceTo(e.pos) <= maxDistance) {
-                        enemies.push(e);
-                    }
-                }
-            }
-        }
-        return enemies;
-    }
+    spawnEnemy(e) { this.enemies.add(e); }
     spawnParticle(p) { this.particles.add(p); }
     spawnProjectile(p) { this.projectiles.add(p); }
+    findEnemy(point, maxDistance) {
+        return this.enemies.find(point, maxDistance);
+    }
+    findNearestEnemy(point, maxDistance) {
+        return this.enemies.findNearest(point, maxDistance);
+    }
+    findEnemiesInRange(point, maxDistance) {
+        return this.enemies.findInRange(point, maxDistance);
+    }
     takeLife() {
+    }
+    playerCanAffordUpgrade(upgradeCostMultiplier) {
+        return upgradeCostMultiplier >= 0;
+    }
+    buyUpgrade(upgradeCostMultiplier) {
+        return upgradeCostMultiplier >= 0;
     }
     static initializeAndRun() {
         let container = document.getElementById("zptd-game-container");
@@ -671,7 +633,6 @@ class Tile {
         this.pos = new Vec2(x, y);
         this.decor = new RenderablePathSet();
         this.next = null;
-        this.enemies = null;
         if (type === TileType.Path || type === TileType.Spawn || type === TileType.HQ) {
             let path = new Path2D();
             for (let i = 0; i < 4; ++i) {
@@ -693,7 +654,6 @@ class Tile {
                     }
                 }
             }
-            this.enemies = [];
             if (type === TileType.Spawn) {
                 let gradient = ctx.createLinearGradient(x, y + 32, x + 64, y + 32);
                 gradient.addColorStop(0, "#CB5E48");
@@ -720,19 +680,12 @@ class Tile {
             this.decor.pushNew(path2, "#479131");
         }
         else if (type === TileType.Tower) {
-            this.decor.pushPolygon([0, 0, 62, 0, 62, 2, 2, 2, 2, 62, 0, 62], "#A0A0A0", x, y);
-            this.decor.pushPolygon([62, 2, 64, 2, 64, 64, 2, 64, 2, 62, 62, 62], "#606060", x, y);
-            this.decor.pushPolygon([56, 8, 58, 8, 58, 58, 8, 58, 8, 56, 56, 56], "#909090", x, y);
-            this.decor.pushPolygon([6, 6, 56, 6, 56, 8, 8, 8, 8, 56, 6, 56], "#707070", x, y);
             this.turret = new Turret(this);
         }
     }
     step(time) {
         if (this.type === TileType.Tower && this.turret != null) {
             this.turret.step(time);
-        }
-        else if (this.enemies !== null) {
-            this.enemies.splice(0, this.enemies.length);
         }
     }
     render(ctx, preRender) {
@@ -751,14 +704,17 @@ class Tile {
                     ctx.drawImage(Tile.tiles, 0, 64, 64, 64, this.pos.x, this.pos.y, 64, 64);
                     break;
                 case TileType.Tower:
-                    ctx.fillStyle = "#808080";
-                    ctx.fillRect(this.pos.x, this.pos.y, 64, 64);
+                    ctx.drawImage(Tile.tiles, 0, 192, 64, 64, this.pos.x, this.pos.y, 64, 64);
                     break;
             }
             this.decor.render(ctx);
         }
         else if (this.type === TileType.Tower && this.turret != null) {
-            this.turret.render(ctx, preRender);
+            this.turret.render(ctx);
+        }
+    }
+    renderOverlay(ctx) {
+        if (this.type === TileType.Tower && this.turret != null) {
             var elems = this.turret.getType().toColorArray();
             var x = this.pos.x + 2;
             var y = this.pos.y + 2;
@@ -770,13 +726,8 @@ class Tile {
         }
     }
     onClick(button, x, y) {
-        if (this.type == TileType.Tower && this.turret != null && this.game.selectedTurretElement != null) {
+        if (this.type == TileType.Tower && this.turret != null) {
             switch (button) {
-                case MouseButton.Left:
-                    if (this.turret.upgradeCostMultiplier(this.game.selectedTurretElement) > 0) {
-                        this.turret.addType(this.game.selectedTurretElement);
-                    }
-                    break;
                 case MouseButton.Right:
                     this.turret = new Turret(this);
                     break;
@@ -785,7 +736,7 @@ class Tile {
     }
     static init() {
         return Utils.getImageFromCache("td_tiles").then(tex => { Tile.tiles = tex; }, () => new Promise(resolve => {
-            let c = new PreRenderedImage(64, 192);
+            let c = new PreRenderedImage(64, 256);
             let ctx = c.ctx;
             new NoiseTextureGenerator(64, 64, "#5BA346", 0.075, 0, 0.25).generateInto(ctx, 0, 0);
             new NoiseTextureGenerator(64, 128, "#B5947E", 0.04, 0, 0.2).generateInto(ctx, 0, 64);
@@ -794,6 +745,14 @@ class Tile {
             grad.addColorStop(1, "#E77B6500");
             ctx.fillStyle = grad;
             ctx.fillRect(0, 128, 64, 64);
+            ctx.fillStyle = "#808080";
+            ctx.fillRect(0, 192, 64, 64);
+            let rps = new RenderablePathSet();
+            rps.pushPolygon([0, 0, 62, 0, 62, 2, 2, 2, 2, 62, 0, 62], "#A0A0A0", 0, 192);
+            rps.pushPolygon([62, 2, 64, 2, 64, 64, 2, 64, 2, 62, 62, 62], "#606060", 0, 192);
+            rps.pushPolygon([56, 8, 58, 8, 58, 58, 8, 58, 8, 56, 56, 56], "#909090", 0, 192);
+            rps.pushPolygon([6, 6, 56, 6, 56, 8, 8, 8, 8, 56, 6, 56], "#707070", 0, 192);
+            rps.render(ctx);
             c.cacheImage("td_tiles");
             Tile.tiles = c.image;
             resolve();
@@ -801,6 +760,9 @@ class Tile {
     }
     static drawPathGround(ctx, x, y) {
         ctx.drawImage(Tile.tiles, 0, 64, 64, 64, x, y, 64, 64);
+    }
+    static drawTowerGround(ctx, x, y) {
+        ctx.drawImage(Tile.tiles, 0, 192, 64, 64, x, y, 64, 64);
     }
 }
 class Expirable {
@@ -816,6 +778,7 @@ class Enemy extends Expirable {
         this.speedMultiplier = 1;
         this.position = this.currTilePos;
         this.hp = hp;
+        this.startHp = hp;
         this.armor = armor;
         this.effects = new EffectSet();
         this.game = game;
@@ -830,33 +793,34 @@ class Enemy extends Expirable {
             return;
         }
         this.effects.step(time);
-        this.relPos += this.baseSpeed * this.speedMultiplier * time;
-        while (this.relPos >= this.relDist) {
-            this.relPos -= this.relDist;
-            if (this.targetTile === null) {
-                this.game.takeLife();
-                this.hp = -1;
-                return;
+        if (this.baseSpeed * this.speedMultiplier > 0) {
+            this.relPos += this.baseSpeed * this.speedMultiplier * time;
+            while (this.relPos >= this.relDist) {
+                this.relPos -= this.relDist;
+                if (this.targetTile === null) {
+                    this.game.takeLife();
+                    this.hp = -1;
+                    return;
+                }
+                else if (this.targetTile.next === null) {
+                    this.currTilePos = this.nextTilePos;
+                    this.nextTilePos = this.targetTile.pos.addu(112, Utils.randInt(16, 48));
+                    this.relDist = this.currTilePos.distanceTo(this.nextTilePos);
+                    this.targetTile = null;
+                }
+                else {
+                    this.targetTile = this.targetTile.next;
+                    this.currTilePos = this.nextTilePos;
+                    this.nextTilePos = Enemy.positionInTile(this.targetTile);
+                    this.relDist = this.currTilePos.distanceTo(this.nextTilePos);
+                }
             }
-            else if (this.targetTile.next === null) {
-                this.currTilePos = this.nextTilePos;
-                this.nextTilePos = this.targetTile.pos.addu(112, Utils.randInt(16, 48));
-                this.relDist = this.currTilePos.distanceTo(this.nextTilePos);
-                this.targetTile = null;
-            }
-            else {
-                this.targetTile = this.targetTile.next;
-                this.currTilePos = this.nextTilePos;
-                this.nextTilePos = Enemy.positionInTile(this.targetTile);
-                this.relDist = this.currTilePos.distanceTo(this.nextTilePos);
-            }
+            this.position = this.currTilePos.lerp(this.nextTilePos, this.relPos / this.relDist);
         }
-        this.position = this.currTilePos.lerp(this.nextTilePos, this.relPos / this.relDist);
-        this.game.registerEnemy(this);
         this.speedMultiplier = 1;
     }
     dealDamage(ammount) {
-        this.hp = Math.max(this.hp - ammount / this.armorProtection, 0);
+        this.hp = Math.max(this.hp - ammount * this.game.towerDamageMultiplier / this.armorProtection, 0);
     }
     corodeArmor(ammount) {
         this.armor = Math.max(this.armor - ammount, 0);
@@ -868,8 +832,40 @@ class Enemy extends Expirable {
     addSpeedMultiplier(mult) {
         this.speedMultiplier *= mult;
     }
+    pushBack() {
+        this.relPos = 0;
+    }
     static positionInTile(tile) {
         return tile.pos.addu(Utils.randInt(16, 48), Utils.randInt(16, 48));
+    }
+}
+class BasicEnemy extends Enemy {
+    constructor(game, spawn, hp, armor) {
+        super(game, spawn, hp, armor);
+        this.baseColor = RgbaColor.fromHex("#303030");
+        this.baseHpColor = RgbaColor.fromHex("#C08080");
+        this.baseArmorColor = RgbaColor.fromHex("#8080C0");
+    }
+    get baseSpeed() { return 32; }
+    step(time) {
+        super.step(time);
+    }
+    render(ctx) {
+        let r;
+        if (this.armor > 0) {
+            ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss();
+            r = 5 + Utils.clamp(this.armor / 25, 0, 4);
+            ctx.fillRect(this.x - r, this.y - r, r * 2, r * 2);
+        }
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(this.x - 5, this.y - 5, 10, 10);
+        if (this.hp < this.startHp) {
+            ctx.fillStyle = this.effects.colorize(this.baseColor).toCss();
+            ctx.fillRect(this.x - 4, this.y - 4, 8, 8);
+        }
+        ctx.fillStyle = this.effects.colorize(this.baseHpColor).toCss();
+        r = 4 * this.hp / this.startHp;
+        ctx.fillRect(this.x - r, this.y - r, r * 2, r * 2);
     }
 }
 class ExpirableSet {
@@ -889,17 +885,29 @@ class ExpirableSet {
         if (this.items.length === 0) {
             return;
         }
+        for (let i = 0; i < this.count; ++i) {
+            this.items[i].step(time);
+        }
+        this.clearWhere(item => item.expired);
+    }
+    clear() {
+        if (this.items.length > 0) {
+            this.items.splice(0, this.items.length);
+        }
+    }
+    clearWhere(condition) {
         let j = this.count;
-        for (let i = 0; i < j; ++i) {
+        for (let i = 0; i < j;) {
             let item = this.items[i];
-            item.step(time);
-            if (item.expired) {
+            if (condition(item)) {
                 --j;
                 if (i < j) {
                     this.items[i] = this.items[j];
                 }
                 this.items.pop();
             }
+            else
+                ++i;
         }
     }
 }
@@ -907,6 +915,65 @@ class EnemySet extends ExpirableSet {
     render(ctx) {
         for (const e of this.items) {
             e.render(ctx);
+        }
+    }
+    find(point, maxDistance) {
+        if (this.count == 0) {
+            return null;
+        }
+        let t;
+        maxDistance *= maxDistance;
+        for (const e of this.items) {
+            let dist = point.sqrDistanceTo(e.pos);
+            if (dist <= maxDistance) {
+                return e;
+            }
+        }
+        return null;
+    }
+    findNearest(point, maxDistance) {
+        if (this.count == 0) {
+            return null;
+        }
+        let closestEnemy = null;
+        let lowestDistance = Infinity;
+        maxDistance *= maxDistance;
+        for (const e of this.items) {
+            let dist = point.sqrDistanceTo(e.pos);
+            if (dist <= maxDistance && dist < lowestDistance) {
+                lowestDistance = dist;
+                closestEnemy = e;
+            }
+        }
+        return closestEnemy;
+    }
+    findInRange(point, maxDistance) {
+        if (this.count == 0) {
+            return [];
+        }
+        let enemies = [];
+        maxDistance *= maxDistance;
+        for (const e of this.items) {
+            if (point.sqrDistanceTo(e.pos) <= maxDistance) {
+                enemies.push(e);
+            }
+        }
+        return enemies;
+    }
+}
+class EnemyWavePlanner {
+    constructor(game) {
+        this.game = game;
+        this.spawnTile = null;
+        this.timer = 1;
+        this.hp = 10;
+    }
+    step(time) {
+        this.timer -= time;
+        if (this.timer <= 0 && this.spawnTile !== null) {
+            this.game.spawnEnemy(new BasicEnemy(this.game, this.spawnTile, this.hp, Math.floor(this.hp / 10)));
+            this.timer = 1;
+            this.hp += Math.max(Math.floor(this.hp / 100), 1);
         }
     }
 }
@@ -934,8 +1001,10 @@ class LeveledEffect extends Effect {
     }
     doMerge(effect) {
         if (effect.strength > this.strength) {
+            if (this.duration < effect.duration) {
+                this.duration = this.duration + (effect.duration - this.duration) * this.strength / effect.strength;
+            }
             this.strength = effect.strength;
-            this.duration = effect.duration + this.duration * (1 + effect.strength - this.strength);
         }
         else if (effect.strength < this.strength) {
             this.duration += effect.duration * (1 + this.strength - effect.strength);
@@ -1066,7 +1135,7 @@ class StunEffect extends Effect {
         }
     }
     colorize(color) {
-        return color;
+        return this.duration > 0 ? color.lerp(RgbaColor.white, 0.5) : color;
     }
     incompatibleWith(effect) {
         return effect instanceof StunEffect;
@@ -1896,6 +1965,150 @@ class TranslatingSource extends TransformingSource {
         return new Vec2(x - this.xd, y - this.yd);
     }
 }
+class Rect {
+    constructor(x, y, w, h) {
+        this.x = x;
+        this.y = y;
+        this.w = w;
+        this.h = h;
+    }
+    get right() { return this.x + this.w; }
+    get bottom() { return this.y + this.h; }
+    pointIsInside(point) {
+        let x = point.x - this.x;
+        let y = point.y - this.y;
+        return x >= 0 && x < this.w && y >= 0 && y < this.h;
+    }
+}
+class Button extends Rect {
+    constructor(game, x, y, w, h) {
+        super(x, y, w, h);
+        this.click = null;
+        this.game = game;
+        this.enabled = true;
+        this._pressed = false;
+    }
+    get pressed() { return this._pressed && this.enabled; }
+    onClick() {
+        if (this.click) {
+            this.click(this);
+        }
+    }
+    step(time) { }
+    render(ctx) {
+        ctx.fillStyle = this.enabled ? "#606060" : "#808080";
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+        ctx.fillStyle = this.pressed ? "#A0A0A0" : "#C0C0C0";
+        ctx.fillRect(this.x + 2, this.y + 2, this.w - 4, this.h - 4);
+    }
+    onMouseDown(button) {
+        if (button == MouseButton.Left) {
+            this._pressed = this.pointIsInside(this.game.getMousePosition());
+        }
+    }
+    onMouseMove() {
+        if (this._pressed && !this.pointIsInside(this.game.getMousePosition())) {
+            this._pressed = false;
+        }
+    }
+    onMouseUp(button) {
+        if (button == MouseButton.Left) {
+            if (this.pressed && this.pointIsInside(this.game.getMousePosition())) {
+                this.onClick();
+            }
+            this._pressed = false;
+        }
+    }
+}
+class GuiPanel extends Rect {
+    constructor(game, x, y, w, h) {
+        super(x, y, w, h);
+        this.items = [];
+        this.game = game;
+    }
+    addItem(item) {
+        this.items.push(item);
+    }
+    onMouseDown(button) {
+        for (const item of this.items) {
+            item.onMouseDown(button);
+        }
+    }
+    onMouseMove() {
+        for (const item of this.items) {
+            item.onMouseMove();
+        }
+    }
+    onMouseUp(button) {
+        for (const item of this.items) {
+            item.onMouseUp(button);
+        }
+    }
+    step(time) {
+        for (const item of this.items) {
+            item.step(time);
+        }
+    }
+    render(ctx) {
+        for (const item of this.items) {
+            item.render(ctx);
+        }
+    }
+}
+class TurretUpgradeButton extends Button {
+    constructor(game, x, y, w, h, type) {
+        super(game, x, y, w, h);
+        this.targetTile = null;
+        this.type = type;
+        let elementColor = RgbaColor.fromHex(TurretType.getColor(type));
+        this.backColor = elementColor.lerp(RgbaColor.fromHex("#C0C0C0"), 0.5).toCss();
+        this.pressedColor = elementColor.lerp(RgbaColor.fromHex("#A0A0A0"), 0.5).toCss();
+    }
+    onClick() {
+        super.onClick();
+        if (this.pressed && this.targetTile && this.targetTile.turret) {
+            let turret = this.targetTile.turret;
+            if (!this.game.buyUpgrade(turret.upgradeCostMultiplier(this.type))) {
+                return;
+            }
+            turret.addType(this.type);
+        }
+    }
+    step(time) {
+        super.step(time);
+        if (!this.targetTile || !this.targetTile.turret) {
+            return;
+        }
+        let upgradeCostMultiplier = this.targetTile.turret.upgradeCostMultiplier(this.type);
+        this.enabled = this.game.playerCanAffordUpgrade(upgradeCostMultiplier);
+    }
+    render(ctx) {
+        if (!this.targetTile || !this.targetTile.turret) {
+            return;
+        }
+        let turret = this.targetTile.turret;
+        let info = turret.getInfoAfterUpgrade(this.type);
+        if (info === undefined) {
+            return;
+        }
+        ctx.fillStyle = this.enabled ? "#606060" : "#808080";
+        ctx.fillRect(this.x, this.y, this.w, this.h);
+        ctx.fillStyle = this.pressed ? this.pressedColor : this.backColor;
+        ctx.fillRect(this.x + 2, this.y + 2, this.w - 4, this.h - 4);
+        Tile.drawTowerGround(ctx, this.x + 4, this.y + 4);
+        turret.renderPreviewAfterUpgrade(ctx, this.x + 4, this.y + 4, this.type);
+        ctx.fillStyle = "#000000";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.font = "bold 14px serif";
+        ctx.fillText(info.name, this.x + 74, this.y + 8);
+        ctx.font = "12px monospace";
+        ctx.fillText(`Range:   ${info.range}`, this.x + 74, this.y + 30);
+        ctx.fillText(`Max DPS: ${info.dps}`, this.x + 74, this.y + 48);
+        ctx.font = "13px serif";
+        Utils.fillWrappedText(ctx, info.description, this.x + 6, this.y + 74, this.w - 12, 14);
+    }
+}
 class Particle extends Expirable {
 }
 class BubbleParticle extends Particle {
@@ -1918,44 +2131,15 @@ class BubbleParticle extends Particle {
         if (this.life >= 1) {
             return;
         }
-        let r1 = this.startSize + this.life * 6, r2 = this.startSize + this.life * 8;
-        ctx.fillStyle = this.rgb + Utils.byteToHex(255 * (1 - this.life));
+        ctx.strokeStyle = this.rgb + Utils.byteToHex(255 * (1 - this.life));
+        ctx.lineWidth = this.life * 2;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, r2, 0, Angle.deg360);
-        ctx.arc(this.x, this.y, r1, 0, Angle.deg360);
-        ctx.fill();
-    }
-}
-class ElementSparkParticle extends Particle {
-    constructor(x, y, type) {
-        super();
-        this.x = x;
-        this.y = y;
-        let v = Vec2.randUnit3d();
-        this.vx = v.x;
-        this.vy = v.y;
-        this.life = 0;
-        this.color = TurretType.getColor(type) + "40";
-    }
-    get expired() { return this.life >= 1; }
-    step(time) {
-        this.life += time * 2;
-        this.x += this.vx;
-        this.y += this.vy;
-    }
-    render(ctx) {
-        if (this.life >= 1) {
-            return;
-        }
-        let r = 8 - this.life * 8;
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, r, 0, Angle.deg360);
-        ctx.fill();
+        ctx.arc(this.x, this.y, this.startSize + this.life * 7, 0, Angle.deg360);
+        ctx.stroke();
     }
 }
 class LineParticle extends Particle {
-    constructor(x1, y1, x2, y2, life, color) {
+    constructor(x1, y1, x2, y2, life, color, width = 1) {
         super();
         this.x1 = x1;
         this.y1 = y1;
@@ -1966,6 +2150,7 @@ class LineParticle extends Particle {
             throw new Error("Color format not supported");
         }
         this.rgb = color;
+        this.width = Utils.clamp(width, 0.1, 100);
     }
     get expired() { return this.life <= 0; }
     step(time) {
@@ -1976,6 +2161,7 @@ class LineParticle extends Particle {
             return;
         }
         ctx.strokeStyle = this.rgb + Utils.byteToHex(255 * this.life);
+        ctx.lineWidth = this.width;
         ctx.beginPath();
         ctx.moveTo(this.x1, this.y1);
         ctx.lineTo(this.x2, this.y2);
@@ -1988,6 +2174,23 @@ class ParticleSystem extends ExpirableSet {
             p.render(ctx);
         }
     }
+    step(time) {
+        if (this.items.length === 0) {
+            return;
+        }
+        let j = this.count;
+        for (let i = 0; i < j; ++i) {
+            let item = this.items[i];
+            item.step(time);
+            if (item.expired) {
+                --j;
+                if (i < j) {
+                    this.items[i] = this.items[j];
+                }
+                this.items.pop();
+            }
+        }
+    }
 }
 class PlasmaBeamParticle extends Particle {
     constructor(x1, y1, x2, y2) {
@@ -1997,9 +2200,8 @@ class PlasmaBeamParticle extends Particle {
         let v = this.b.sub(this.a);
         this.c1 = this.a.add(v.mul(1 / 3));
         this.c2 = this.a.add(v.mul(2 / 3));
-        this.n = v.normalize().normal().mul(Utils.randSign(v.length / 4));
+        this.n = v.normalize().normal().mul(Utils.randSign(v.length / 3));
         this.life = 0.75;
-        this.rgb = `#${Utils.byteToHex(Utils.randInt(128, 256))}00ff`;
     }
     get expired() { return this.life <= 0; }
     step(time) {
@@ -2009,11 +2211,19 @@ class PlasmaBeamParticle extends Particle {
         if (this.life <= 0) {
             return;
         }
-        ctx.strokeStyle = this.rgb + Utils.byteToHex(255 * this.life);
         ctx.beginPath();
         ctx.moveTo(this.a.x, this.a.y);
         let n = this.n.mul(1 - this.life), c1 = this.c1.add(n), c2 = this.c2.sub(n);
         ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, this.b.x, this.b.y);
+        let rgb = `#${Utils.byteToHex(255 - 128 * this.life)}00ff`;
+        ctx.strokeStyle = rgb + Utils.byteToHex(64 * this.life);
+        ctx.lineWidth = 5;
+        ctx.stroke();
+        ctx.strokeStyle = rgb + Utils.byteToHex(128 * this.life);
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.strokeStyle = rgb + Utils.byteToHex(255 * this.life);
+        ctx.lineWidth = 1;
         ctx.stroke();
     }
 }
@@ -2043,6 +2253,78 @@ class SmokeParticle extends Particle {
         ctx.fill();
     }
 }
+class SparkParticle extends Particle {
+    constructor(x, y, color) {
+        super();
+        this.x = x;
+        this.y = y;
+        let v = Vec2.randUnit3d();
+        this.vx = v.x;
+        this.vy = v.y;
+        this.life = 0;
+        this.color = color + "40";
+    }
+    get expired() { return this.life >= 1; }
+    step(time) {
+        this.life += time * 2;
+        this.x += this.vx;
+        this.y += this.vy;
+    }
+    render(ctx) {
+        if (this.life >= 1) {
+            return;
+        }
+        let r = 8 - this.life * 8;
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r, 0, Angle.deg360);
+        ctx.fill();
+    }
+}
+class TileMarkParticle extends Particle {
+    constructor(x, y, direction) {
+        super();
+        this.startPosition = new Vec2(x - 2, y - 2);
+        this.speed = Utils.rand(1, 4);
+        this.life = 0;
+        this.direction = direction.normalize();
+    }
+    get expired() { return this.life >= 1; }
+    step(time) {
+        this.life += time * this.speed / 2;
+    }
+    render(ctx) {
+        if (this.life >= 1) {
+            return;
+        }
+        let pos = this.direction.mul(this.life * 28).add(this.startPosition);
+        ctx.fillStyle = "#ffffff" + Utils.byteToHex((1 - this.life) * 64);
+        ctx.fillRect(pos.x, pos.y, 4, 4);
+    }
+}
+class WindParticle extends Particle {
+    constructor(x, y) {
+        super();
+        this.x = x;
+        this.y = y;
+        this.life = 0;
+    }
+    get expired() { return this.life >= 1; }
+    step(time) {
+        this.life += time * 2.5;
+    }
+    render(ctx) {
+        if (this.life >= 1) {
+            return;
+        }
+        let alpha = this.life > 0.5 ? 2 - this.life * 2 : this.life * 2;
+        ctx.strokeStyle = "#ffffff" + Utils.byteToHex(255 * alpha);
+        ctx.beginPath();
+        ctx.moveTo(this.x - 2, this.y);
+        ctx.lineTo(this.x + 2, this.y);
+        ctx.stroke();
+    }
+}
 class Projectile extends Expirable {
 }
 class ProjectileSet extends ExpirableSet {
@@ -2068,7 +2350,8 @@ class Turret {
             this.cooldown = Math.max(0, this.cooldown - time);
         }
     }
-    render(ctx, preRender) { }
+    render(ctx) { }
+    static renderPreview(ctx, x, y, type) { }
     getType() { return this.type.copy(); }
     upgradeCostMultiplier(type) {
         switch (this.type.count) {
@@ -2105,6 +2388,22 @@ class Turret {
             case TurretElement.Water: return WaterTurret.getInfo(this.type.with(type));
         }
     }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        switch (type) {
+            case TurretElement.Air:
+                AirTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                EarthTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                FireTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                WaterTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+        }
+    }
     static initAll() {
         return Promise.all([
             AirTurret.init(),
@@ -2135,12 +2434,12 @@ class AcidTurret extends Turret {
         super.step(time);
         this.frame = (this.frame + time * 25) % AcidTurret.frameCount;
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
-        }
+    render(ctx) {
+        super.render(ctx);
         ctx.drawImage(AcidTurret.images, Math.floor(this.frame) * 48, (this.type.water + this.type.earth - 2) * 48, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48);
+    }
+    static renderPreview(ctx, x, y, type) {
+        ctx.drawImage(AcidTurret.images, 0, (type.water + type.earth - 2) * 48, 48, 48, x + 8, y + 8, 48, 48);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -2164,11 +2463,33 @@ class AcidTurret extends Turret {
     }
     getCurrentInfo() { return AcidTurret.getInfo(this.type); }
     getInfoAfterUpgrade(type) {
+        if (this.type.count >= 4) {
+            return undefined;
+        }
         switch (type) {
             case TurretElement.Air: return MoonTurret.getInfo(this.type.with(type));
             case TurretElement.Earth: return AcidTurret.getInfo(this.type.with(type));
             case TurretElement.Fire: return EarthquakeTurret.getInfo(this.type.with(type));
             case TurretElement.Water: return AcidTurret.getInfo(this.type.with(type));
+        }
+    }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        if (this.type.count >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                MoonTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                AcidTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                EarthquakeTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                AcidTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
         }
     }
     static init() {
@@ -2263,17 +2584,16 @@ class AirTurret extends Turret {
         this.angle = (this.angle + Angle.deg360 - time * Angle.deg120) % Angle.deg360;
         for (const enemy of this.game.findEnemiesInRange(this.center, this.range)) {
             enemy.dealDamage((6 + this.type.air * 4) * time);
+            if (Math.random() < 0.01 * this.type.air) {
+                this.game.spawnParticle(new WindParticle(enemy.x + Utils.randInt(-6, 7), enemy.y + Utils.randInt(-6, 7)));
+            }
         }
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
-        }
-        ctx.translate(this.center.x, this.center.y);
-        ctx.rotate(this.angle);
+    static _render(ctx, centerX, centerY, type, angle = 0) {
+        ctx.translate(centerX, centerY);
+        ctx.rotate(angle);
         ctx.drawImage(AirTurret.image, -24, -8);
-        switch (this.type.air) {
+        switch (type.air) {
             case 1:
                 ctx.rotate(Angle.deg90);
                 ctx.drawImage(AirTurret.image, -24, -8);
@@ -2299,6 +2619,13 @@ class AirTurret extends Turret {
         }
         ctx.resetTransform();
     }
+    render(ctx) {
+        super.render(ctx);
+        AirTurret._render(ctx, this.center.x, this.center.y, this.type, this.angle);
+    }
+    static renderPreview(ctx, x, y, type) {
+        AirTurret._render(ctx, x + 32, y + 32, type);
+    }
     addType(type) {
         if (this.type.count >= 4) {
             return;
@@ -2323,11 +2650,33 @@ class AirTurret extends Turret {
     }
     getCurrentInfo() { return AirTurret.getInfo(this.type); }
     getInfoAfterUpgrade(type) {
+        if (this.type.count >= 4) {
+            return undefined;
+        }
         switch (type) {
             case TurretElement.Air: return AirTurret.getInfo(this.type.with(type));
             case TurretElement.Earth: return ArcherTurret.getInfo(this.type.with(type));
             case TurretElement.Fire: return LightningTurret.getInfo(this.type.with(type));
             case TurretElement.Water: return IceTurret.getInfo(this.type.with(type));
+        }
+    }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        if (this.type.count >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                AirTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                ArcherTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                LightningTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                IceTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
         }
     }
     static init() {
@@ -2387,22 +2736,21 @@ class ArcaneTurret extends Turret {
             pt.pos = Angle.wrap(pt.pos + time * pt.speed);
         }
         if (this.ready) {
-            let target = this.game.getMousePosition();
-            if (this.center.distanceTo(target) < this.range) {
+            let enemy = this.game.findEnemy(this.center, this.range);
+            if (enemy !== null) {
                 for (let i = 0; i < ArcaneTurret.orbitCount; ++i) {
                     let pt = this.orbits[i];
                     let v = Vec2.onEllipse(pt.r1, pt.r2, pt.pos).rotate(pt.angle).add(this.center);
-                    this.game.spawnParticle(new LineParticle(v.x, v.y, target.x, target.y, pt.size / 2.5, ArcaneTurret.orbitColors[i % 4]));
+                    this.game.spawnParticle(new LineParticle(v.x, v.y, enemy.x, enemy.y, pt.size / 2.5, ArcaneTurret.orbitColors[i % 4], pt.size - 0.5));
+                    this.game.spawnParticle(new SparkParticle(enemy.x, enemy.y, ArcaneTurret.orbitColors[i % 4]));
                 }
+                enemy.dealDamage(Infinity);
                 this.cooldown = ArcaneTurret.maxCooldown;
             }
         }
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
-        }
+    render(ctx) {
+        super.render(ctx);
         ctx.drawImage(ArcaneTurret.images, Math.floor(this.frame) * 64, 0, 64, 64, this.tile.pos.x, this.tile.pos.y, 64, 64);
         let orbitCount = (1 - this.cooldown / ArcaneTurret.maxCooldown) * ArcaneTurret.orbitCount;
         for (let i = 0; i < orbitCount; ++i) {
@@ -2414,7 +2762,16 @@ class ArcaneTurret extends Turret {
             ctx.fill();
         }
     }
+    static renderPreview(ctx, x, y, type) {
+        ctx.drawImage(ArcaneTurret.images, 0, 0, 64, 64, x, y, 64, 64);
+    }
     addType(type) { }
+    static getInfo(type) {
+        return new TurretInfo(ArcaneTurret.turretName, ArcaneTurret.turretDescription, 96, `-`);
+    }
+    getCurrentInfo() { return ArcaneTurret.getInfo(this.type); }
+    getInfoAfterUpgrade(type) { return undefined; }
+    renderPreviewAfterUpgrade(ctx, x, y, type) { }
     static init() {
         ArcaneTurret.orbitColors = new TurretType([1, 1, 1, 1]).toColorArray();
         return Utils.getImageFromCache("td_tower_AEFW_arcane").then(tex => { ArcaneTurret.images = tex; }, () => new Promise(resolve => {
@@ -2473,6 +2830,8 @@ class ArcaneTurret extends Turret {
 ArcaneTurret.frameCount = 50;
 ArcaneTurret.orbitCount = 16;
 ArcaneTurret.maxCooldown = 16;
+ArcaneTurret.turretName = "Arcane Tower";
+ArcaneTurret.turretDescription = "Increases damage of all other towers by 25%, can instantly kill any enemy with a cooldown of 16 seconds";
 class ArcherTurret extends Turret {
     constructor(tile, type) {
         super(tile, type);
@@ -2481,12 +2840,12 @@ class ArcherTurret extends Turret {
     step(time) {
         super.step(time);
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
-        }
+    render(ctx) {
+        super.render(ctx);
         ctx.drawImage(ArcherTurret.image, this.tile.pos.x, this.tile.pos.y);
+    }
+    static renderPreview(ctx, x, y, type) {
+        ctx.drawImage(ArcherTurret.image, x, y);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -2512,11 +2871,33 @@ class ArcherTurret extends Turret {
     }
     getCurrentInfo() { return AcidTurret.getInfo(this.type); }
     getInfoAfterUpgrade(type) {
+        if (this.type.count >= 4) {
+            return undefined;
+        }
         switch (type) {
             case TurretElement.Air: return MoonTurret.getInfo(this.type.with(type));
             case TurretElement.Earth: return AcidTurret.getInfo(this.type.with(type));
             case TurretElement.Fire: return EarthquakeTurret.getInfo(this.type.with(type));
             case TurretElement.Water: return AcidTurret.getInfo(this.type.with(type));
+        }
+    }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        if (this.type.count >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                MoonTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                AcidTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                EarthquakeTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                AcidTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
         }
     }
     static init() {
@@ -2541,17 +2922,18 @@ class CannonTurret extends Turret {
             this.cooldown = 2;
         }
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
-        }
-        let r = 12 + this.type.earth + this.type.fire;
+    render(ctx) {
+        super.render(ctx);
+        let r = 12 + this.type.count;
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
         ctx.translate(-2 * this.cooldown, 0);
         ctx.drawImage(CannonTurret.image, -r * 2, -r, r * 4, r * 2);
         ctx.resetTransform();
+    }
+    static renderPreview(ctx, x, y, type) {
+        let r = 12 + type.count;
+        ctx.drawImage(CannonTurret.image, x + 32 - r * 2, y + 32 - r, r * 4, r * 2);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -2618,12 +3000,12 @@ class EarthTurret extends Turret {
     step(time) {
         super.step(time);
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
-        }
+    render(ctx) {
+        super.render(ctx);
         ctx.drawImage(EarthTurret.images, 0, this.type.earth * 48 - 48, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48);
+    }
+    static renderPreview(ctx, x, y, type) {
+        ctx.drawImage(EarthTurret.images, 0, type.earth * 48 - 48, 48, 48, x + 8, y + 8, 48, 48);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -2649,11 +3031,33 @@ class EarthTurret extends Turret {
     }
     getCurrentInfo() { return EarthTurret.getInfo(this.type); }
     getInfoAfterUpgrade(type) {
+        if (this.type.count >= 4) {
+            return undefined;
+        }
         switch (type) {
             case TurretElement.Air: return ArcherTurret.getInfo(this.type.with(type));
             case TurretElement.Earth: return EarthTurret.getInfo(this.type.with(type));
             case TurretElement.Fire: return CannonTurret.getInfo(this.type.with(type));
             case TurretElement.Water: return AcidTurret.getInfo(this.type.with(type));
+        }
+    }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        if (this.type.count >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                ArcherTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                EarthTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                CannonTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                AcidTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
         }
     }
     static init() {
@@ -2776,7 +3180,7 @@ class EarthquakeTurret extends Turret {
         super(tile, type);
         this.frame = Utils.rand(0, EarthquakeTurret.totalFrameCount);
     }
-    get range() { return 64 + this.type.count * 32; }
+    get range() { return 88 + this.type.count * 24; }
     get ready() {
         if (!super.ready) {
             return false;
@@ -2792,20 +3196,15 @@ class EarthquakeTurret extends Turret {
         super.step(time);
         this.frame = (this.frame + time * 25) % EarthquakeTurret.totalFrameCount;
         if (this.ready) {
-            let enemies = this.game.findEnemiesInRange(this.center, this.range);
-            if (enemies.length > 0) {
-                let e = enemies[Math.floor(Math.random() * enemies.length)];
-                e.dealDamage((this.type.count === 4 ? 15 : 20) * Math.random());
-                e.addEffect(new StunEffect(0.2));
+            for (const enemy of this.game.findEnemiesInRange(this.center, this.range)) {
+                enemy.dealDamage((this.type.count === 4 ? 15 : 20) * Math.random());
+                enemy.addEffect(new StunEffect(0.2));
             }
             this.cooldown = 0.25;
         }
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
-        }
+    render(ctx) {
+        super.render(ctx);
         let a, b;
         if (this.type.count == 3) {
             a = Math.floor(this.frame / EarthquakeTurret.halfFrameCount);
@@ -2817,6 +3216,10 @@ class EarthquakeTurret extends Turret {
         }
         ctx.drawImage(EarthquakeTurret.images, a * 48, 0, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48);
         ctx.drawImage(EarthquakeTurret.images, 192 + b * 48, 0, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48);
+    }
+    static renderPreview(ctx, x, y, type) {
+        ctx.drawImage(EarthquakeTurret.images, 0, 0, 48, 48, x + 8, y + 8, 48, 48);
+        ctx.drawImage(EarthquakeTurret.images, 192, 0, 48, 48, x + 8, y + 8, 48, 48);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -2834,15 +3237,37 @@ class EarthquakeTurret extends Turret {
         }
     }
     static getInfo(type) {
-        return new TurretInfo(EarthquakeTurret.turretName, EarthquakeTurret.turretDescription[type.water], 64 + type.count * 32, `${type.count * 10 - 10}`);
+        return new TurretInfo(EarthquakeTurret.turretName, EarthquakeTurret.turretDescription, 88 + type.count * 24, `${type.count * 10 - 10}`);
     }
     getCurrentInfo() { return EarthquakeTurret.getInfo(this.type); }
     getInfoAfterUpgrade(type) {
+        if (this.type.count >= 4) {
+            return undefined;
+        }
         switch (type) {
             case TurretElement.Air: return ArcaneTurret.getInfo(this.type.with(type));
             case TurretElement.Earth: return EarthquakeTurret.getInfo(this.type.with(type));
             case TurretElement.Fire: return EarthquakeTurret.getInfo(this.type.with(type));
             case TurretElement.Water: return EarthquakeTurret.getInfo(this.type.with(type));
+        }
+    }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        if (this.type.count >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                ArcaneTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                EarthquakeTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                EarthquakeTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                EarthquakeTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
         }
     }
     static init() {
@@ -2921,16 +3346,17 @@ class FireTurret extends Turret {
             this.spawnSmoke();
         }
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
-        }
+    render(ctx) {
+        super.render(ctx);
         let r = 16 + 2 * this.type.fire;
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
         ctx.drawImage(FireTurret.image, -r, -r, r * 2, r * 2);
         ctx.resetTransform();
+    }
+    static renderPreview(ctx, x, y, type) {
+        let r = 16 + 2 * type.fire;
+        ctx.drawImage(FireTurret.image, x + 32 - r, y + 32 - r, r * 2, r * 2);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -2956,11 +3382,33 @@ class FireTurret extends Turret {
     }
     getCurrentInfo() { return FireTurret.getInfo(this.type); }
     getInfoAfterUpgrade(type) {
+        if (this.type.count >= 4) {
+            return undefined;
+        }
         switch (type) {
             case TurretElement.Air: return LightningTurret.getInfo(this.type.with(type));
             case TurretElement.Earth: return CannonTurret.getInfo(this.type.with(type));
             case TurretElement.Fire: return FireTurret.getInfo(this.type.with(type));
             case TurretElement.Water: return FlamethrowerTurret.getInfo(this.type.with(type));
+        }
+    }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        if (this.type.count >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                LightningTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                CannonTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                FireTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                FlamethrowerTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
         }
     }
     static init() {
@@ -3016,12 +3464,12 @@ class FlamethrowerTurret extends Turret {
     step(time) {
         super.step(time);
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
-        }
+    render(ctx) {
+        super.render(ctx);
         ctx.drawImage(FlamethrowerTurret.image, this.tile.pos.x, this.tile.pos.y);
+    }
+    static renderPreview(ctx, x, y, type) {
+        ctx.drawImage(FlamethrowerTurret.image, x, y);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -3062,17 +3510,19 @@ class IceTurret extends Turret {
             enemy.addEffect(new FreezeEffect(this.type.count / 4, this.type.air * 0.5 + this.type.water - 0.5));
         }
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
-        }
-        let r = 24 + 2 * this.type.water + 2 * this.type.air;
+    render(ctx) {
+        super.render(ctx);
+        let r = 24 + 2 * this.type.count;
         let i = Utils.sign(this.type.water - this.type.air) + 1;
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
         ctx.drawImage(IceTurret.images, 0, i * 64, 64, 64, -r, -r, r * 2, r * 2);
         ctx.resetTransform();
+    }
+    static renderPreview(ctx, x, y, type) {
+        let r = 24 + 2 * type.count;
+        let i = Utils.sign(type.water - type.air) + 1;
+        ctx.drawImage(IceTurret.images, 0, i * 64, 64, 64, x + 32 - r, x + 32 - r, r * 2, r * 2);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -3096,11 +3546,33 @@ class IceTurret extends Turret {
     }
     getCurrentInfo() { return IceTurret.getInfo(this.type); }
     getInfoAfterUpgrade(type) {
+        if (this.type.count >= 4) {
+            return undefined;
+        }
         switch (type) {
             case TurretElement.Air: return IceTurret.getInfo(this.type.with(type));
             case TurretElement.Earth: return MoonTurret.getInfo(this.type.with(type));
             case TurretElement.Fire: return PlasmaTurret.getInfo(this.type.with(type));
             case TurretElement.Water: return IceTurret.getInfo(this.type.with(type));
+        }
+    }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        if (this.type.count >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                IceTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                MoonTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                PlasmaTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                IceTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
         }
     }
     static init() {
@@ -3194,15 +3666,15 @@ class LightningTurret extends Turret {
         super.step(time);
         this.animationTimer = (this.animationTimer + time * (this.type.air + this.type.fire - 1) * 0.5) % 1;
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
-        }
+    render(ctx) {
+        super.render(ctx);
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(-Math.floor(this.animationTimer * 8) * Angle.deg45);
         ctx.drawImage(LightningTurret.image, -24, -24);
         ctx.resetTransform();
+    }
+    static renderPreview(ctx, x, y, type) {
+        ctx.drawImage(LightningTurret.image, x + 8, y + 8);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -3271,18 +3743,36 @@ class MoonTurret extends Turret {
     constructor(tile, type) {
         super(tile, type);
         this.frame = Utils.rand(0, MoonTurret.frameCount);
+        this.rays = [];
     }
+    get range() { return this.type.count * 64 - 32; }
     step(time) {
         super.step(time);
         this.frame = (this.frame + time * 25) % MoonTurret.frameCount;
+        this.rays.splice(0, this.rays.length);
+        for (const e of this.game.findEnemiesInRange(this.center, this.range)) {
+            let d = 1 - (this.center.distanceTo(e.pos) - 32) / (this.range - 32);
+            e.dealDamage(time * (d * 20 + (this.type.count - 2) * 10));
+            this.rays.push({ target: e.pos, color: "#FFFFFF" + Utils.byteToHex(d * 255) });
+            e.addEffect(new FreezeEffect(0.2, 2));
+        }
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
+    render(ctx) {
+        super.render(ctx);
+        ctx.lineWidth = 5;
+        for (const r of this.rays) {
+            ctx.strokeStyle = r.color;
+            ctx.beginPath();
+            ctx.moveTo(this.center.x, this.center.y);
+            ctx.lineTo(r.target.x, r.target.y);
+            ctx.stroke();
         }
         let r = 28 + 4 * (this.type.count - 3);
         ctx.drawImage(MoonTurret.images, Math.floor(this.frame) * 64, 0, 64, 64, this.center.x - r, this.center.y - r, r * 2, r * 2);
+    }
+    static renderPreview(ctx, x, y, type) {
+        let r = 28 + 4 * (type.count - 3);
+        ctx.drawImage(MoonTurret.images, 0, 0, 64, 64, x + 32 - r, y + 32 - r, r * 2, r * 2);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -3296,6 +3786,40 @@ class MoonTurret extends Turret {
                 break;
             case TurretElement.Fire:
                 this.tile.turret = new ArcaneTurret(this.tile, this.type.with(type));
+                break;
+        }
+    }
+    static getInfo(type) {
+        return new TurretInfo(MoonTurret.turretName, MoonTurret.turretDescription, type.count * 64 - 32, type.count === 4 ? "20-40" : "10-30");
+    }
+    getCurrentInfo() { return MoonTurret.getInfo(this.type); }
+    getInfoAfterUpgrade(type) {
+        if (this.type.count >= 4) {
+            return undefined;
+        }
+        switch (type) {
+            case TurretElement.Air: return MoonTurret.getInfo(this.type.with(type));
+            case TurretElement.Earth: return MoonTurret.getInfo(this.type.with(type));
+            case TurretElement.Fire: return ArcaneTurret.getInfo(this.type.with(type));
+            case TurretElement.Water: return MoonTurret.getInfo(this.type.with(type));
+        }
+    }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        if (this.type.count >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                MoonTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                MoonTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                ArcaneTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                MoonTurret.renderPreview(ctx, x, y, this.type.with(type));
                 break;
         }
     }
@@ -3329,6 +3853,8 @@ class MoonTurret extends Turret {
     }
 }
 MoonTurret.frameCount = 50;
+MoonTurret.turretName = "Moon Tower";
+MoonTurret.turretDescription = "Damages and slows down all enemies in range";
 class PlasmaTurret extends Turret {
     constructor(tile, type) {
         super(tile, type);
@@ -3350,16 +3876,16 @@ class PlasmaTurret extends Turret {
                     e.addEffect(new BurningEffect(1));
                 }
                 this.game.spawnParticle(new PlasmaBeamParticle(this.center.x, this.center.y, e.x, e.y));
-                this.cooldown = 0.5;
+                this.cooldown = 0.2;
             }
         }
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
-        }
+    render(ctx) {
+        super.render(ctx);
         ctx.drawImage(PlasmaTurret.images, Math.floor(this.frame) * 64, (this.type.count - 3) * 64, 64, 64, this.tile.pos.x, this.tile.pos.y, 64, 64);
+    }
+    static renderPreview(ctx, x, y, type) {
+        ctx.drawImage(PlasmaTurret.images, 0, (type.count - 3) * 64, 64, 64, x, y, 64, 64);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -3381,11 +3907,33 @@ class PlasmaTurret extends Turret {
     }
     getCurrentInfo() { return PlasmaTurret.getInfo(this.type); }
     getInfoAfterUpgrade(type) {
+        if (this.type.count >= 4) {
+            return undefined;
+        }
         switch (type) {
             case TurretElement.Air: return PlasmaTurret.getInfo(this.type.with(type));
             case TurretElement.Earth: return ArcaneTurret.getInfo(this.type.with(type));
             case TurretElement.Fire: return PlasmaTurret.getInfo(this.type.with(type));
             case TurretElement.Water: return PlasmaTurret.getInfo(this.type.with(type));
+        }
+    }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        if (this.type.count >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                PlasmaTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                ArcaneTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                PlasmaTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                PlasmaTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
         }
     }
     static init() {
@@ -3422,21 +3970,43 @@ class SunTurret extends Turret {
         super(tile, type);
         this.frame = Utils.rand(0, SunTurret.frameCount);
         this.angle = Angle.rand();
+        this.rays = [];
     }
+    get range() { return this.type.count * 64 - 32; }
     step(time) {
         super.step(time);
         this.frame = (this.frame + time * 25) % SunTurret.frameCount;
+        this.rays.splice(0, this.rays.length);
+        for (const e of this.game.findEnemiesInRange(this.center, this.range)) {
+            let d = 1 - (this.center.distanceTo(e.pos) - 32) / (this.range - 32);
+            e.dealDamage(time * (d * 20 + (this.type.count - 2) * 10));
+            this.rays.push({ target: e.pos, color: "#FFFF00" + Utils.byteToHex(d * 255) });
+            e.addEffect(new BurningEffect(0.2));
+        }
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
+    render(ctx) {
+        super.render(ctx);
+        ctx.lineWidth = 5;
+        for (const r of this.rays) {
+            ctx.strokeStyle = r.color;
+            ctx.beginPath();
+            ctx.moveTo(this.center.x, this.center.y);
+            ctx.lineTo(r.target.x, r.target.y);
+            ctx.stroke();
         }
         let r = 28 + 4 * (this.type.count - 3);
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
         ctx.drawImage(SunTurret.image, -r, -r, r * 2, r * 2);
         ctx.rotate(this.frame / SunTurret.frameCount * Angle.deg30);
+        ctx.drawImage(SunTurret.image, -r, -r, r * 2, r * 2);
+        ctx.resetTransform();
+    }
+    static renderPreview(ctx, x, y, type) {
+        let r = 28 + 4 * (type.count - 3);
+        ctx.translate(x + 32, y + 32);
+        ctx.drawImage(SunTurret.image, -r, -r, r * 2, r * 2);
+        ctx.rotate(Angle.deg15);
         ctx.drawImage(SunTurret.image, -r, -r, r * 2, r * 2);
         ctx.resetTransform();
     }
@@ -3452,6 +4022,40 @@ class SunTurret extends Turret {
                 break;
             case TurretElement.Water:
                 this.tile.turret = new ArcaneTurret(this.tile, this.type.with(type));
+                break;
+        }
+    }
+    static getInfo(type) {
+        return new TurretInfo(SunTurret.turretName, SunTurret.turretDescription, type.count * 64 - 32, type.count === 4 ? "20-40 + burning" : "10-30 + burning");
+    }
+    getCurrentInfo() { return SunTurret.getInfo(this.type); }
+    getInfoAfterUpgrade(type) {
+        if (this.type.count >= 4) {
+            return undefined;
+        }
+        switch (type) {
+            case TurretElement.Air: return SunTurret.getInfo(this.type.with(type));
+            case TurretElement.Earth: return SunTurret.getInfo(this.type.with(type));
+            case TurretElement.Fire: return SunTurret.getInfo(this.type.with(type));
+            case TurretElement.Water: return ArcaneTurret.getInfo(this.type.with(type));
+        }
+    }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        if (this.type.count >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                SunTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                SunTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                SunTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                ArcaneTurret.renderPreview(ctx, x, y, this.type.with(type));
                 break;
         }
     }
@@ -3486,6 +4090,8 @@ class SunTurret extends Turret {
     }
 }
 SunTurret.frameCount = 90;
+SunTurret.turretName = "Sun Tower";
+SunTurret.turretDescription = "Damages and burns all enemies in range";
 class TurretInfo {
     constructor(name, description, range, dps) {
         this.name = name;
@@ -3576,15 +4182,15 @@ class WaterTurret extends Turret {
     step(time) {
         super.step(time);
     }
-    render(ctx, preRender) {
-        super.render(ctx, preRender);
-        if (preRender) {
-            return;
-        }
+    render(ctx) {
+        super.render(ctx);
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
         ctx.drawImage(WaterTurret.images, 0, (this.type.count - 1) * 48, 48, 48, -24, -24, 48, 48);
         ctx.resetTransform();
+    }
+    static renderPreview(ctx, x, y, type) {
+        ctx.drawImage(WaterTurret.images, 0, (type.count - 1) * 48, 48, 48, x + 8, y + 8, 48, 48);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -3610,11 +4216,33 @@ class WaterTurret extends Turret {
     }
     getCurrentInfo() { return WaterTurret.getInfo(this.type); }
     getInfoAfterUpgrade(type) {
+        if (this.type.count >= 4) {
+            return undefined;
+        }
         switch (type) {
             case TurretElement.Air: return IceTurret.getInfo(this.type.with(type));
             case TurretElement.Earth: return AcidTurret.getInfo(this.type.with(type));
             case TurretElement.Fire: return FlamethrowerTurret.getInfo(this.type.with(type));
             case TurretElement.Water: return WaterTurret.getInfo(this.type.with(type));
+        }
+    }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        if (this.type.count >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                IceTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                AcidTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                FlamethrowerTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                WaterTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
         }
     }
     static init() {
@@ -3799,14 +4427,6 @@ class PreRenderedImage {
             .replace(/^data:image\/png;base64,/, "");
     }
 }
-class Rect {
-    constructor(x, y, w, h) {
-        this.x = x;
-        this.y = y;
-        this.w = w;
-        this.h = h;
-    }
-}
 class RenderablePath {
     constructor(path, fill) {
         this.path = path;
@@ -3961,20 +4581,35 @@ class Utils {
                 reject();
         });
     }
+    static fillWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
+        let words = text.split(/[ \t]+/);
+        let lines = [];
+        let currentLine = words[0];
+        for (let i = 1; i < words.length; i++) {
+            let word = words[i];
+            let size = ctx.measureText(`${currentLine} ${word}`);
+            if (size.width < maxWidth) {
+                currentLine += " " + word;
+            }
+            else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+        }
+        lines.push(currentLine);
+        for (const line of lines) {
+            ctx.fillText(line, x, y);
+            y += lineHeight;
+        }
+    }
 }
 Utils.hex = "0123456789abcdef";
 class Vec2 {
     constructor(x, y) {
         this.x = x;
         this.y = y;
-        this.len = null;
     }
-    get length() {
-        if (this.len === null) {
-            this.len = Math.sqrt(this.x * this.x + this.y * this.y);
-        }
-        return this.len;
-    }
+    get length() { return Math.sqrt(this.x * this.x + this.y * this.y); }
     get sqrLength() { return this.x * this.x + this.y * this.y; }
     add(v) {
         return new Vec2(this.x + v.x, this.y + v.y);

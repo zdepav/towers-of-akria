@@ -1,4 +1,4 @@
-﻿/// <reference path="TextureGenerator.ts"/>
+/// <reference path="TextureGenerator.ts"/>
 
 class NoiseTextureGenerator extends TextureGenerator {
 
@@ -28,5 +28,4 @@ class NoiseTextureGenerator extends TextureGenerator {
         }
         return this.cache[i]
     }
-
 }

@@ -1,4 +1,4 @@
-﻿/// <reference path="Effect.ts"/>
+/// <reference path="Effect.ts"/>
 
 abstract class LeveledEffect extends Effect {
 
@@ -29,5 +29,4 @@ abstract class LeveledEffect extends Effect {
             this.duration = Math.max(this.duration, effect.duration)
         }
     }
-
 }

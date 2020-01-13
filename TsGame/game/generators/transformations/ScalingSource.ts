@@ -1,4 +1,4 @@
-﻿/// <reference path="TransformingSource.ts"/>
+/// <reference path="TransformingSource.ts"/>
 
 class ScalingSource extends TransformingSource {
 
@@ -20,5 +20,4 @@ class ScalingSource extends TransformingSource {
         if (dv.isZero()) { return v }
         return this.origin.addu(dv.x * this.inverseScale.x, dv.y * this.inverseScale.y)
     }
-
 }

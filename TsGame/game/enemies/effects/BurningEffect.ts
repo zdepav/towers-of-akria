@@ -1,4 +1,4 @@
-﻿/// <reference path="Effect.ts"/>
+/// <reference path="Effect.ts"/>
 
 class BurningEffect extends Effect {
 
@@ -40,5 +40,4 @@ class BurningEffect extends Effect {
             return false
         }
     }
-
 }

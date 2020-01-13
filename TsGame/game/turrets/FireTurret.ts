@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class FireTurret extends Turret {
 
@@ -38,16 +38,18 @@ class FireTurret extends Turret {
         }
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
         let r = 16 + 2 * this.type.fire
         ctx.translate(this.center.x, this.center.y)
         ctx.rotate(this.angle)
         ctx.drawImage(FireTurret.image, -r, -r, r * 2, r * 2)
         ctx.resetTransform()
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        let r = 16 + 2 * type.fire
+        ctx.drawImage(FireTurret.image, x + 32 - r, y + 32 - r, r * 2, r * 2)
     }
 
     addType(type: TurretElement): void {
@@ -93,6 +95,26 @@ class FireTurret extends Turret {
         }
     }
 
+    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+        if (this.type.count >= 4) {
+            return
+        }
+        switch (type) {
+            case TurretElement.Air:
+                LightningTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Earth:
+                CannonTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Fire:
+                FireTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Water:
+                FlamethrowerTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+        }
+    }
+
     static init(): Promise<void> {
         return Utils.getImageFromCache("td_tower_aeFw_fire").then(tex => { FireTurret.image = tex; }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(48, 48)
@@ -135,5 +157,4 @@ class FireTurret extends Turret {
             resolve()
         }))
     }
-
 }

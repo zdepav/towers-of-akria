@@ -1,4 +1,4 @@
-﻿/// <reference path="Particle.ts"/>
+/// <reference path="Particle.ts"/>
 
 class PlasmaBeamParticle extends Particle {
 
@@ -8,7 +8,6 @@ class PlasmaBeamParticle extends Particle {
     private c2: Vec2
     private n: Vec2
     private life: number
-    private rgb: string
 
     get expired(): boolean { return this.life <= 0 }
 
@@ -19,9 +18,8 @@ class PlasmaBeamParticle extends Particle {
         let v = this.b.sub(this.a)
         this.c1 = this.a.add(v.mul(1 / 3))
         this.c2 = this.a.add(v.mul(2 / 3))
-        this.n = v.normalize().normal().mul(Utils.randSign(v.length / 4))
+        this.n = v.normalize().normal().mul(Utils.randSign(v.length / 3))
         this.life = 0.75
-        this.rgb = `#${Utils.byteToHex(Utils.randInt(128, 256))}00ff`
     }
 
     step(time: number): void {
@@ -36,12 +34,15 @@ class PlasmaBeamParticle extends Particle {
         ctx.moveTo(this.a.x, this.a.y)
         let n = this.n.mul(1 - this.life), c1 = this.c1.add(n), c2 = this.c2.sub(n)
         ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, this.b.x, this.b.y)
-        ctx.strokeStyle = this.rgb + Utils.byteToHex(128 * this.life)
+        let rgb = `#${Utils.byteToHex(255 - 128 * this.life)}00ff`
+        ctx.strokeStyle = rgb + Utils.byteToHex(64 * this.life)
+        ctx.lineWidth = 5
+        ctx.stroke()
+        ctx.strokeStyle = rgb + Utils.byteToHex(128 * this.life)
         ctx.lineWidth = 3
         ctx.stroke()
-        ctx.strokeStyle = this.rgb + Utils.byteToHex(255 * this.life)
+        ctx.strokeStyle = rgb + Utils.byteToHex(255 * this.life)
         ctx.lineWidth = 1
         ctx.stroke()
     }
-
 }

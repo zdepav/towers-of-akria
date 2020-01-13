@@ -1,4 +1,4 @@
-﻿/// <reference path="TransformingSource.ts"/>
+/// <reference path="TransformingSource.ts"/>
 
 class PolarSource extends TransformingSource {
 
@@ -22,5 +22,4 @@ class PolarSource extends TransformingSource {
             v.sub(this.origin).length * this.coef.y
         )
     }
-
 }

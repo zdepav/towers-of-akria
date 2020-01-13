@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class PlasmaTurret extends Turret {
 
@@ -32,17 +32,18 @@ class PlasmaTurret extends Turret {
                     e.addEffect(new BurningEffect(1))
                 }
                 this.game.spawnParticle(new PlasmaBeamParticle(this.center.x, this.center.y, e.x, e.y))
-                this.cooldown = 0.5
+                this.cooldown = 0.2
             }
         }
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
         ctx.drawImage(PlasmaTurret.images, Math.floor(this.frame) * 64, (this.type.count - 3) * 64, 64, 64, this.tile.pos.x, this.tile.pos.y, 64, 64)
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        ctx.drawImage(PlasmaTurret.images, 0, (type.count - 3) * 64, 64, 64, x, y, 64, 64)
     }
 
     addType(type: TurretElement): void {
@@ -85,6 +86,26 @@ class PlasmaTurret extends Turret {
         }
     }
 
+    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+        if (this.type.count >= 4) {
+            return
+        }
+        switch (type) {
+            case TurretElement.Air:
+                PlasmaTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Earth:
+                ArcaneTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Fire:
+                PlasmaTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Water:
+                PlasmaTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+        }
+    }
+
     static init(): Promise<void> {
         return Utils.getImageFromCache("td_tower_AeFW_plasma_strip" + PlasmaTurret.frameCount).then(tex => { PlasmaTurret.images = tex; }, () => new Promise<void>(resolve => {
             let background = "#552BA800"
@@ -111,5 +132,4 @@ class PlasmaTurret extends Turret {
             new CircleSource(64, 64, 32, 32, 32, new AddingSource(64, 64, new RotatingSource(64, 64, tex1, a, 32, 32), new RotatingSource(64, 64, tex2, -a, 32, 32)), back).generateInto(ctx, i * 64, y)
         }
     }
-
 }

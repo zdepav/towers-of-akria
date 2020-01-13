@@ -1,4 +1,4 @@
-﻿/// <reference path="ShapeSource.ts"/>
+/// <reference path="ShapeSource.ts"/>
 
 class EllipseSource extends ShapeSource {
 
@@ -25,5 +25,4 @@ class EllipseSource extends ShapeSource {
         let _x = (x - this.x) / this.r1, _y = (y - this.y) / this.r2
         return _x * _x + _y * _y <= 1 ? this.color.getColor(x, y) : this.background.getColor(x, y)
     }
-
 }

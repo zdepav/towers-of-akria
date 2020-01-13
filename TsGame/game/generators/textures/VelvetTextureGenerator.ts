@@ -1,4 +1,4 @@
-﻿/// <reference path="PerlinTextureGenerator.ts"/>
+/// <reference path="PerlinTextureGenerator.ts"/>
 
 class VelvetTextureGenerator extends PerlinTextureGenerator {
 
@@ -29,5 +29,4 @@ class VelvetTextureGenerator extends PerlinTextureGenerator {
             ) / 2 + 0.5)
         )
     }
-
 }

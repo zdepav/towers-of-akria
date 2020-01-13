@@ -1,4 +1,4 @@
-﻿/// <reference path="CombiningSource.ts"/>
+/// <reference path="CombiningSource.ts"/>
 
 class BlendingSource extends CombiningSource {
 

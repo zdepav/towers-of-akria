@@ -27,7 +27,9 @@ class Turret {
         }
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void { }
+    render(ctx: CanvasRenderingContext2D): void { }
+    
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void { }
 
     getType(): TurretType { return this.type.copy() }
 
@@ -75,9 +77,26 @@ class Turret {
         }
     }
 
+    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+        switch (type) {
+            case TurretElement.Air:
+                AirTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Earth:
+                EarthTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Fire:
+                FireTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Water:
+                WaterTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+        }
+    }
+
     static initAll(): Promise<void[]> {
         return Promise.all([
-            // 1 elements
+            // 1 element
             AirTurret.init(),
             FireTurret.init(),
             EarthTurret.init(),
@@ -98,6 +117,4 @@ class Turret {
             ArcaneTurret.init()
         ])
     }
-
 }
-

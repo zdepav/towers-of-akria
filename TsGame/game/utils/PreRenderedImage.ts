@@ -1,4 +1,4 @@
-﻿class PreRenderedImage {
+class PreRenderedImage {
 
     image: CanvasImageSource
     ctx: CanvasRenderingContext2D
@@ -40,5 +40,4 @@
             .toDataURL("image/png")
             .replace(/^data:image\/png;base64,/, "")
     }
-
 }

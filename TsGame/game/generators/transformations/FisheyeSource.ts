@@ -1,4 +1,4 @@
-﻿/// <reference path="TransformingSource.ts"/>
+/// <reference path="TransformingSource.ts"/>
 
 class FisheyeSource extends TransformingSource {
 
@@ -32,5 +32,4 @@ class FisheyeSource extends TransformingSource {
             return this.origin.add(dv.mul(coef / d))
         }
     }
-
 }

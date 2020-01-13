@@ -1,4 +1,4 @@
-﻿/// <reference path="ColorSource.ts"/>
+/// <reference path="ColorSource.ts"/>
 
 abstract class GradientSource extends ColorSource {
 
@@ -34,5 +34,4 @@ abstract class GradientSource extends ColorSource {
             )
         }
     }
-
 }

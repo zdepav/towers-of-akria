@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class AcidTurret extends Turret {
 
@@ -21,12 +21,13 @@ class AcidTurret extends Turret {
         this.frame = (this.frame + time * 25) % AcidTurret.frameCount
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
         ctx.drawImage(AcidTurret.images, Math.floor(this.frame) * 48, (this.type.water + this.type.earth - 2) * 48, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48)
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        ctx.drawImage(AcidTurret.images, 0, (type.water + type.earth - 2) * 48, 48, 48, x + 8, y + 8, 48, 48)
     }
 
     addType(type: TurretElement): void {
@@ -67,6 +68,26 @@ class AcidTurret extends Turret {
             case TurretElement.Earth: return AcidTurret.getInfo(this.type.with(type))
             case TurretElement.Fire: return EarthquakeTurret.getInfo(this.type.with(type))
             case TurretElement.Water: return AcidTurret.getInfo(this.type.with(type))
+        }
+    }
+
+    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+        if (this.type.count >= 4) {
+            return
+        }
+        switch (type) {
+            case TurretElement.Air:
+                MoonTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Earth:
+                AcidTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Fire:
+                EarthquakeTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Water:
+                AcidTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
         }
     }
 
@@ -148,5 +169,4 @@ class AcidTurret extends Turret {
         targetCtx.drawImage(c1.image, frame * 48, 48)
         targetCtx.drawImage(c2.image, frame * 48, 96)
     }
-
 }

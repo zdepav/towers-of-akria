@@ -1,4 +1,4 @@
-﻿/// <reference path="../ColorSource.ts"/>
+/// <reference path="../ColorSource.ts"/>
 
 abstract class TextureGenerator extends ColorSource {
 
@@ -8,5 +8,4 @@ abstract class TextureGenerator extends ColorSource {
         super(width, height)
         this.color = ColorSource.get(color ?? RgbaColor.black)
     }
-
 }

@@ -1,4 +1,4 @@
-﻿/// <reference path="ShapeSource.ts"/>
+/// <reference path="ShapeSource.ts"/>
 
 class CircleSource extends ShapeSource {
 
@@ -30,5 +30,4 @@ class CircleSource extends ShapeSource {
             return this.color.getColor(x, y).lerp(this.background.getColor(x, y), d - this.r1)
         }
     }
-
 }

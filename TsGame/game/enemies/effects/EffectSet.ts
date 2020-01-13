@@ -1,4 +1,4 @@
-﻿/// <reference path="../../utils/ExpirableSet.ts"/>
+/// <reference path="../../utils/ExpirableSet.ts"/>
 
 class EffectSet extends ExpirableSet<Effect> {
 
@@ -25,5 +25,4 @@ class EffectSet extends ExpirableSet<Effect> {
         }
         return color
     }
-
 }

@@ -1,4 +1,4 @@
-﻿/// <reference path="Particle.ts"/>
+/// <reference path="Particle.ts"/>
 
 class BubbleParticle extends Particle {
 
@@ -30,12 +30,10 @@ class BubbleParticle extends Particle {
         if (this.life >= 1) {
             return
         }
-        let r1 = this.startSize + this.life * 6, r2 = this.startSize + this.life * 8
-        ctx.fillStyle = this.rgb + Utils.byteToHex(255 * (1 - this.life))
+        ctx.strokeStyle = this.rgb + Utils.byteToHex(255 * (1 - this.life))
+        ctx.lineWidth = this.life * 2
         ctx.beginPath()
-        ctx.arc(this.x, this.y, r2, 0, Angle.deg360)
-        ctx.arc(this.x, this.y, r1, 0, Angle.deg360)
-        ctx.fill()
+        ctx.arc(this.x, this.y, this.startSize + this.life * 7, 0, Angle.deg360)
+        ctx.stroke()
     }
-
 }

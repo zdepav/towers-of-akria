@@ -1,6 +1,6 @@
-﻿/// <reference path="Particle.ts"/>
+/// <reference path="Particle.ts"/>
 
-class ElementSparkParticle extends Particle {
+class SparkParticle extends Particle {
 
     private x: number
     private y: number
@@ -11,7 +11,7 @@ class ElementSparkParticle extends Particle {
 
     get expired(): boolean { return this.life >= 1 }
 
-    constructor(x: number, y: number, type: TurretElement) {
+    constructor(x: number, y: number, color: string) {
         super()
         this.x = x
         this.y = y
@@ -19,7 +19,7 @@ class ElementSparkParticle extends Particle {
         this.vx = v.x
         this.vy = v.y
         this.life = 0
-        this.color = TurretType.getColor(type) + "40"
+        this.color = color + "40"
     }
 
     step(time: number): void {
@@ -38,5 +38,4 @@ class ElementSparkParticle extends Particle {
         ctx.arc(this.x, this.y, r, 0, Angle.deg360)
         ctx.fill()
     }
-
 }

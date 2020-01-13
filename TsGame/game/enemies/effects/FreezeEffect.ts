@@ -1,4 +1,4 @@
-﻿/// <reference path="LeveledEffect.ts"/>
+/// <reference path="LeveledEffect.ts"/>
 
 class FreezeEffect extends LeveledEffect {
 
@@ -27,5 +27,4 @@ class FreezeEffect extends LeveledEffect {
             return false
         }
     }
-
 }

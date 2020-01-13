@@ -1,4 +1,4 @@
-﻿/// <reference path="ColorSource.ts"/>
+/// <reference path="ColorSource.ts"/>
 
 class CanvasColorSource extends ColorSource {
 
@@ -34,5 +34,4 @@ class CanvasColorSource extends ColorSource {
     generateInto(ctx: CanvasRenderingContext2D, x: number, y: number): void {
         ctx.drawImage(this.ctx.canvas, 0, 0)
     }
-
 }

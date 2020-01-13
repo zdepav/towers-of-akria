@@ -1,4 +1,4 @@
-﻿/// <reference path="Particle.ts"/>
+/// <reference path="Particle.ts"/>
 
 class LineParticle extends Particle {
 
@@ -41,5 +41,4 @@ class LineParticle extends Particle {
         ctx.lineTo(this.x2, this.y2)
         ctx.stroke()
     }
-
 }

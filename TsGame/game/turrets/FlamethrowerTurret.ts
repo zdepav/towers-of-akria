@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class FlamethrowerTurret extends Turret {
 
@@ -12,12 +12,13 @@ class FlamethrowerTurret extends Turret {
         super.step(time)
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
         ctx.drawImage(FlamethrowerTurret.image, this.tile.pos.x, this.tile.pos.y)
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        ctx.drawImage(FlamethrowerTurret.image, x, y)
     }
 
     addType(type: TurretElement): void {
@@ -46,5 +47,4 @@ class FlamethrowerTurret extends Turret {
             resolve()
         }))
     }
-
 }

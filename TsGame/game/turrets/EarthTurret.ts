@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class EarthTurret extends Turret {
 
@@ -17,12 +17,13 @@ class EarthTurret extends Turret {
         super.step(time)
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
         ctx.drawImage(EarthTurret.images, 0, this.type.earth * 48 - 48, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48)
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        ctx.drawImage(EarthTurret.images, 0, type.earth * 48 - 48, 48, 48, x + 8, y + 8, 48, 48)
     }
 
     addType(type: TurretElement): void {
@@ -65,6 +66,26 @@ class EarthTurret extends Turret {
             case TurretElement.Earth: return EarthTurret.getInfo(this.type.with(type))
             case TurretElement.Fire: return CannonTurret.getInfo(this.type.with(type))
             case TurretElement.Water: return AcidTurret.getInfo(this.type.with(type))
+        }
+    }
+
+    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+        if (this.type.count >= 4) {
+            return
+        }
+        switch (type) {
+            case TurretElement.Air:
+                ArcherTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Earth:
+                EarthTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Fire:
+                CannonTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Water:
+                AcidTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
         }
     }
 
@@ -183,5 +204,4 @@ class EarthTurret extends Turret {
         grad.addColorStop(1, "#B6FF00")
         new CircleSource(48, 48, 24, 24, 10.5, grad, src).generateInto(ctx, 0, y)
     }
-
 }

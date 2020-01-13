@@ -1,4 +1,4 @@
-﻿/// <reference path="PerlinTextureGenerator.ts"/>
+/// <reference path="PerlinTextureGenerator.ts"/>
 
 class CamouflageTextureGenerator extends PerlinTextureGenerator {
 
@@ -37,5 +37,4 @@ class CamouflageTextureGenerator extends PerlinTextureGenerator {
             ) / 2 + 0.5)
         )
     }
-
 }

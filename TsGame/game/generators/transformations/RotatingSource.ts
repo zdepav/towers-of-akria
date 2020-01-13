@@ -1,4 +1,4 @@
-﻿/// <reference path="TransformingSource.ts"/>
+/// <reference path="TransformingSource.ts"/>
 
 class RotatingSource extends TransformingSource {
 
@@ -14,5 +14,4 @@ class RotatingSource extends TransformingSource {
     protected reverseTransform(x: number, y: number): Vec2 {
         return new Vec2(x, y).rotateAround(this.origin, -this.angle)
     }
-
 }

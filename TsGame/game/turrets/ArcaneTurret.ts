@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class ArcaneTurret extends Turret {
 
@@ -59,6 +59,7 @@ class ArcaneTurret extends Turret {
                         ArcaneTurret.orbitColors[i % 4],
                         pt.size - 0.5
                     ))
+                    this.game.spawnParticle(new SparkParticle(enemy.x, enemy.y, ArcaneTurret.orbitColors[i % 4]))
                 }
                 enemy.dealDamage(Infinity)
                 this.cooldown = ArcaneTurret.maxCooldown
@@ -66,11 +67,8 @@ class ArcaneTurret extends Turret {
         }
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
         ctx.drawImage(ArcaneTurret.images, Math.floor(this.frame) * 64, 0, 64, 64, this.tile.pos.x, this.tile.pos.y, 64, 64)
         let orbitCount = (1 - this.cooldown / ArcaneTurret.maxCooldown) * ArcaneTurret.orbitCount
         for (let i = 0; i < orbitCount; ++i) {
@@ -81,6 +79,10 @@ class ArcaneTurret extends Turret {
             ctx.arc(v.x, v.y, pt.size, 0, Angle.deg360)
             ctx.fill()
         }
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        ctx.drawImage(ArcaneTurret.images, 0, 0, 64, 64, x, y, 64, 64)
     }
 
     addType(type: TurretElement): void { }
@@ -96,6 +98,8 @@ class ArcaneTurret extends Turret {
     getCurrentInfo(): TurretInfo | undefined { return ArcaneTurret.getInfo(this.type) }
 
     getInfoAfterUpgrade(type: TurretElement): TurretInfo | undefined { return undefined }
+
+    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void { }
 
     static init(): Promise<void> {
         ArcaneTurret.orbitColors = new TurretType([1, 1, 1, 1]).toColorArray()
@@ -153,5 +157,4 @@ class ArcaneTurret extends Turret {
         ground = new RectangleSource(64, 64, 8, 8, 50, 50, l2, ground)
         return new RectangleSource(64, 64, 8, 8, 48, 48, base, ground)
     }
-
 }

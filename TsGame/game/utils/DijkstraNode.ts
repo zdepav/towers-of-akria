@@ -1,4 +1,4 @@
-﻿class DijkstraNode {
+class DijkstraNode {
 
     pos: Vec2
     previous: DijkstraNode | null
@@ -14,5 +14,4 @@
         }
         this.pos = new Vec2(x, y)
     }
-
 }

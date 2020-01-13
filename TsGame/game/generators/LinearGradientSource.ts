@@ -1,4 +1,4 @@
-﻿/// <reference path="GradientSource.ts"/>
+/// <reference path="GradientSource.ts"/>
 
 class LinearGradientSource extends GradientSource {
 
@@ -19,5 +19,4 @@ class LinearGradientSource extends GradientSource {
     protected _getColor(x: number, y: number): RgbaColor {
         return this.getColorAtPosition(x, y, (this.a * x + this.b * y + this.c) / this.d)
     }
-
 }

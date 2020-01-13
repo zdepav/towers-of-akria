@@ -1,4 +1,4 @@
-﻿/// <reference path="ShapeSource.ts"/>
+/// <reference path="ShapeSource.ts"/>
 
 class RectangleSource extends ShapeSource {
 
@@ -25,5 +25,4 @@ class RectangleSource extends ShapeSource {
         let _x = x - this.x, _y = y - this.y
         return (_x >= 0 && _x < this.w && _y >= 0 && _y < this.h) ? this.color.getColor(x, y) : this.background.getColor(x, y)
     }
-
 }

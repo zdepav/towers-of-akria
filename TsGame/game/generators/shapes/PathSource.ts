@@ -1,4 +1,4 @@
-﻿/// <reference path="ShapeSource.ts"/>
+/// <reference path="ShapeSource.ts"/>
 
 class PathSource extends ShapeSource {
 
@@ -22,5 +22,4 @@ class PathSource extends ShapeSource {
     protected _getColor(x: number, y: number): RgbaColor {
         return this.ctx.isPointInPath(this.path, x, y, this.fillRule) ? this.color.getColor(x, y) : this.background.getColor(x, y)
     }
-
 }

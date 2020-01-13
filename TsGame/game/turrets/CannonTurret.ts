@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class CannonTurret extends Turret {
 
@@ -18,17 +18,19 @@ class CannonTurret extends Turret {
         }
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
-        let r = 12 + this.type.earth + this.type.fire
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
+        let r = 12 + this.type.count
         ctx.translate(this.center.x, this.center.y)
         ctx.rotate(this.angle)
         ctx.translate(-2 * this.cooldown, 0)
         ctx.drawImage(CannonTurret.image, -r * 2, -r, r * 4, r * 2)
         ctx.resetTransform()
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        let r = 12 + type.count
+        ctx.drawImage(CannonTurret.image, x + 32 - r * 2, y + 32 - r, r * 4, r * 2)
     }
 
     addType(type: TurretElement): void {
@@ -88,5 +90,4 @@ class CannonTurret extends Turret {
             resolve()
         }))
     }
-
 }

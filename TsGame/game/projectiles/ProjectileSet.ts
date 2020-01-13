@@ -1,4 +1,4 @@
-﻿/// <reference path="../utils/ExpirableSet.ts"/>
+/// <reference path="../utils/ExpirableSet.ts"/>
 
 class ProjectileSet extends ExpirableSet<Projectile> {
 
@@ -7,5 +7,4 @@ class ProjectileSet extends ExpirableSet<Projectile> {
             p.render(ctx)
         }
     }
-
 }

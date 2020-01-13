@@ -1,4 +1,4 @@
-﻿class Curve {
+class Curve {
 
     static linear(x: number): number { return x; }
 

@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class IceTurret extends Turret {
 
@@ -26,17 +26,20 @@ class IceTurret extends Turret {
         }
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
-        let r = 24 + 2 * this.type.water + 2 * this.type.air
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
+        let r = 24 + 2 * this.type.count
         let i = Utils.sign(this.type.water - this.type.air) + 1
         ctx.translate(this.center.x, this.center.y)
         ctx.rotate(this.angle)
         ctx.drawImage(IceTurret.images, 0, i * 64, 64, 64, -r, -r, r * 2, r * 2)
         ctx.resetTransform()
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        let r = 24 + 2 * type.count
+        let i = Utils.sign(type.water - type.air) + 1
+        ctx.drawImage(IceTurret.images, 0, i * 64, 64, 64, x + 32 - r, x + 32 - r, r * 2, r * 2)
     }
 
     addType(type: TurretElement): void {
@@ -78,6 +81,26 @@ class IceTurret extends Turret {
             case TurretElement.Earth: return MoonTurret.getInfo(this.type.with(type))
             case TurretElement.Fire: return PlasmaTurret.getInfo(this.type.with(type))
             case TurretElement.Water: return IceTurret.getInfo(this.type.with(type))
+        }
+    }
+
+    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+        if (this.type.count >= 4) {
+            return
+        }
+        switch (type) {
+            case TurretElement.Air:
+                IceTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Earth:
+                MoonTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Fire:
+                PlasmaTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Water:
+                IceTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
         }
     }
 
@@ -162,5 +185,4 @@ class IceTurret extends Turret {
             ctx.fill(centerPath)
         }
     }
-
 }

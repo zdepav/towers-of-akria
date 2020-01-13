@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class EarthquakeTurret extends Turret {
 
@@ -11,7 +11,7 @@ class EarthquakeTurret extends Turret {
 
     private frame: number
 
-    get range(): number { return 64 + this.type.count * 32 }
+    get range(): number { return 88 + this.type.count * 24 }
 
     get ready(): boolean {
         if (!super.ready) {
@@ -32,32 +32,31 @@ class EarthquakeTurret extends Turret {
         super.step(time)
         this.frame = (this.frame + time * 25) % EarthquakeTurret.totalFrameCount
         if (this.ready) {
-            let enemies = this.game.findEnemiesInRange(this.center, this.range)
-            if (enemies.length > 0) {
-                let e = enemies[Math.floor(Math.random() * enemies.length)]
-                e.dealDamage((this.type.count === 4 ? 15 : 20) * Math.random())
-                e.addEffect(new StunEffect(0.2))
+            for (const enemy of this.game.findEnemiesInRange(this.center, this.range)) {
+                enemy.dealDamage((this.type.count === 4 ? 15 : 20) * Math.random())
+                enemy.addEffect(new StunEffect(0.2))
             }
             this.cooldown = 0.25
         }
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
         let a: number, b: number
         if (this.type.count == 3) {
             a = Math.floor(this.frame / EarthquakeTurret.halfFrameCount)
             b = Math.floor(this.frame % EarthquakeTurret.halfFrameCount)
-        }
-        else { // this.type.count == 4
+        } else { // this.type.count == 4
             a = Math.floor(this.frame / EarthquakeTurret.baseFrameCount)
             b = Math.floor(this.frame % EarthquakeTurret.baseFrameCount) * 2
         }
         ctx.drawImage(EarthquakeTurret.images, a * 48, 0, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48)
         ctx.drawImage(EarthquakeTurret.images, 192 + b * 48, 0, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48)
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        ctx.drawImage(EarthquakeTurret.images, 0, 0, 48, 48, x + 8, y + 8, 48, 48)
+        ctx.drawImage(EarthquakeTurret.images, 192, 0, 48, 48, x + 8, y + 8, 48, 48)
     }
 
     addType(type: TurretElement): void {
@@ -79,8 +78,8 @@ class EarthquakeTurret extends Turret {
     static getInfo(type: TurretType): TurretInfo | undefined {
         return new TurretInfo(
             EarthquakeTurret.turretName,
-            EarthquakeTurret.turretDescription[type.water],
-            64 + type.count * 32,
+            EarthquakeTurret.turretDescription,
+            88 + type.count * 24,
             `${type.count * 10 - 10}`
         )
     }
@@ -96,6 +95,26 @@ class EarthquakeTurret extends Turret {
             case TurretElement.Earth: return EarthquakeTurret.getInfo(this.type.with(type))
             case TurretElement.Fire: return EarthquakeTurret.getInfo(this.type.with(type))
             case TurretElement.Water: return EarthquakeTurret.getInfo(this.type.with(type))
+        }
+    }
+
+    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+        if (this.type.count >= 4) {
+            return
+        }
+        switch (type) {
+            case TurretElement.Air:
+                ArcaneTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Earth:
+                EarthquakeTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Fire:
+                EarthquakeTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Water:
+                EarthquakeTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
         }
     }
 
@@ -145,5 +164,4 @@ class EarthquakeTurret extends Turret {
         ctx.arc(0, 0, 8, Angle.deg240, Angle.deg300)
         ctx.closePath()
     }
-
 }

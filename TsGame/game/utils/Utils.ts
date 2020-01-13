@@ -1,4 +1,4 @@
-﻿class Utils {
+class Utils {
 
     static hex = "0123456789abcdef"
 
@@ -149,4 +149,24 @@
         })
     }
 
+    static fillWrappedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
+        let words = text.split(/[ \t]+/)
+        let lines: string[] = []
+        let currentLine = words[0]
+        for (let i = 1; i < words.length; i++) {
+            let word = words[i]
+            let size = ctx.measureText(`${currentLine} ${word}`)
+            if (size.width < maxWidth) {
+                currentLine += " " + word;
+            } else {
+                lines.push(currentLine);
+                currentLine = word;
+            }
+        }
+        lines.push(currentLine);
+        for (const line of lines) {
+            ctx.fillText(line, x, y)
+            y += lineHeight
+        }
+    }
 }

@@ -1,25 +1,17 @@
-﻿class Vec2 {
+class Vec2 {
 
     static zero: Vec2
-
-    private len: number | null
 
     x: number
     y: number
 
-    get length(): number {
-        if (this.len === null) {
-            this.len = Math.sqrt(this.x * this.x + this.y * this.y)
-        }
-        return this.len
-    }
+    get length(): number { return Math.sqrt(this.x * this.x + this.y * this.y) }
 
     get sqrLength() { return this.x * this.x + this.y * this.y }
 
     constructor(x: number, y: number) {
         this.x = x
         this.y = y
-        this.len = null
     }
 
     add(v: Vec2): Vec2 {
@@ -130,7 +122,5 @@
     static init(): void {
         Vec2.zero = new Vec2(0, 0)
     }
-
 }
-
 Vec2.init()

@@ -1,4 +1,4 @@
-﻿/// <reference path="TransformingSource.ts"/>
+/// <reference path="TransformingSource.ts"/>
 
 class TranslatingSource extends TransformingSource {
 
@@ -14,5 +14,4 @@ class TranslatingSource extends TransformingSource {
     protected reverseTransform(x: number, y: number): Vec2 {
         return new Vec2(x - this.xd, y - this.yd)
     }
-
 }

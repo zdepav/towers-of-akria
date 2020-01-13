@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class AirTurret extends Turret {
 
@@ -20,18 +20,17 @@ class AirTurret extends Turret {
         this.angle = (this.angle + Angle.deg360 - time * Angle.deg120) % Angle.deg360
         for (const enemy of this.game.findEnemiesInRange(this.center, this.range)) {
             enemy.dealDamage((6 + this.type.air * 4) * time)
+            if (Math.random() < 0.01 * this.type.air) {
+                this.game.spawnParticle(new WindParticle(enemy.x + Utils.randInt(-6, 7), enemy.y + Utils.randInt(-6, 7)))
+            }
         }
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
-        ctx.translate(this.center.x, this.center.y)
-        ctx.rotate(this.angle)
+    static _render(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, type: TurretType, angle: number = 0): void {
+        ctx.translate(centerX, centerY)
+        ctx.rotate(angle)
         ctx.drawImage(AirTurret.image, -24, -8)
-        switch (this.type.air) {
+        switch (type.air) {
             case 1:
                 ctx.rotate(Angle.deg90)
                 ctx.drawImage(AirTurret.image, -24, -8)
@@ -56,6 +55,15 @@ class AirTurret extends Turret {
                 break
         }
         ctx.resetTransform()
+    }
+
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
+        AirTurret._render(ctx, this.center.x, this.center.y, this.type, this.angle)
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        AirTurret._render(ctx, x + 32, y + 32, type)
     }
 
     addType(type: TurretElement): void {
@@ -102,6 +110,26 @@ class AirTurret extends Turret {
         }
     }
 
+    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+        if (this.type.count >= 4) {
+            return
+        }
+        switch (type) {
+            case TurretElement.Air:
+                AirTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Earth:
+                ArcherTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Fire:
+                LightningTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Water:
+                IceTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+        }
+    }
+
     static init(): Promise<void> {
         return Utils.getImageFromCache("td_tower_Aefw_air").then(tex => { AirTurret.image = tex; }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(48, 16)
@@ -130,5 +158,4 @@ class AirTurret extends Turret {
             resolve()
         }))
     }
-
 }

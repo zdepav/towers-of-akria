@@ -1,4 +1,4 @@
-﻿/// <reference path="PerlinTextureGenerator.ts"/>
+/// <reference path="PerlinTextureGenerator.ts"/>
 
 class GlassTextureGenerator extends PerlinTextureGenerator {
 
@@ -34,5 +34,4 @@ class GlassTextureGenerator extends PerlinTextureGenerator {
             ) / 2 + 0.5)
         )
     }
-
 }

@@ -1,4 +1,4 @@
-﻿/// <reference path="PerlinTextureGenerator.ts"/>
+/// <reference path="PerlinTextureGenerator.ts"/>
 
 class BarkTextureGenerator extends PerlinTextureGenerator {
 
@@ -34,5 +34,4 @@ class BarkTextureGenerator extends PerlinTextureGenerator {
         v += Utils.granulate(this.perlin(this.gradients[3], x * this.scales[3], y * this.scales[3]), 5)
         return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve(v / 4 + 0.5))
     }
-
 }

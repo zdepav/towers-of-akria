@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class WaterTurret extends Turret {
 
@@ -24,15 +24,16 @@ class WaterTurret extends Turret {
         super.step(time)
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
         ctx.translate(this.center.x, this.center.y)
         ctx.rotate(this.angle)
         ctx.drawImage(WaterTurret.images, 0, (this.type.count - 1) * 48, 48, 48, -24, -24, 48, 48)
         ctx.resetTransform()
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        ctx.drawImage(WaterTurret.images, 0, (type.count - 1) * 48, 48, 48, x + 8, y + 8, 48, 48)
     }
 
     addType(type: TurretElement): void {
@@ -75,6 +76,26 @@ class WaterTurret extends Turret {
             case TurretElement.Earth: return AcidTurret.getInfo(this.type.with(type))
             case TurretElement.Fire: return FlamethrowerTurret.getInfo(this.type.with(type))
             case TurretElement.Water: return WaterTurret.getInfo(this.type.with(type))
+        }
+    }
+
+    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+        if (this.type.count >= 4) {
+            return
+        }
+        switch (type) {
+            case TurretElement.Air:
+                IceTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Earth:
+                AcidTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Fire:
+                FlamethrowerTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Water:
+                WaterTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
         }
     }
 
@@ -137,5 +158,4 @@ class WaterTurret extends Turret {
         }
         return c.image
     }
-
 }

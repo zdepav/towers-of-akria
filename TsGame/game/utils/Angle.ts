@@ -1,4 +1,4 @@
-﻿class Angle {
+class Angle {
 
     private static rad2deg: number
 
@@ -76,5 +76,4 @@
             resolve()
         })
     }
-
 }

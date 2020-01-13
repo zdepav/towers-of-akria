@@ -1,4 +1,4 @@
-﻿/// <reference path="ColorSource.ts"/>
+/// <reference path="ColorSource.ts"/>
 
 class RgbaColorSource extends ColorSource {
 
@@ -15,5 +15,4 @@ class RgbaColorSource extends ColorSource {
         ctx.fillStyle = this.color.toCss()
         ctx.fillRect(x, y, this.width, this.height)
     }
-
 }

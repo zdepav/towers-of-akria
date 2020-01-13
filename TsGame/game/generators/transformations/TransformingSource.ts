@@ -1,4 +1,4 @@
-﻿/// <reference path="../ColorSource.ts"/>
+/// <reference path="../ColorSource.ts"/>
 
 abstract class TransformingSource extends ColorSource {
 

@@ -1,4 +1,4 @@
-﻿/// <reference path="GradientSource.ts"/>
+/// <reference path="GradientSource.ts"/>
 
 class RadialGradientSource extends GradientSource {
 
@@ -19,5 +19,4 @@ class RadialGradientSource extends GradientSource {
         let dx = x - this.x, dy = y - this.y
         return this.getColorAtPosition(x, y, (Math.sqrt(dx * dx + dy * dy) - this.r1) / this.dr)
     }
-
 }

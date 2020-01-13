@@ -1,4 +1,4 @@
-﻿/// <reference path="ColorSource.ts"/>
+/// <reference path="ColorSource.ts"/>
 
 class BufferedColorSource extends ColorSource {
 
@@ -29,5 +29,4 @@ class BufferedColorSource extends ColorSource {
             }
         }
     }
-
 }

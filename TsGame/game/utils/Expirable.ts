@@ -1,4 +1,4 @@
-﻿abstract class Expirable {
+abstract class Expirable {
 
     abstract get expired(): boolean
 

@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class ArcherTurret extends Turret {
 
@@ -17,12 +17,13 @@ class ArcherTurret extends Turret {
         // this.cooldown = 1.5
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
         ctx.drawImage(ArcherTurret.image, this.tile.pos.x, this.tile.pos.y)
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        ctx.drawImage(ArcherTurret.image, x, y)
     }
 
     addType(type: TurretElement): void {
@@ -68,6 +69,26 @@ class ArcherTurret extends Turret {
         }
     }
 
+    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+        if (this.type.count >= 4) {
+            return
+        }
+        switch (type) {
+            case TurretElement.Air:
+                MoonTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Earth:
+                AcidTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Fire:
+                EarthquakeTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Water:
+                AcidTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+        }
+    }
+
     static init(): Promise<void> {
         return Utils.getImageFromCache("td_tower_AEfw_archer").then(tex => { ArcherTurret.image = tex; }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(64, 64)
@@ -76,5 +97,4 @@ class ArcherTurret extends Turret {
             resolve()
         }))
     }
-
 }

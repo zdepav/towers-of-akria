@@ -1,4 +1,4 @@
-﻿/// <reference path="Effect.ts"/>
+/// <reference path="Effect.ts"/>
 
 class StunEffect extends Effect {
 
@@ -14,7 +14,7 @@ class StunEffect extends Effect {
     }
 
     colorize(color: RgbaColor): RgbaColor {
-        return color
+        return this.duration > 0 ? color.lerp(RgbaColor.white, 0.5) : color
     }
 
     incompatibleWith(effect: Effect): boolean {
@@ -29,5 +29,4 @@ class StunEffect extends Effect {
             return false
         }
     }
-
 }

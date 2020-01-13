@@ -1,10 +1,10 @@
-﻿/// <reference path="../utils/Expirable.ts"/>
+/// <reference path="../utils/Expirable.ts"/>
 
 abstract class Enemy extends Expirable {
 
     private targetTile: Tile | null
-    private currTilePos: Vec2
-    private nextTilePos: Vec2
+    protected currTilePos: Vec2
+    protected nextTilePos: Vec2
     private relPos: number
     private relDist: number
     private position: Vec2
@@ -50,27 +50,28 @@ abstract class Enemy extends Expirable {
             return
         }
         this.effects.step(time)
-        this.relPos += this.baseSpeed * this.speedMultiplier * time
-        while (this.relPos >= this.relDist) {
-            this.relPos -= this.relDist
-            if (this.targetTile === null) {
-                this.game.takeLife()
-                this.hp = -1
-                return
-            } else if (this.targetTile.next === null) {
-                this.currTilePos = this.nextTilePos
-                this.nextTilePos = this.targetTile.pos.addu(112, Utils.randInt(16, 48))
-                this.relDist = this.currTilePos.distanceTo(this.nextTilePos)
-                this.targetTile = null
-            } else {
-                this.targetTile = this.targetTile.next
-                this.currTilePos = this.nextTilePos
-                this.nextTilePos = Enemy.positionInTile(this.targetTile)
-                this.relDist = this.currTilePos.distanceTo(this.nextTilePos)
+        if (this.baseSpeed * this.speedMultiplier > 0) {
+            this.relPos += this.baseSpeed * this.speedMultiplier * time
+            while (this.relPos >= this.relDist) {
+                this.relPos -= this.relDist
+                if (this.targetTile === null) {
+                    this.game.takeLife()
+                    this.hp = -1
+                    return
+                } else if (this.targetTile.next === null) {
+                    this.currTilePos = this.nextTilePos
+                    this.nextTilePos = this.targetTile.pos.addu(112, Utils.randInt(16, 48))
+                    this.relDist = this.currTilePos.distanceTo(this.nextTilePos)
+                    this.targetTile = null
+                } else {
+                    this.targetTile = this.targetTile.next
+                    this.currTilePos = this.nextTilePos
+                    this.nextTilePos = Enemy.positionInTile(this.targetTile)
+                    this.relDist = this.currTilePos.distanceTo(this.nextTilePos)
+                }
             }
+            this.position = this.currTilePos.lerp(this.nextTilePos, this.relPos / this.relDist)
         }
-        this.position = this.currTilePos.lerp(this.nextTilePos, this.relPos / this.relDist)
-        this.game.registerEnemy(this)
         this.speedMultiplier = 1
     }
 
@@ -91,6 +92,10 @@ abstract class Enemy extends Expirable {
 
     addSpeedMultiplier(mult: number): void {
         this.speedMultiplier *= mult
+    }
+
+    pushBack(): void {
+        this.relPos  = 0
     }
 
     private static positionInTile(tile: Tile): Vec2 {

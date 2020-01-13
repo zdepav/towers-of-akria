@@ -1,4 +1,4 @@
-﻿enum TurretElement {
+enum TurretElement {
     Air,
     Earth,
     Fire,
@@ -86,5 +86,4 @@ class TurretType {
                 return "#000000"
         }
     }
-
 }

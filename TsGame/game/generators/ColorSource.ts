@@ -49,5 +49,4 @@ abstract class ColorSource {
             return RgbaColor.transparent.source()
         }
     }
-
 }

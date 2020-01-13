@@ -1,4 +1,4 @@
-﻿/// <reference path="Turret.ts"/>
+/// <reference path="Turret.ts"/>
 
 class SunTurret extends Turret {
 
@@ -32,12 +32,9 @@ class SunTurret extends Turret {
         }
     }
 
-    render(ctx: CanvasRenderingContext2D, preRender: boolean): void {
-        super.render(ctx, preRender)
-        if (preRender) {
-            return
-        }
-        ctx.lineWidth = 7
+    render(ctx: CanvasRenderingContext2D): void {
+        super.render(ctx)
+        ctx.lineWidth = 5
         for (const r of this.rays) {
             ctx.strokeStyle = r.color
             ctx.beginPath()
@@ -50,6 +47,15 @@ class SunTurret extends Turret {
         ctx.rotate(this.angle)
         ctx.drawImage(SunTurret.image, -r, -r, r * 2, r * 2)
         ctx.rotate(this.frame / SunTurret.frameCount * Angle.deg30)
+        ctx.drawImage(SunTurret.image, -r, -r, r * 2, r * 2)
+        ctx.resetTransform()
+    }
+
+    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+        let r = 28 + 4 * (type.count - 3)
+        ctx.translate(x + 32, y + 32)
+        ctx.drawImage(SunTurret.image, -r, -r, r * 2, r * 2)
+        ctx.rotate(Angle.deg15)
         ctx.drawImage(SunTurret.image, -r, -r, r * 2, r * 2)
         ctx.resetTransform()
     }
@@ -93,6 +99,26 @@ class SunTurret extends Turret {
         }
     }
 
+    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+        if (this.type.count >= 4) {
+            return
+        }
+        switch (type) {
+            case TurretElement.Air:
+                SunTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Earth:
+                SunTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Fire:
+                SunTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+            case TurretElement.Water:
+                ArcaneTurret.renderPreview(ctx, x, y, this.type.with(type))
+                break
+        }
+    }
+
     static init(): Promise<void> {
         return Utils.getImageFromCache("td_tower_AEFw_sun").then(tex => { SunTurret.image = tex }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(64, 64)
@@ -122,5 +148,4 @@ class SunTurret extends Turret {
             resolve()
         }))
     }
-
 }

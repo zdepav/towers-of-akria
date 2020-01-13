@@ -1,4 +1,4 @@
-﻿/// <reference path="CombiningSource.ts"/>
+/// <reference path="CombiningSource.ts"/>
 
 class MultiplyingSource extends CombiningSource {
 

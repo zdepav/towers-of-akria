@@ -22,37 +22,44 @@ class Game {
     private preRendered: CanvasImageSource
     private canvas: HTMLCanvasElement
     private ctx: CanvasRenderingContext2D
-    private guiPanel: Rect
+    private guiPanels: GuiPanel[]
     private map: Tile[][]
     private enemies: EnemySet
     private wavePlanner: EnemyWavePlanner
     private projectiles: ProjectileSet
     private particles: ParticleSystem
     private prevTime: number
-    private time: number
     private performanceMeter: PerformanceMeter
     private mousePosition: Vec2
-    private selectedTilePos: Vec2 | null
+    private hoveredTilePos: Vec2 | null
+    private selectedTile: Tile | null
     private mouseButton: MouseButton | null
     private arcaneTowerCount: number
+    private time: number
+    private upgradeButtons: TurretUpgradeButton[]
 
-    private get selectedTile(): Tile | null {
-        return this.selectedTilePos !== null ? this.map[this.selectedTilePos.x][this.selectedTilePos.y] : null
+    private get hoveredTile(): Tile | null {
+        return this.hoveredTilePos !== null ? this.map[this.hoveredTilePos.x][this.hoveredTilePos.y] : null
     }
 
     mapWidth: number
     mapHeight: number
     width: number
     height: number
-    selectedTurretElement: TurretElement | null
 
     get towerDamageMultiplier(): number { return this.arcaneTowerCount * 0.25 + 1 }
 
     private constructor(container: HTMLElement) {
-        let canvasWidth = 1152
-        let canvasHeight = 576
+        this.width = 1152
+        this.height = 704
+        this.mapWidth = 15
+        this.mapHeight = 9
         let canvas = document.createElement("canvas")
         canvas.id = "game-canvas"
+        canvas.width = this.width
+        canvas.height = this.height
+        canvas.style.border = "2px solid #606060"
+        canvas.style.outline = "none"
         container.appendChild(canvas)
         this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D
         this.canvas = canvas
@@ -63,26 +70,25 @@ class Game {
         this.projectiles = new ProjectileSet()
         this.particles = new ParticleSystem()
         this.enemies = new EnemySet()
-        this.selectedTurretElement = null
-        this.selectedTilePos = null
+        this.hoveredTilePos = null
+        this.selectedTile = null
         this.mouseButton = null
         this.status = InitializationStatus.Uninitialized
         this.arcaneTowerCount = 0
         this.wavePlanner = new EnemyWavePlanner(this)
-
-        canvas.width = canvasWidth
-        let mapWidth = Math.floor(canvasWidth / 64) - 3
-        mapWidth = mapWidth % 2 === 0 ? mapWidth - 1 : mapWidth
-        this.mapWidth = mapWidth < 3 ? 3 : mapWidth
-        this.width = (mapWidth + 3) * 64
-
-        canvas.height = canvasHeight
-        let mapHeight = Math.floor(canvasHeight / 64)
-        mapHeight = mapHeight % 2 === 0 ? mapHeight - 1 : mapHeight
-        this.mapHeight = mapHeight < 3 ? 3 : mapHeight
-        this.height = mapHeight * 64
-
-        this.guiPanel = new Rect(this.width - 192, 0, 192, this.height - 192)
+        this.guiPanels = [
+            new GuiPanel(this, 0, 0, this.width, this.height),
+            new GuiPanel(this, 960, 0, 192, 384),
+            new GuiPanel(this, 0, 576, 1152, 704)
+        ]
+        this.guiPanels[0].addItem(this.guiPanels[1])
+        this.guiPanels[0].addItem(this.guiPanels[2])
+        this.upgradeButtons = []
+        for (let e = TurretElement.Air, x = 4; e <= TurretElement.Water; ++e, x += 287) {
+            let button = new TurretUpgradeButton(this, x, 582, 283, 118, e)
+            this.upgradeButtons.push(button)
+            this.guiPanels[2].addItem(button)
+        }
     }
 
     init(): Promise<void> {
@@ -253,6 +259,7 @@ class Game {
                     path = path.previous
                 } else break
             }
+            this.map[0][startY].next = this.map[1][startY]
             resolve()
         })
     }
@@ -335,8 +342,13 @@ class Game {
                     for (let y = 0; y < this.mapHeight; ++y) {
                         let t = this.map[x][y]
                         t.step(timeDiff)
-                        if (t.turret instanceof ArcaneTurret) {
-                            ++arcaneTowerCount
+                        if (t.type == TileType.Tower) {
+                            if (this.selectedTile == t) {
+                                this.markTile(t)
+                            }
+                            if (t.turret instanceof ArcaneTurret) {
+                                ++arcaneTowerCount
+                            }
                         }
                     }
                 }
@@ -344,18 +356,22 @@ class Game {
                 this.wavePlanner.step(timeDiff)
                 this.enemies.step(timeDiff)
                 this.particles.step(timeDiff)
-                if (this.selectedTurretElement !== null) {
-                    this.particles.add(new ElementSparkParticle(
-                        this.mousePosition.x,
-                        this.mousePosition.y,
-                        this.selectedTurretElement
-                    ))
-                }
                 this.prevTime = time
                 this.time += timeDiff
                 return
             }
         }
+    }
+
+    markTile(tile: Tile) {
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 4, tile.pos.y + 4, new Vec2(1, 0)))
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 4, tile.pos.y + 4, new Vec2(0, 1)))
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 60, tile.pos.y + 4, new Vec2(-1, 0)))
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 60, tile.pos.y + 4, new Vec2(0, 1)))
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 4, tile.pos.y + 60, new Vec2(1, 0)))
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 4, tile.pos.y + 60, new Vec2(0, -1)))
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 60, tile.pos.y + 60, new Vec2(-1, 0)))
+        this.spawnParticle(new TileMarkParticle(tile.pos.x + 60, tile.pos.y + 60, new Vec2(0, -1)))
     }
 
     getMousePosition(): Vec2 { return this.mousePosition.copy() }
@@ -368,68 +384,60 @@ class Game {
         )
     }
 
-    private onMouseMove(e: MouseEvent) {
+    private onMouseMove(e: MouseEvent): void {
         if (this.status < InitializationStatus.Initialized) {
             return
         }
         this.setMousePosition(e)
-        if (this.selectedTilePos === null) {
+        this.guiPanels[0].onMouseMove()
+        if (this.hoveredTilePos === null) {
             return
         }
         let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64))
-        if (!tp.equals(this.selectedTilePos)) {
-            this.selectedTilePos = null
+        if (!tp.equals(this.hoveredTilePos)) {
+            this.hoveredTilePos = null
         }
     }
 
-    private onMouseDown(e: MouseEvent) {
+    private onMouseDown(e: MouseEvent): void {
         if (this.status < InitializationStatus.Initialized) {
             return
         }
         this.setMousePosition(e)
+        this.guiPanels[0].onMouseDown(e.button)
         let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64))
         if (tp.x < this.mapWidth && tp.y < this.mapHeight) {
-            this.selectedTilePos = tp
+            this.hoveredTilePos = tp
             this.mouseButton = e.button
         }
     }
 
-    private onMouseUp(e: MouseEvent) {
+    private onMouseUp(e: MouseEvent): void {
         if (this.status < InitializationStatus.Initialized) {
             return
         }
         this.setMousePosition(e)
-        if (this.selectedTilePos != null) {
+        this.guiPanels[0].onMouseUp(e.button)
+        if (this.hoveredTilePos) {
+            this.selectedTile = this.hoveredTile
+            for (const b of this.upgradeButtons) {
+                b.targetTile = this.selectedTile
+            }
             this.selectedTile?.onClick(
                 this.mouseButton as MouseButton,
                 this.mousePosition.x % 64,
                 this.mousePosition.y % 64
             )
-            this.selectedTilePos = null
+            this.hoveredTilePos = null
         }
         this.mouseButton = null
     }
 
-    private onKeyDown(e: KeyboardEvent) {
+    private onKeyDown(e: KeyboardEvent): void {
         if (this.status < InitializationStatus.Initialized) {
             return
         }
         switch (e.key.toUpperCase()) {
-            case 'Q':
-                this.selectedTurretElement = TurretElement.Air
-                break
-            case 'W':
-                this.selectedTurretElement = TurretElement.Earth
-                break
-            case 'E':
-                this.selectedTurretElement = TurretElement.Fire
-                break
-            case 'R':
-                this.selectedTurretElement = TurretElement.Water
-                break
-            case 'T':
-                this.selectedTurretElement = null
-                break
             case 'C':
                 if (e.altKey) {
                     localStorage.clear()
@@ -442,7 +450,7 @@ class Game {
         }
     }
 
-    private onKeyUp(e: KeyboardEvent) { }
+    private onKeyUp(e: KeyboardEvent): void { }
 
     private preRender(): Promise<void> {
         return new Promise<void>(resolve => {
@@ -456,13 +464,14 @@ class Game {
                 }
             }
             ctx.fillStyle = "#B5947E"
-            let x = this.guiPanel.x, y = this.height - 192
+            let x = this.guiPanels[1].x, y = this.guiPanels[1].bottom
             for (let i = 0; i < 9; ++i) {
                 Tile.drawPathGround(ctx, x + i % 3 * 64, y + Math.floor(i / 3) * 64)
             }
             ctx.fillStyle = "#606060"
-            ctx.fillRect(this.guiPanel.x, this.guiPanel.y, 2, this.guiPanel.h)
-            ctx.fillRect(this.guiPanel.x, this.guiPanel.y + this.guiPanel.h - 2, this.guiPanel.w, 2)
+            ctx.fillRect(this.guiPanels[1].x, this.guiPanels[1].y, 2, this.guiPanels[1].h)
+            ctx.fillRect(this.guiPanels[1].x, this.guiPanels[1].bottom - 2, this.guiPanels[1].w, 2)
+            ctx.fillRect(this.guiPanels[2].x, this.guiPanels[2].y, this.guiPanels[2].w, 2)
             this.preRendered = c.image
             resolve()
         })
@@ -483,118 +492,36 @@ class Game {
                 return
             }
             case InitializationStatus.Initialized: {
-                this.ctx.drawImage(this.preRendered, 0, 0)
+                ctx.drawImage(this.preRendered, 0, 0)
                 for (let x = 0; x < this.mapWidth; ++x) {
                     for (let y = 0; y < this.mapHeight; ++y) {
                         this.map[x][y].render(ctx, false)
                     }
                 }
+                this.guiPanels[0].render(ctx)
                 this.enemies.render(ctx)
-                ctx.drawImage(Game.castleImage, this.guiPanel.x, this.height - 192)
+                ctx.drawImage(Game.castleImage, this.guiPanels[1].x, this.guiPanels[1].bottom)
                 this.particles.render(ctx)
+                for (let x = 0; x < this.mapWidth; ++x) {
+                    for (let y = 0; y < this.mapHeight; ++y) {
+                        this.map[x][y].renderOverlay(ctx)
+                    }
+                }
                 let fps = this.performanceMeter.getFps()
                 ctx.fillStyle = "#000000"
-                ctx.textAlign = "right"
+                ctx.textAlign = "left"
                 ctx.textBaseline = "top"
-                ctx.font = "bold 16px serif"
+                ctx.font = "bold 12px monospace"
                 if (!isNaN(fps)) {
-                    ctx.fillText(Math.floor(fps).toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 16)
+                    let f = Math.floor(fps * 10)
+                    ctx.fillText(`FPS:         ${Math.floor(f / 10)}.${f % 10}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 6)
                 }
-                ctx.fillText(this.mousePosition.x.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 32)
-                ctx.fillText(this.mousePosition.y.toString(), this.guiPanel.x + this.guiPanel.w - 16, this.guiPanel.y + 48)
+                ctx.fillText(`Enemies:     ${this.enemies.count}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 20)
+                ctx.fillText(`Particles:   ${this.particles.count}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 34)
+                ctx.fillText(`Projectiles: ${this.projectiles.count}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 48)
                 return
             }
         }
-    }
-
-    registerEnemy(enemy: Enemy) {
-        let x = Utils.clamp(enemy.x / 64, 0, this.mapWidth - 1)
-        let y = Utils.clamp(enemy.y / 64, 0, this.mapHeight - 1)
-        this.map[x][y].enemies?.push(enemy)
-    }
-
-    findEnemy(point: Vec2, maxDistance: number): Enemy | null {
-        if (this.enemies.count == 0) {
-            return null
-        }
-        let x1 = Utils.clamp(point.x - maxDistance, 0, this.mapWidth - 1)
-        let x2 = Utils.clamp(point.x + maxDistance, 0, this.mapWidth - 1)
-        let y1 = Utils.clamp(point.y - maxDistance, 0, this.mapHeight - 1)
-        let y2 = Utils.clamp(point.y + maxDistance, 0, this.mapHeight - 1)
-        let t: Tile
-        maxDistance *= maxDistance
-        for (let x = x1; x <= x2; ++x) {
-            for (let y = y1; y <= y2; ++y) {
-                t = this.map[x][y]
-                if (t.enemies === null || t.enemies.length === 0) {
-                    continue
-                }
-                for (const e of t.enemies) {
-                    let dist = point.sqrDistanceTo(e.pos)
-                    if (dist <= maxDistance) {
-                        return e
-                    }
-                }
-            }
-        }
-        return null
-    }
-
-    findNearestEnemy(point: Vec2, maxDistance: number): Enemy | null {
-        if (this.enemies.count == 0) {
-            return null
-        }
-        let closestEnemy: Enemy | null = null
-        let lowestDistance = Infinity
-        let x1 = Utils.clamp(point.x - maxDistance, 0, this.mapWidth - 1)
-        let x2 = Utils.clamp(point.x + maxDistance, 0, this.mapWidth - 1)
-        let y1 = Utils.clamp(point.y - maxDistance, 0, this.mapHeight - 1)
-        let y2 = Utils.clamp(point.y + maxDistance, 0, this.mapHeight - 1)
-        let t: Tile
-        maxDistance *= maxDistance
-        for (let x = x1; x <= x2; ++x) {
-            for (let y = y1; y <= y2; ++y) {
-                t = this.map[x][y]
-                if (t.enemies === null || t.enemies.length === 0) {
-                    continue
-                }
-                for (const e of t.enemies) {
-                    let dist = point.sqrDistanceTo(e.pos)
-                    if (dist <= maxDistance && dist < lowestDistance) {
-                        lowestDistance = dist
-                        closestEnemy = e
-                    }
-                }
-            }
-        }
-        return closestEnemy
-    }
-
-    findEnemiesInRange(point: Vec2, maxDistance: number): Enemy[] {
-        if (this.enemies.count == 0) {
-            return []
-        }
-        let enemies: Enemy[] = []
-        let x1 = Utils.clamp(point.x - maxDistance, 0, this.mapWidth - 1)
-        let x2 = Utils.clamp(point.x + maxDistance, 0, this.mapWidth - 1)
-        let y1 = Utils.clamp(point.y - maxDistance, 0, this.mapHeight - 1)
-        let y2 = Utils.clamp(point.y + maxDistance, 0, this.mapHeight - 1)
-        let t: Tile
-        maxDistance *= maxDistance
-        for (let x = x1; x <= x2; ++x) {
-            for (let y = y1; y <= y2; ++y) {
-                t = this.map[x][y]
-                if (t.enemies === null || t.enemies.length === 0) {
-                    continue
-                }
-                for (const e of t.enemies) {
-                    if (point.sqrDistanceTo(e.pos) <= maxDistance) {
-                        enemies.push(e)
-                    }
-                }
-            }
-        }
-        return enemies
     }
 
     spawnEnemy(e: Enemy) { this.enemies.add(e) }
@@ -603,8 +530,30 @@ class Game {
 
     spawnProjectile(p: Projectile) { this.projectiles.add(p) }
 
+    findEnemy(point: Vec2, maxDistance: number): Enemy | null {
+        return this.enemies.find(point, maxDistance)
+    }
+
+    findNearestEnemy(point: Vec2, maxDistance: number): Enemy | null {
+        return this.enemies.findNearest(point, maxDistance)
+    }
+
+    findEnemiesInRange(point: Vec2, maxDistance: number): Enemy[] {
+        return this.enemies.findInRange(point, maxDistance)
+    }
+
     takeLife(): void {
         // TODO: implement
+    }
+
+    playerCanAffordUpgrade(upgradeCostMultiplier: number): boolean {
+        // TODO: implement
+        return upgradeCostMultiplier >= 0
+    }
+
+    buyUpgrade(upgradeCostMultiplier: number): boolean {
+        // TODO: implement
+        return upgradeCostMultiplier >= 0
     }
 
     static initializeAndRun(): void {
@@ -612,11 +561,9 @@ class Game {
         if (container == null) {
             throw new Error('Html element with id "zptd-game-container" not found')
         } else {
-            //gen()
             new Game(container).start()
         }
     }
-
 }
 
 function gen() {

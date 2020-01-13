@@ -1,4 +1,4 @@
-﻿/// <reference path="LeveledEffect.ts"/>
+/// <reference path="LeveledEffect.ts"/>
 
 class WetEffect extends LeveledEffect {
 
@@ -41,5 +41,4 @@ class WetEffect extends LeveledEffect {
             return false
         }
     }
-
 }
