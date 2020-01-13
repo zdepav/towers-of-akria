@@ -19,6 +19,41 @@ class AcidTurret extends Turret {
     step(time: number): void {
         super.step(time)
         this.frame = (this.frame + time * 25) % AcidTurret.frameCount
+        if (this.ready) {
+            let enemies = this.game.findEnemiesInRange(this.center, this.range)
+            let enemy: Enemy | null = null
+            let bestDistance: number = Infinity
+            let bestStrength: number = Infinity
+            let bestDuration: number = Infinity
+            for (const e of enemies) {
+                let effect = e.getEffect(eff => eff instanceof AcidEffect)
+                let distance = this.center.distanceTo(e.pos)
+                let strength = effect ? (effect as AcidEffect).strength : 0
+                let duration = effect ? (effect as AcidEffect).duration : 0
+                if (strength < bestStrength) {
+                    enemy = e
+                    bestDistance = distance
+                    bestStrength = strength
+                    bestDuration = duration
+                } else if (strength == bestStrength) {
+                    if (duration < bestDuration) {
+                        enemy = e
+                        bestDistance = distance
+                        bestStrength = strength
+                        bestDuration = duration
+                    } else if (duration == bestDuration && distance < bestDistance) {
+                        enemy = e
+                        bestDistance = distance
+                        bestStrength = strength
+                        bestDuration = duration
+                    }
+                }
+            }
+            if (enemy) {
+                this.game.spawnProjectile(new AcidProjectile(this.game, this.center, enemy, this.type.count))
+                this.cooldown = 1 / this.type.count
+            }
+        }
     }
 
     render(ctx: CanvasRenderingContext2D): void {
@@ -149,9 +184,7 @@ class AcidTurret extends Turret {
             ctx.rotate(Angle.deg90)
             ctx.drawImage(ca.image, 12, -4 - i)
             ctx.resetTransform()
-            pattern = ctx.createPattern(texture, "repeat") as CanvasPattern
-            pattern.setTransform(svg.createSVGMatrix().translate(offset, offset))
-            ctx.fillStyle = pattern
+            ctx.fillStyle = ctx.createPattern(texture, "repeat") as CanvasPattern
             ctx.beginPath()
             ctx.arc(24, 24, 6 + i, 0, Angle.deg360)
             ctx.closePath()

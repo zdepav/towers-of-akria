@@ -1,6 +1,6 @@
 /// <reference path="Particle.ts"/>
 
-class SparkParticle extends Particle {
+class TrailParticle extends Particle {
 
     private x: number
     private y: number
@@ -16,29 +16,26 @@ class SparkParticle extends Particle {
         this.x = x
         this.y = y
         let v = Vec2.randUnit3d()
-        this.vx = v.x
-        this.vy = v.y
+        this.vx = v.x * 3
+        this.vy = v.y * 3
         this.life = 0
         if (!/#[0-9a-f]{6}/i.test(color)) {
             throw new Error("Color format not supported")
         }
-        this.color = color + "40"
+        this.color = color
     }
 
     step(time: number): void {
-        this.life += time * 2
-        this.x += this.vx
-        this.y += this.vy
+        this.life += time * 4
     }
 
     render(ctx: CanvasRenderingContext2D): void {
         if (this.life >= 1) {
             return
         }
-        let r = 8 - this.life * 8
-        ctx.fillStyle = this.color
+        ctx.fillStyle = this.color + Utils.byteToHex(255 * (1 - this.life))
         ctx.beginPath()
-        ctx.arc(this.x, this.y, r, 0, Angle.deg360)
+        ctx.arc(this.x + this.life * this.vx, this.y + this.life * this.vy, (1 - this.life) * 3, 0, Angle.deg360)
         ctx.fill()
     }
 }

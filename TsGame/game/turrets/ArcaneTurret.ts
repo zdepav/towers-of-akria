@@ -48,7 +48,7 @@ class ArcaneTurret extends Turret {
         }
         if (this.ready) {
             let enemy = this.game.findEnemy(this.center, this.range)
-            if (enemy !== null) {
+            if (enemy) {
                 for (let i = 0; i < ArcaneTurret.orbitCount; ++i) {
                     let pt = this.orbits[i]
                     let v = Vec2.onEllipse(pt.r1, pt.r2, pt.pos).rotate(pt.angle).add(this.center)
@@ -59,6 +59,8 @@ class ArcaneTurret extends Turret {
                         ArcaneTurret.orbitColors[i % 4],
                         pt.size - 0.5
                     ))
+                    this.game.spawnParticle(new SparkParticle(enemy.x, enemy.y, ArcaneTurret.orbitColors[i % 4]))
+                    this.game.spawnParticle(new SparkParticle(enemy.x, enemy.y, ArcaneTurret.orbitColors[i % 4]))
                     this.game.spawnParticle(new SparkParticle(enemy.x, enemy.y, ArcaneTurret.orbitColors[i % 4]))
                 }
                 enemy.dealDamage(Infinity)

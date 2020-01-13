@@ -6,22 +6,22 @@ class Button extends Rect implements IGuiItem {
     private _pressed: boolean
 
     enabled: boolean
-    click: ((button: Button) => void) | null
+    onclick: ((button: Button) => void) | null
     game: Game
 
     get pressed(): boolean { return this._pressed && this.enabled }
     
     constructor(game: Game, x: number, y: number, w: number, h: number) {
         super(x, y, w, h)
-        this.click = null
+        this.onclick = null
         this.game = game
         this.enabled = true
         this._pressed = false
     }
 
     protected onClick() {
-        if (this.click) {
-            this.click(this)
+        if (this.onclick) {
+            this.onclick(this)
         }
     }
 

@@ -2,11 +2,13 @@
 
 abstract class LeveledEffect extends Effect {
 
-    strength: number
+    protected _strength: number
+
+    get strength(): number { return this._strength }
 
     constructor(duration: number, strength: number) {
         super(duration)
-        this.strength = Utils.clamp(strength, 1, 4)
+        this._strength = Utils.clamp(strength, 1, 4)
     }
 
     get expired(): boolean { return this.duration <= 0 }
@@ -14,19 +16,19 @@ abstract class LeveledEffect extends Effect {
     protected abstract get effectColor(): RgbaColor
 
     colorize(color: RgbaColor): RgbaColor {
-        return this.duration > 0 ? color.lerp(this.effectColor, this.strength / 20 + 0.15) : color
+        return this.duration > 0 ? color.lerp(this.effectColor, this._strength / 20 + 0.15) : color
     }
 
     protected doMerge(effect: LeveledEffect): void {
-        if (effect.strength > this.strength) {
-            if (this.duration < effect.duration) {
-                this.duration = this.duration + (effect.duration - this.duration) * this.strength / effect.strength
+        if (effect._strength > this._strength) {
+            if (this._duration < effect._duration) {
+                this._duration = this._duration + (effect._duration - this._duration) * this._strength / effect._strength
             }
-            this.strength = effect.strength
-        } else if (effect.strength < this.strength) {
-            this.duration += effect.duration * (1 + this.strength - effect.strength)
+            this._strength = effect._strength
+        } else if (effect._strength < this._strength) {
+            this._duration += effect.duration * (1 + this._strength - effect._strength)
         } else {
-            this.duration = Math.max(this.duration, effect.duration)
+            this._duration = Math.max(this._duration, effect.duration)
         }
     }
 }

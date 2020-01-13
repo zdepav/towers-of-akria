@@ -36,6 +36,36 @@ class FireTurret extends Turret {
         if (this.smokeTimer <= 0) {
             this.spawnSmoke()
         }
+        if (this.ready) {
+            let enemies = this.game.findEnemiesInRange(this.center, this.range)
+            let enemy: Enemy | null = null
+            let bestDistance: number = Infinity
+            let bestDuration: number = Infinity
+            for (const e of enemies) {
+                let effect = e.getEffect(eff => eff instanceof BurningEffect)
+                let distance = this.center.distanceTo(e.pos)
+                let duration = effect ? (effect as BurningEffect).duration : 0
+                if (duration < bestDuration) {
+                    enemy = e
+                    bestDistance = distance
+                    bestDuration = duration
+                } else if (duration == bestDuration && distance < bestDistance) {
+                    enemy = e
+                    bestDistance = distance
+                    bestDuration = duration
+                }
+            }
+            if (enemy) {
+                this.game.spawnProjectile(new FireProjectile(
+                    this.game,
+                    this.center,
+                    enemy,
+                    9 / this.type.fire + 6,
+                    this.type.fire / 2 + 1
+                ))
+                this.cooldown = 1.5 / this.type.count
+            }
+        }
     }
 
     render(ctx: CanvasRenderingContext2D): void {

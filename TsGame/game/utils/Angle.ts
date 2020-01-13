@@ -37,6 +37,24 @@ class Angle {
         return (angle < 0 ? (Angle.deg360 - (-angle) % Angle.deg360) : angle) % Angle.deg360
     }
 
+    static difference(angle1: number, angle2: number): number {
+        angle1 = Angle.wrap(angle1)
+        angle2 = Angle.wrap(angle2)
+        let diff = Math.abs(angle2 - angle1)
+        if (diff <= Angle.deg180) {
+            return angle2 - angle1
+        } else {
+            return Angle.deg360 - angle2 + angle1
+        }
+    }
+
+    static rotateTo(angle: number, targetAngle: number, rotation: number): number {
+        let diff = Angle.difference(angle, targetAngle)
+        if (Math.abs(diff) < rotation) {
+            return targetAngle;
+        } else return Angle.wrap(angle + Math.sign(diff) * rotation)
+    }
+
     static between(angle1: number, angle2: number): number {
         angle1 = Angle.wrap(angle1)
         angle2 = Angle.wrap(angle2)

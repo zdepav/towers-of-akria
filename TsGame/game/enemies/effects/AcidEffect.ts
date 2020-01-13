@@ -11,9 +11,9 @@ class AcidEffect extends LeveledEffect {
     step(time: number): void {
         super.step(time)
         if (this.duration > 0 && this.affectedEnemy !== null) {
-            this.affectedEnemy.corodeArmor(time * 10 * this.strength)
-            this.affectedEnemy.dealDamage(time * 2 * this.strength)
-            if (Math.random() < 0.05) {
+            this.affectedEnemy.corodeArmor(time * 20 * this._strength)
+            this.affectedEnemy.dealDamage(time * 2 * this._strength)
+            if (Math.random() < 0.01) {
                 let v = Vec2.randUnit3d().mul(4)
                 this.affectedEnemy.game.spawnParticle(
                     new BubbleParticle(
@@ -31,7 +31,7 @@ class AcidEffect extends LeveledEffect {
     }
 
     merge(effect: Effect): boolean {
-        if (effect instanceof FreezeEffect) {
+        if (effect instanceof AcidEffect) {
             super.doMerge(effect)
             return true
         } else {

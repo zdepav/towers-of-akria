@@ -9,7 +9,7 @@ class StunEffect extends Effect {
     step(time: number): void {
         super.step(time)
         if (this.duration > 0) {
-            this.affectedEnemy?.addSpeedMultiplier(0)
+            this.affectedEnemy?.addSpeedMultiplier(0.1)
         }
     }
 
@@ -23,7 +23,7 @@ class StunEffect extends Effect {
 
     merge(effect: Effect): boolean {
         if (effect instanceof StunEffect) {
-            this.duration = Math.max(this.duration, effect.duration)
+            this._duration = Math.max(this._duration, effect._duration)
             return true
         } else {
             return false

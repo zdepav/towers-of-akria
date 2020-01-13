@@ -8,7 +8,7 @@ class EnemySet extends ExpirableSet<Enemy> {
         }
     }
 
-    find(point: Vec2, maxDistance: number): Enemy | null {
+    findAny(point: Vec2, maxDistance: number): Enemy | null {
         if (this.count == 0) {
             return null
         }

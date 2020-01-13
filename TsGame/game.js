@@ -305,7 +305,7 @@ class Game {
             }
             case InitializationStatus.Initialized: {
                 let time = new Date().getTime();
-                let timeDiff = (time - this.prevTime) / 1000 * 4;
+                let timeDiff = (time - this.prevTime) / 1000;
                 this.performanceMeter.add(1 / timeDiff);
                 let arcaneTowerCount = 0;
                 for (let x = 0; x < this.mapWidth; ++x) {
@@ -326,6 +326,7 @@ class Game {
                 this.wavePlanner.step(timeDiff);
                 this.enemies.step(timeDiff);
                 this.particles.step(timeDiff);
+                this.projectiles.step(timeDiff);
                 this.prevTime = time;
                 this.time += timeDiff;
                 return;
@@ -456,6 +457,7 @@ class Game {
                 this.enemies.render(ctx);
                 ctx.drawImage(Game.castleImage, this.guiPanels[1].x, this.guiPanels[1].bottom);
                 this.particles.render(ctx);
+                this.projectiles.render(ctx);
                 for (let x = 0; x < this.mapWidth; ++x) {
                     for (let y = 0; y < this.mapHeight; ++y) {
                         this.map[x][y].renderOverlay(ctx);
@@ -481,7 +483,7 @@ class Game {
     spawnParticle(p) { this.particles.add(p); }
     spawnProjectile(p) { this.projectiles.add(p); }
     findEnemy(point, maxDistance) {
-        return this.enemies.find(point, maxDistance);
+        return this.enemies.findAny(point, maxDistance);
     }
     findNearestEnemy(point, maxDistance) {
         return this.enemies.findNearest(point, maxDistance);
@@ -770,12 +772,13 @@ class Expirable {
 class Enemy extends Expirable {
     constructor(game, spawn, hp, armor) {
         super();
-        this.targetTile = spawn;
+        this.targetTile = spawn.next;
         this.currTilePos = spawn.pos.addu(0, Utils.randInt(16, 48));
         this.nextTilePos = Enemy.positionInTile(spawn.next);
         this.relDist = this.currTilePos.distanceTo(this.nextTilePos);
         this.relPos = 0;
         this.speedMultiplier = 1;
+        this.prevSpeedMultiplier = 1;
         this.position = this.currTilePos;
         this.hp = hp;
         this.startHp = hp;
@@ -817,6 +820,7 @@ class Enemy extends Expirable {
             }
             this.position = this.currTilePos.lerp(this.nextTilePos, this.relPos / this.relDist);
         }
+        this.prevSpeedMultiplier = this.speedMultiplier;
         this.speedMultiplier = 1;
     }
     dealDamage(ammount) {
@@ -829,11 +833,18 @@ class Enemy extends Expirable {
         effect.affectedEnemy = this;
         this.effects.add(effect);
     }
+    getEffect(selector) {
+        return this.effects.find(selector);
+    }
     addSpeedMultiplier(mult) {
         this.speedMultiplier *= mult;
     }
     pushBack() {
         this.relPos = 0;
+    }
+    posAhead(timeAhead) {
+        let relPos = this.relPos + this.prevSpeedMultiplier * this.baseSpeed * timeAhead;
+        return this.currTilePos.lerp(this.nextTilePos, relPos / this.relDist);
     }
     static positionInTile(tile) {
         return tile.pos.addu(Utils.randInt(16, 48), Utils.randInt(16, 48));
@@ -854,7 +865,7 @@ class BasicEnemy extends Enemy {
         let r;
         if (this.armor > 0) {
             ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss();
-            r = 5 + Utils.clamp(this.armor / 25, 0, 4);
+            r = 5 + Utils.clamp(this.armor / 100, 0, 4);
             ctx.fillRect(this.x - r, this.y - r, r * 2, r * 2);
         }
         ctx.fillStyle = "#000000";
@@ -910,6 +921,14 @@ class ExpirableSet {
                 ++i;
         }
     }
+    find(selector) {
+        for (const item of this.items) {
+            if (selector(item)) {
+                return item;
+            }
+        }
+        return null;
+    }
 }
 class EnemySet extends ExpirableSet {
     render(ctx) {
@@ -917,7 +936,7 @@ class EnemySet extends ExpirableSet {
             e.render(ctx);
         }
     }
-    find(point, maxDistance) {
+    findAny(point, maxDistance) {
         if (this.count == 0) {
             return null;
         }
@@ -980,37 +999,39 @@ class EnemyWavePlanner {
 class Effect extends Expirable {
     constructor(duration) {
         super();
-        this.duration = duration;
+        this._duration = duration;
         this.affectedEnemy = null;
     }
-    get expired() { return this.duration <= 0; }
+    get duration() { return this._duration; }
+    get expired() { return this._duration <= 0; }
     step(time) {
-        if (this.duration > 0) {
-            this.duration -= time;
+        if (this._duration > 0) {
+            this._duration -= time;
         }
     }
 }
 class LeveledEffect extends Effect {
     constructor(duration, strength) {
         super(duration);
-        this.strength = Utils.clamp(strength, 1, 4);
+        this._strength = Utils.clamp(strength, 1, 4);
     }
+    get strength() { return this._strength; }
     get expired() { return this.duration <= 0; }
     colorize(color) {
-        return this.duration > 0 ? color.lerp(this.effectColor, this.strength / 20 + 0.15) : color;
+        return this.duration > 0 ? color.lerp(this.effectColor, this._strength / 20 + 0.15) : color;
     }
     doMerge(effect) {
-        if (effect.strength > this.strength) {
-            if (this.duration < effect.duration) {
-                this.duration = this.duration + (effect.duration - this.duration) * this.strength / effect.strength;
+        if (effect._strength > this._strength) {
+            if (this._duration < effect._duration) {
+                this._duration = this._duration + (effect._duration - this._duration) * this._strength / effect._strength;
             }
-            this.strength = effect.strength;
+            this._strength = effect._strength;
         }
-        else if (effect.strength < this.strength) {
-            this.duration += effect.duration * (1 + this.strength - effect.strength);
+        else if (effect._strength < this._strength) {
+            this._duration += effect.duration * (1 + this._strength - effect._strength);
         }
         else {
-            this.duration = Math.max(this.duration, effect.duration);
+            this._duration = Math.max(this._duration, effect.duration);
         }
     }
 }
@@ -1022,9 +1043,9 @@ class AcidEffect extends LeveledEffect {
     step(time) {
         super.step(time);
         if (this.duration > 0 && this.affectedEnemy !== null) {
-            this.affectedEnemy.corodeArmor(time * 10 * this.strength);
-            this.affectedEnemy.dealDamage(time * 2 * this.strength);
-            if (Math.random() < 0.05) {
+            this.affectedEnemy.corodeArmor(time * 20 * this._strength);
+            this.affectedEnemy.dealDamage(time * 2 * this._strength);
+            if (Math.random() < 0.01) {
                 let v = Vec2.randUnit3d().mul(4);
                 this.affectedEnemy.game.spawnParticle(new BubbleParticle(this.affectedEnemy.x + v.x, this.affectedEnemy.y + v.y, 0, "#80ff00"));
             }
@@ -1034,7 +1055,7 @@ class AcidEffect extends LeveledEffect {
         return effect instanceof AcidEffect;
     }
     merge(effect) {
-        if (effect instanceof FreezeEffect) {
+        if (effect instanceof AcidEffect) {
             super.doMerge(effect);
             return true;
         }
@@ -1051,14 +1072,14 @@ class BurningEffect extends Effect {
         super.step(time);
         if (this.duration > 0 && this.affectedEnemy !== null) {
             this.affectedEnemy.dealDamage(5 * time);
-            if (Math.random() < 0.05) {
+            if (Math.random() < 0.01) {
                 let v = Vec2.randUnit3d().mul(4);
                 this.affectedEnemy.game.spawnParticle(new SmokeParticle(this.affectedEnemy.x + v.x, this.affectedEnemy.y + v.y, 0));
             }
         }
     }
     colorize(color) {
-        return this.duration > 0 ? color.lerp(RgbaColor.red, 0.25) : color;
+        return this._duration > 0 ? color.lerp(RgbaColor.red, 0.25) : color;
     }
     incompatibleWith(effect) {
         return effect instanceof BurningEffect
@@ -1066,7 +1087,7 @@ class BurningEffect extends Effect {
     }
     merge(effect) {
         if (effect instanceof BurningEffect) {
-            this.duration = Math.max(this.duration, effect.duration);
+            this._duration = Math.max(this._duration, effect._duration);
             return true;
         }
         else {
@@ -1078,15 +1099,17 @@ class EffectSet extends ExpirableSet {
     add(effect) {
         if (this.count > 0) {
             let j = this.count;
-            for (let i = 0; i < j; ++i) {
+            for (let i = 0; i < j;) {
                 let item = this.items[i];
                 if (effect.merge(item) || effect.incompatibleWith(item)) {
                     --j;
                     if (i < j) {
                         this.items[i] = this.items[j];
-                        this.items.pop();
                     }
+                    this.items.pop();
                 }
+                else
+                    ++i;
             }
         }
         super.add(effect);
@@ -1107,7 +1130,7 @@ class FreezeEffect extends LeveledEffect {
         var _a;
         super.step(time);
         if (this.duration > 0) {
-            (_a = this.affectedEnemy) === null || _a === void 0 ? void 0 : _a.addSpeedMultiplier((10 - this.strength * 1.5) / 10);
+            (_a = this.affectedEnemy) === null || _a === void 0 ? void 0 : _a.addSpeedMultiplier((10 - this._strength * 1.5) / 10);
         }
     }
     incompatibleWith(effect) {
@@ -1131,7 +1154,7 @@ class StunEffect extends Effect {
         var _a;
         super.step(time);
         if (this.duration > 0) {
-            (_a = this.affectedEnemy) === null || _a === void 0 ? void 0 : _a.addSpeedMultiplier(0);
+            (_a = this.affectedEnemy) === null || _a === void 0 ? void 0 : _a.addSpeedMultiplier(0.1);
         }
     }
     colorize(color) {
@@ -1142,7 +1165,7 @@ class StunEffect extends Effect {
     }
     merge(effect) {
         if (effect instanceof StunEffect) {
-            this.duration = Math.max(this.duration, effect.duration);
+            this._duration = Math.max(this._duration, effect._duration);
             return true;
         }
         else {
@@ -1158,11 +1181,11 @@ class WetEffect extends LeveledEffect {
     step(time) {
         super.step(time);
         if (this.duration > 0 && this.affectedEnemy !== null) {
-            if (this.strength > 2) {
-                this.affectedEnemy.corodeArmor(time * 5 * (this.strength - 2));
+            if (this._strength > 2) {
+                this.affectedEnemy.corodeArmor(time * 5 * (this._strength - 2));
             }
-            this.affectedEnemy.addSpeedMultiplier((10 - this.strength * 2) / 10);
-            if (Math.random() < 0.05) {
+            this.affectedEnemy.addSpeedMultiplier((10 - this._strength * 2) / 10);
+            if (Math.random() < 0.01) {
                 let v = Vec2.randUnit3d().mul(4);
                 this.affectedEnemy.game.spawnParticle(new BubbleParticle(this.affectedEnemy.x + v.x, this.affectedEnemy.y + v.y, 0, "#0080ff"));
             }
@@ -1983,15 +2006,15 @@ class Rect {
 class Button extends Rect {
     constructor(game, x, y, w, h) {
         super(x, y, w, h);
-        this.click = null;
+        this.onclick = null;
         this.game = game;
         this.enabled = true;
         this._pressed = false;
     }
     get pressed() { return this._pressed && this.enabled; }
     onClick() {
-        if (this.click) {
-            this.click(this);
+        if (this.onclick) {
+            this.onclick(this);
         }
     }
     step(time) { }
@@ -2134,8 +2157,33 @@ class BubbleParticle extends Particle {
         ctx.strokeStyle = this.rgb + Utils.byteToHex(255 * (1 - this.life));
         ctx.lineWidth = this.life * 2;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.startSize + this.life * 7, 0, Angle.deg360);
+        ctx.arc(this.x, this.y, this.startSize + this.life * 5, 0, Angle.deg360);
         ctx.stroke();
+    }
+}
+class ExplosionParticle extends Particle {
+    constructor(x, y) {
+        super();
+        this.x = x;
+        this.y = y;
+        this.life = 1;
+        let green = Utils.randInt(64, 224);
+        let g = Utils.byteToHex(green);
+        this.rgb = `#ff${g}00`;
+    }
+    get expired() { return this.life < 1; }
+    step(time) {
+        this.life -= time;
+    }
+    render(ctx) {
+        if (this.life < 0) {
+            return;
+        }
+        let r = (1 - this.life) * 6 + 2;
+        ctx.fillStyle = this.rgb + Utils.byteToHex(255 * this.life);
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r, 0, Angle.deg360);
+        ctx.fill();
     }
 }
 class LineParticle extends Particle {
@@ -2262,6 +2310,9 @@ class SparkParticle extends Particle {
         this.vx = v.x;
         this.vy = v.y;
         this.life = 0;
+        if (!/#[0-9a-f]{6}/i.test(color)) {
+            throw new Error("Color format not supported");
+        }
         this.color = color + "40";
     }
     get expired() { return this.life >= 1; }
@@ -2302,6 +2353,34 @@ class TileMarkParticle extends Particle {
         ctx.fillRect(pos.x, pos.y, 4, 4);
     }
 }
+class TrailParticle extends Particle {
+    constructor(x, y, color) {
+        super();
+        this.x = x;
+        this.y = y;
+        let v = Vec2.randUnit3d();
+        this.vx = v.x * 3;
+        this.vy = v.y * 3;
+        this.life = 0;
+        if (!/#[0-9a-f]{6}/i.test(color)) {
+            throw new Error("Color format not supported");
+        }
+        this.color = color;
+    }
+    get expired() { return this.life >= 1; }
+    step(time) {
+        this.life += time * 4;
+    }
+    render(ctx) {
+        if (this.life >= 1) {
+            return;
+        }
+        ctx.fillStyle = this.color + Utils.byteToHex(255 * (1 - this.life));
+        ctx.beginPath();
+        ctx.arc(this.x + this.life * this.vx, this.y + this.life * this.vy, (1 - this.life) * 3, 0, Angle.deg360);
+        ctx.fill();
+    }
+}
 class WindParticle extends Particle {
     constructor(x, y) {
         super();
@@ -2326,6 +2405,151 @@ class WindParticle extends Particle {
     }
 }
 class Projectile extends Expirable {
+    constructor(game) {
+        super();
+        this.game = game;
+    }
+}
+class GuidedProjectile extends Projectile {
+    constructor(game, position, target, speed) {
+        super(game);
+        this.relPos = 0;
+        this._expired = false;
+        this.startPosition = position;
+        this.position = position;
+        this.target = target.pos;
+        this.targetEnemy = target;
+        this.speed = speed;
+    }
+    get expired() { return this._expired; }
+    step(time) {
+        if (this._expired) {
+            return;
+        }
+        if (!this.targetEnemy.expired) {
+            this.target = this.targetEnemy.pos;
+        }
+        this.relPos += time * this.speed;
+        let direction = this.target.sub(this.startPosition);
+        let distance = direction.length;
+        if (this.relPos >= distance) {
+            if (this.onhit && !this.targetEnemy.expired) {
+                this.onhit(this.targetEnemy);
+            }
+            this._expired = true;
+            return;
+        }
+        this.position = this.target.sub(this.startPosition)
+            .mul(this.relPos / distance)
+            .add(this.startPosition);
+    }
+}
+class AcidProjectile extends GuidedProjectile {
+    constructor(game, position, target, strength) {
+        super(game, position, target, 150);
+        this.onhit = enemy => {
+            enemy.dealDamage(4);
+            enemy.addEffect(new AcidEffect(2, strength));
+        };
+    }
+    step(time) {
+        if (this.expired) {
+            return;
+        }
+        super.step(time);
+        this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#d0ff00"));
+    }
+    render(ctx) { }
+}
+class ThrownProjectile extends Projectile {
+    constructor(game, position, target, speed) {
+        super(game);
+        this.relPos = 0;
+        this._expired = false;
+        this.startPosition = position;
+        this.position = position;
+        this.target = target;
+        this.speed = speed;
+    }
+    get expired() { return this._expired; }
+    step(time) {
+        if (this._expired) {
+            return;
+        }
+        this.relPos += time * this.speed;
+        let direction = this.target.sub(this.startPosition);
+        let distance = direction.length;
+        if (this.relPos >= distance) {
+            if (this.onhit) {
+                this.onhit(this.target);
+            }
+            this._expired = true;
+            return;
+        }
+        this.position = this.target.sub(this.startPosition)
+            .mul(this.relPos / distance)
+            .add(this.startPosition);
+    }
+}
+class EarthProjectile extends ThrownProjectile {
+    constructor(game, position, target, damage) {
+        super(game, position, target.posAhead(target.pos.distanceTo(position) / 300)
+            .add(Vec2.randUnit3d().mul(6)), 300);
+        this.angle = Angle.rand();
+        this.onhit = pos => {
+            let enemy = this.game.findEnemy(pos, 5);
+            if (enemy) {
+                enemy.dealDamage(damage);
+                if (damage > 14 && Math.random() < (damage - 12.5) * 0.04) {
+                    enemy.addEffect(new StunEffect(0.5));
+                }
+            }
+            else {
+                this.game.spawnParticle(new SmokeParticle(pos.x, pos.y, 5));
+            }
+        };
+    }
+    step(time) {
+        if (this.expired) {
+            return;
+        }
+        super.step(time);
+    }
+    render(ctx) {
+        ctx.fillStyle = "#C0C0C0";
+        ctx.beginPath();
+        ctx.ellipse(this.position.x, this.position.y, 4, 2, this.angle, 0, Angle.deg360);
+        ctx.fill();
+    }
+}
+class FireProjectile extends GuidedProjectile {
+    constructor(game, position, target, damage, duration) {
+        super(game, position, target, 150);
+        this.onhit = enemy => {
+            enemy.dealDamage(damage);
+            enemy.addEffect(new BurningEffect(duration));
+        };
+    }
+    step(time) {
+        if (this.expired) {
+            return;
+        }
+        super.step(time);
+        let r = Math.random();
+        if (r < 0.27) {
+            this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#ff8000"));
+        }
+        else if (r < 0.54) {
+            this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#ff2000"));
+        }
+        else if (r < 0.81) {
+            this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#d00000"));
+        }
+        else {
+            this.game.spawnParticle(new SmokeParticle(this.position.x, this.position.y, 1));
+        }
+    }
+    render(ctx) { }
 }
 class ProjectileSet extends ExpirableSet {
     render(ctx) {
@@ -2433,6 +2657,43 @@ class AcidTurret extends Turret {
     step(time) {
         super.step(time);
         this.frame = (this.frame + time * 25) % AcidTurret.frameCount;
+        if (this.ready) {
+            let enemies = this.game.findEnemiesInRange(this.center, this.range);
+            let enemy = null;
+            let bestDistance = Infinity;
+            let bestStrength = Infinity;
+            let bestDuration = Infinity;
+            for (const e of enemies) {
+                let effect = e.getEffect(eff => eff instanceof AcidEffect);
+                let distance = this.center.distanceTo(e.pos);
+                let strength = effect ? effect.strength : 0;
+                let duration = effect ? effect.duration : 0;
+                if (strength < bestStrength) {
+                    enemy = e;
+                    bestDistance = distance;
+                    bestStrength = strength;
+                    bestDuration = duration;
+                }
+                else if (strength == bestStrength) {
+                    if (duration < bestDuration) {
+                        enemy = e;
+                        bestDistance = distance;
+                        bestStrength = strength;
+                        bestDuration = duration;
+                    }
+                    else if (duration == bestDuration && distance < bestDistance) {
+                        enemy = e;
+                        bestDistance = distance;
+                        bestStrength = strength;
+                        bestDuration = duration;
+                    }
+                }
+            }
+            if (enemy) {
+                this.game.spawnProjectile(new AcidProjectile(this.game, this.center, enemy, this.type.count));
+                this.cooldown = 1 / this.type.count;
+            }
+        }
     }
     render(ctx) {
         super.render(ctx);
@@ -2549,9 +2810,7 @@ class AcidTurret extends Turret {
             ctx.rotate(Angle.deg90);
             ctx.drawImage(ca.image, 12, -4 - i);
             ctx.resetTransform();
-            pattern = ctx.createPattern(texture, "repeat");
-            pattern.setTransform(svg.createSVGMatrix().translate(offset, offset));
-            ctx.fillStyle = pattern;
+            ctx.fillStyle = ctx.createPattern(texture, "repeat");
             ctx.beginPath();
             ctx.arc(24, 24, 6 + i, 0, Angle.deg360);
             ctx.closePath();
@@ -2737,11 +2996,13 @@ class ArcaneTurret extends Turret {
         }
         if (this.ready) {
             let enemy = this.game.findEnemy(this.center, this.range);
-            if (enemy !== null) {
+            if (enemy) {
                 for (let i = 0; i < ArcaneTurret.orbitCount; ++i) {
                     let pt = this.orbits[i];
                     let v = Vec2.onEllipse(pt.r1, pt.r2, pt.pos).rotate(pt.angle).add(this.center);
                     this.game.spawnParticle(new LineParticle(v.x, v.y, enemy.x, enemy.y, pt.size / 2.5, ArcaneTurret.orbitColors[i % 4], pt.size - 0.5));
+                    this.game.spawnParticle(new SparkParticle(enemy.x, enemy.y, ArcaneTurret.orbitColors[i % 4]));
+                    this.game.spawnParticle(new SparkParticle(enemy.x, enemy.y, ArcaneTurret.orbitColors[i % 4]));
                     this.game.spawnParticle(new SparkParticle(enemy.x, enemy.y, ArcaneTurret.orbitColors[i % 4]));
                 }
                 enemy.dealDamage(Infinity);
@@ -2916,10 +3177,38 @@ class CannonTurret extends Turret {
         super(tile, type);
         this.angle = Angle.rand();
     }
+    get range() { return 96 + this.type.count * 16; }
+    createExplosionAt(pos) {
+        let r = 17 + this.type.count * 3;
+        for (let i = 0, c = 9 + this.type.count; i < c; ++i) {
+            let p = Vec2.randUnit3d().mul(r).add(pos);
+            this.game.spawnParticle(new ExplosionParticle(p.x, p.y));
+        }
+        for (let i = 0, c = 9 + this.type.count * 2; i < c; ++i) {
+            let p = Vec2.randUnit3d().mul(r).add(pos);
+            this.game.spawnParticle(new SmokeParticle(p.x, p.y, Math.random() * 2));
+        }
+        for (const enemy of this.game.findEnemiesInRange(pos, r)) {
+            enemy.dealDamage(10 * this.type.earth + 5 * this.type.fire - 5);
+            if (Math.random() < (this.type.fire - 1) / 4) {
+                enemy.addEffect(new BurningEffect(2));
+            }
+        }
+    }
     step(time) {
         super.step(time);
-        if (this.cooldown <= 0) {
-            this.cooldown = 2;
+        let enemy = this.game.findNearestEnemy(this.center, this.range);
+        if (enemy) {
+            let a = this.center.angleTo(enemy.pos);
+            this.angle = Angle.rotateTo(this.angle, a, Angle.deg120 * time);
+            if (this.ready) {
+                let d = this.center.distanceTo(enemy.pos);
+                let t = Utils.ld(d, this.angle, this.center.x, this.center.y);
+                if (t.distanceTo(enemy.pos) < 16) {
+                    this.createExplosionAt(t);
+                    this.cooldown = 2;
+                }
+            }
         }
     }
     render(ctx) {
@@ -2927,7 +3216,7 @@ class CannonTurret extends Turret {
         let r = 12 + this.type.count;
         ctx.translate(this.center.x, this.center.y);
         ctx.rotate(this.angle);
-        ctx.translate(-2 * this.cooldown, 0);
+        ctx.translate(-3 * this.cooldown, 0);
         ctx.drawImage(CannonTurret.image, -r * 2, -r, r * 4, r * 2);
         ctx.resetTransform();
     }
@@ -2952,8 +3241,47 @@ class CannonTurret extends Turret {
                 break;
         }
     }
+    static getInfo(type) {
+        return new TurretInfo(CannonTurret.turretName, CannonTurret.turretDescription, 96 + type.count * 16, `${10 * type.earth + 5 * type.fire - 5}${type.fire > 1 ? " + burning" : ""}`);
+    }
+    getCurrentInfo() { return FireTurret.getInfo(this.type); }
+    getInfoAfterUpgrade(type) {
+        if (this.type.count >= 4) {
+            return undefined;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                return SunTurret.getInfo(this.type.with(type));
+            case TurretElement.Earth:
+                return CannonTurret.getInfo(this.type.with(type));
+            case TurretElement.Fire:
+                return CannonTurret.getInfo(this.type.with(type));
+            case TurretElement.Water:
+                return EarthquakeTurret.getInfo(this.type.with(type));
+        }
+    }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        if (this.type.count >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                SunTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                CannonTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                CannonTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                EarthquakeTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+        }
+    }
     static init() {
-        return Utils.getImageFromCache("td_tower_aEFw_cannon").then(tex => { CannonTurret.image = tex; }, () => new Promise(resolve => {
+        return Utils.getImageFromCache("td_tower_aEFw_cannon")
+            .then(tex => { CannonTurret.image = tex; }, () => new Promise(resolve => {
             let c = new PreRenderedImage(64, 32);
             let ctx = c.ctx;
             let grad = ctx.createLinearGradient(20, 16, 40, 16);
@@ -2992,6 +3320,8 @@ class CannonTurret extends Turret {
         }));
     }
 }
+CannonTurret.turretName = "Cannon Tower";
+CannonTurret.turretDescription = "Fires explosives, possibly hitting multiple enemies at once";
 class EarthTurret extends Turret {
     constructor(tile, type) {
         super(tile, type);
@@ -2999,6 +3329,13 @@ class EarthTurret extends Turret {
     get range() { return 128 + this.type.earth * 16; }
     step(time) {
         super.step(time);
+        if (this.ready) {
+            let enemy = this.game.findNearestEnemy(this.center, this.range);
+            if (enemy) {
+                this.game.spawnProjectile(new EarthProjectile(this.game, this.center, enemy, 15 + this.type.earth * 5));
+                this.cooldown = 0.5;
+            }
+        }
     }
     render(ctx) {
         super.render(ctx);
@@ -3344,6 +3681,31 @@ class FireTurret extends Turret {
         this.smokeTimer -= time;
         if (this.smokeTimer <= 0) {
             this.spawnSmoke();
+        }
+        if (this.ready) {
+            let enemies = this.game.findEnemiesInRange(this.center, this.range);
+            let enemy = null;
+            let bestDistance = Infinity;
+            let bestDuration = Infinity;
+            for (const e of enemies) {
+                let effect = e.getEffect(eff => eff instanceof BurningEffect);
+                let distance = this.center.distanceTo(e.pos);
+                let duration = effect ? effect.duration : 0;
+                if (duration < bestDuration) {
+                    enemy = e;
+                    bestDistance = distance;
+                    bestDuration = duration;
+                }
+                else if (duration == bestDuration && distance < bestDistance) {
+                    enemy = e;
+                    bestDistance = distance;
+                    bestDuration = duration;
+                }
+            }
+            if (enemy) {
+                this.game.spawnProjectile(new FireProjectile(this.game, this.center, enemy, 9 / this.type.fire + 6, this.type.fire / 2 + 1));
+                this.cooldown = 1.5 / this.type.count;
+            }
         }
     }
     render(ctx) {
@@ -4317,6 +4679,25 @@ class Angle {
     static wrap(angle) {
         return (angle < 0 ? (Angle.deg360 - (-angle) % Angle.deg360) : angle) % Angle.deg360;
     }
+    static difference(angle1, angle2) {
+        angle1 = Angle.wrap(angle1);
+        angle2 = Angle.wrap(angle2);
+        let diff = Math.abs(angle2 - angle1);
+        if (diff <= Angle.deg180) {
+            return angle2 - angle1;
+        }
+        else {
+            return Angle.deg360 - angle2 + angle1;
+        }
+    }
+    static rotateTo(angle, targetAngle, rotation) {
+        let diff = Angle.difference(angle, targetAngle);
+        if (Math.abs(diff) < rotation) {
+            return targetAngle;
+        }
+        else
+            return Angle.wrap(angle + Math.sign(diff) * rotation);
+    }
     static between(angle1, angle2) {
         angle1 = Angle.wrap(angle1);
         angle2 = Angle.wrap(angle2);
@@ -4664,6 +5045,10 @@ class Vec2 {
     }
     normalize() {
         let m = 1 / this.length;
+        return new Vec2(this.x * m, this.y * m);
+    }
+    toLength(length) {
+        let m = length / this.length;
         return new Vec2(this.x * m, this.y * m);
     }
     normal() {

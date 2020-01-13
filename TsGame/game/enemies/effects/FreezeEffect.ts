@@ -11,7 +11,7 @@ class FreezeEffect extends LeveledEffect {
     step(time: number): void {
         super.step(time)
         if (this.duration > 0) {
-            this.affectedEnemy?.addSpeedMultiplier((10 - this.strength * 1.5) / 10)
+            this.affectedEnemy?.addSpeedMultiplier((10 - this._strength * 1.5) / 10)
         }
     }
 

@@ -81,6 +81,11 @@ class Vec2 {
         return new Vec2(this.x * m, this.y * m)
     }
 
+    toLength(length: number): Vec2 {
+        let m = length / this.length
+        return new Vec2(this.x * m, this.y * m)
+    }
+
     normal(): Vec2 {
         return new Vec2(this.y, -this.x)
     }

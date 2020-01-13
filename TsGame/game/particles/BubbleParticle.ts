@@ -33,7 +33,7 @@ class BubbleParticle extends Particle {
         ctx.strokeStyle = this.rgb + Utils.byteToHex(255 * (1 - this.life))
         ctx.lineWidth = this.life * 2
         ctx.beginPath()
-        ctx.arc(this.x, this.y, this.startSize + this.life * 7, 0, Angle.deg360)
+        ctx.arc(this.x, this.y, this.startSize + this.life * 5, 0, Angle.deg360)
         ctx.stroke()
     }
 }

@@ -356,6 +356,7 @@ class Game {
                 this.wavePlanner.step(timeDiff)
                 this.enemies.step(timeDiff)
                 this.particles.step(timeDiff)
+                this.projectiles.step(timeDiff)
                 this.prevTime = time
                 this.time += timeDiff
                 return
@@ -502,6 +503,7 @@ class Game {
                 this.enemies.render(ctx)
                 ctx.drawImage(Game.castleImage, this.guiPanels[1].x, this.guiPanels[1].bottom)
                 this.particles.render(ctx)
+                this.projectiles.render(ctx)
                 for (let x = 0; x < this.mapWidth; ++x) {
                     for (let y = 0; y < this.mapHeight; ++y) {
                         this.map[x][y].renderOverlay(ctx)
@@ -531,7 +533,7 @@ class Game {
     spawnProjectile(p: Projectile) { this.projectiles.add(p) }
 
     findEnemy(point: Vec2, maxDistance: number): Enemy | null {
-        return this.enemies.find(point, maxDistance)
+        return this.enemies.findAny(point, maxDistance)
     }
 
     findNearestEnemy(point: Vec2, maxDistance: number): Enemy | null {

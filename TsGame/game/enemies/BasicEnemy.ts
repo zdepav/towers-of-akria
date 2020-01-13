@@ -23,7 +23,7 @@ class BasicEnemy extends Enemy {
         let r: number
         if (this.armor > 0) {
             ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss()
-            r = 5 + Utils.clamp(this.armor / 25, 0, 4)
+            r = 5 + Utils.clamp(this.armor / 100, 0, 4)
             ctx.fillRect(this.x - r, this.y - r, r * 2, r * 2)
         }
         ctx.fillStyle = "#000000"

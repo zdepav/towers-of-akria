@@ -11,11 +11,11 @@ class WetEffect extends LeveledEffect {
     step(time: number): void {
         super.step(time)
         if (this.duration > 0 && this.affectedEnemy !== null) {
-            if (this.strength > 2) {
-                this.affectedEnemy.corodeArmor(time * 5 * (this.strength - 2))
+            if (this._strength > 2) {
+                this.affectedEnemy.corodeArmor(time * 5 * (this._strength - 2))
             }
-            this.affectedEnemy.addSpeedMultiplier((10 - this.strength * 2) / 10)
-            if (Math.random() < 0.05) {
+            this.affectedEnemy.addSpeedMultiplier((10 - this._strength * 2) / 10)
+            if (Math.random() < 0.01) {
                 let v = Vec2.randUnit3d().mul(4)
                 this.affectedEnemy.game.spawnParticle(
                     new BubbleParticle(

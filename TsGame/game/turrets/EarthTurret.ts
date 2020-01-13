@@ -15,6 +15,13 @@ class EarthTurret extends Turret {
 
     step(time: number): void {
         super.step(time)
+        if (this.ready) {
+            let enemy = this.game.findNearestEnemy(this.center, this.range)
+            if (enemy) {
+                this.game.spawnProjectile(new EarthProjectile(this.game, this.center, enemy, 15 + this.type.earth * 5))
+                this.cooldown = 0.5
+            }
+        }
     }
 
     render(ctx: CanvasRenderingContext2D): void {

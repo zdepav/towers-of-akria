@@ -2,21 +2,23 @@
 
 abstract class Effect extends Expirable {
 
-    protected duration: number
+    protected _duration: number
 
     affectedEnemy: Enemy | null
 
-    get expired(): boolean { return this.duration <= 0 }
+    get duration(): number { return this._duration }
+
+    get expired(): boolean { return this._duration <= 0 }
 
     constructor(duration: number) {
         super()
-        this.duration = duration
+        this._duration = duration
         this.affectedEnemy = null
     }
 
     step(time: number): void {
-        if (this.duration > 0) {
-            this.duration -= time
+        if (this._duration > 0) {
+            this._duration -= time
         }
     }
 

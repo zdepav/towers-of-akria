@@ -157,13 +157,13 @@ class Utils {
             let word = words[i]
             let size = ctx.measureText(`${currentLine} ${word}`)
             if (size.width < maxWidth) {
-                currentLine += " " + word;
+                currentLine += " " + word
             } else {
-                lines.push(currentLine);
-                currentLine = word;
+                lines.push(currentLine)
+                currentLine = word
             }
         }
-        lines.push(currentLine);
+        lines.push(currentLine)
         for (const line of lines) {
             ctx.fillText(line, x, y)
             y += lineHeight

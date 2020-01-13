@@ -9,6 +9,7 @@ abstract class Enemy extends Expirable {
     private relDist: number
     private position: Vec2
     private speedMultiplier: number
+    private prevSpeedMultiplier: number
 
     protected hp: number
     protected startHp: number
@@ -31,12 +32,13 @@ abstract class Enemy extends Expirable {
 
     constructor(game: Game, spawn: Tile, hp: number, armor: number) {
         super()
-        this.targetTile = spawn
+        this.targetTile = spawn.next
         this.currTilePos = spawn.pos.addu(0, Utils.randInt(16, 48))
         this.nextTilePos = Enemy.positionInTile(spawn.next as Tile)
         this.relDist = this.currTilePos.distanceTo(this.nextTilePos)
         this.relPos = 0
         this.speedMultiplier = 1
+        this.prevSpeedMultiplier = 1
         this.position = this.currTilePos
         this.hp = hp
         this.startHp = hp
@@ -72,6 +74,7 @@ abstract class Enemy extends Expirable {
             }
             this.position = this.currTilePos.lerp(this.nextTilePos, this.relPos / this.relDist)
         }
+        this.prevSpeedMultiplier = this.speedMultiplier
         this.speedMultiplier = 1
     }
 
@@ -90,12 +93,21 @@ abstract class Enemy extends Expirable {
         this.effects.add(effect)
     }
 
+    getEffect(selector: (effect: Effect) => boolean): Effect | null {
+        return this.effects.find(selector)
+    }
+
     addSpeedMultiplier(mult: number): void {
         this.speedMultiplier *= mult
     }
 
     pushBack(): void {
         this.relPos  = 0
+    }
+
+    posAhead(timeAhead: number): Vec2 {
+        let relPos = this.relPos + this.prevSpeedMultiplier * this.baseSpeed * timeAhead
+        return this.currTilePos.lerp(this.nextTilePos, relPos / this.relDist)
     }
 
     private static positionInTile(tile: Tile): Vec2 {

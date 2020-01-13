@@ -10,7 +10,7 @@ class BurningEffect extends Effect {
         super.step(time)
         if (this.duration > 0 && this.affectedEnemy !== null) {
             this.affectedEnemy.dealDamage(5 * time)
-            if (Math.random() < 0.05) {
+            if (Math.random() < 0.01) {
                 let v = Vec2.randUnit3d().mul(4)
                 this.affectedEnemy.game.spawnParticle(
                     new SmokeParticle(
@@ -24,7 +24,7 @@ class BurningEffect extends Effect {
     }
 
     colorize(color: RgbaColor): RgbaColor {
-        return this.duration > 0 ? color.lerp(RgbaColor.red, 0.25) : color
+        return this._duration > 0 ? color.lerp(RgbaColor.red, 0.25) : color
     }
 
     incompatibleWith(effect: Effect): boolean {
@@ -34,7 +34,7 @@ class BurningEffect extends Effect {
 
     merge(effect: Effect): boolean {
         if (effect instanceof BurningEffect) {
-            this.duration = Math.max(this.duration, effect.duration)
+            this._duration = Math.max(this._duration, effect._duration)
             return true
         } else {
             return false

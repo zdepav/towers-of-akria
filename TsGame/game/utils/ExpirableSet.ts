@@ -45,4 +45,13 @@ class ExpirableSet<T extends Expirable> {
             } else ++i
         }
     }
+
+    find(selector: (item: T) => boolean): T | null {
+        for (const item of this.items) {
+            if (selector(item)) {
+                return item
+            }
+        }
+        return null
+    }
 }
