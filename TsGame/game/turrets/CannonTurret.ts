@@ -26,7 +26,7 @@ class CannonTurret extends Turret {
             let p = Vec2.randUnit3d().mul(r).add(pos)
             this.game.spawnParticle(new SmokeParticle(p.x, p.y, Math.random() * 2))
         }
-        r = 20 + this.type.count * 4
+        r = 24 + this.type.count * 4
         for (const enemy of this.game.findEnemiesInRange(pos, r)) {
             enemy.dealDamage(20 * this.type.earth + 10 * this.type.fire - 10)
             if (Math.random() < (this.type.fire - 1) / 4) {
@@ -42,7 +42,7 @@ class CannonTurret extends Turret {
         let closestAngle = Infinity
         for (const e of enemies) {
             let a = this.center.angleTo(e.pos)
-            let diff = Angle.absDifference(this.angle, a)
+            let diff = Angle.toDegrees(Angle.absDifference(this.angle, a)) + this.center.distanceTo(e.pos)
             if (diff < closestAngle) {
                 enemy = e
                 closestAngle = diff

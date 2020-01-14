@@ -9,6 +9,7 @@ class RgbaColor {
     static cyan: RgbaColor
     static magenta: RgbaColor
     static white: RgbaColor
+    static gray: RgbaColor
 
     r: number
     g: number
@@ -159,6 +160,7 @@ class RgbaColor {
             RgbaColor.cyan = new RgbaColor(0, 255, 255)
             RgbaColor.magenta = new RgbaColor(255, 0, 255)
             RgbaColor.white = new RgbaColor(255, 255, 255)
+            RgbaColor.gray = new RgbaColor(128, 128, 128)
             resolve()
         })
     }

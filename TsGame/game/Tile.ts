@@ -109,9 +109,9 @@ class Tile {
 
     renderOverlay(ctx: CanvasRenderingContext2D): void {
         if (this.type === TileType.Tower && this.turret != null) {
-            var elems = this.turret.getType().toColorArray()
-            var x = this.pos.x + 2
-            var y = this.pos.y + 2
+            let elems = this.turret.getType().toColorArray()
+            let x = this.pos.x + 2
+            let y = this.pos.y + 2
             for (const c of elems) {
                 ctx.fillStyle = c
                 ctx.fillRect(x, y, 4, 4)

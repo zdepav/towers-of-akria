@@ -99,6 +99,7 @@
     <TypeScriptCompile Include="game\enemies\EnemyWavePlanner.ts" />
     <TypeScriptCompile Include="game\generators\combinations\AddingSource.ts" />
     <TypeScriptCompile Include="game\generators\AntialiasedSource.ts" />
+    <TypeScriptCompile Include="game\generators\shapes\RoofTilesSource.ts" />
     <TypeScriptCompile Include="game\generators\textures\BarkTextureGenerator.ts" />
     <TypeScriptCompile Include="game\generators\combinations\BlendingSource.ts" />
     <TypeScriptCompile Include="game\generators\BufferedColorSource.ts" />

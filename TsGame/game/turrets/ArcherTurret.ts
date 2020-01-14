@@ -2,14 +2,17 @@
 
 class ArcherTurret extends Turret {
 
-    private static image: CanvasImageSource
+    private static images: CanvasImageSource
     private static turretName = "Archer Tower"
     private static turretDescription = "Precise tower with long range and decent damage"
 
-    get range(): number { return 32 + this.type.count * 64 }
+    private angle: number
+
+    get range(): number { return 80 + this.type.air * 64 + this.type.earth * 16 }
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
+        this.angle = Angle.rand()
     }
 
     step(time: number): void {
@@ -19,11 +22,15 @@ class ArcherTurret extends Turret {
 
     render(ctx: CanvasRenderingContext2D): void {
         super.render(ctx)
-        ctx.drawImage(ArcherTurret.image, this.tile.pos.x, this.tile.pos.y)
+        ctx.translate(this.center.x, this.center.y)
+        ctx.rotate(this.angle)
+        ctx.drawImage(ArcherTurret.images, 0, (this.type.count - 2) * 48, 48, 48, -24, -24, 48, 48)
+        ctx.resetTransform()
     }
 
     static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
-        ctx.drawImage(ArcherTurret.image, x, y)
+        ctx.drawImage(ArcherTurret.images, x, y)
+        ctx.drawImage(ArcherTurret.images, 0, (type.count - 2) * 48, 48, 48, x, y, 48, 48)
     }
 
     addType(type: TurretElement): void {
@@ -90,10 +97,27 @@ class ArcherTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_AEfw_archer").then(tex => { ArcherTurret.image = tex; }, () => new Promise<void>(resolve => {
-            let c = new PreRenderedImage(64, 64)
+        return Utils.getImageFromCache("td_tower_AEfw_archer").then(tex => { ArcherTurret.images = tex; }, () => new Promise<void>(resolve => {
+            let c = new PreRenderedImage(48, 144)
+            let argSets = [
+                {h: 10, y: 0, s: 0.7},
+                {h: 11, y: 48, s: 0.85},
+                {h: 12, y: 96, s: 1},
+            ]
+            let noise = new NoiseTextureGenerator(48, 48, "#E0D2B3", 0.125, 0, 1)
+            for (const args of argSets) {
+                let src: ColorSource = new RoofTilesSource(48, 48, args.h, 3, noise, "#706859", RgbaColor.transparent)
+                src = new PolarSource(48, 48, src)
+                if (args.s < 1) {
+                    src = new ScalingSource(48, 48, src, args.s, 24, 24)
+                }
+                src = new CircleSource(48, 48, 24, 24, 23 * args.s, src, RgbaColor.transparent)
+                src = new FisheyeSource(48, 48, src, 0.5, 24, 24, 24)
+                src = new AntialiasedSource(48, 48, src)
+                src.generateInto(c.ctx, 0, args.y)
+            }
             c.cacheImage("td_tower_AEfw_archer")
-            ArcherTurret.image = c.image
+            ArcherTurret.images = c.image
             resolve()
         }))
     }

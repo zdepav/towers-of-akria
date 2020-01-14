@@ -37,6 +37,7 @@ class Game {
     private arcaneTowerCount: number
     private time: number
     private upgradeButtons: TurretUpgradeButton[]
+    private rangeMarkerRotation: number
 
     private get hoveredTile(): Tile | null {
         return this.hoveredTilePos !== null ? this.map[this.hoveredTilePos.x][this.hoveredTilePos.y] : null
@@ -89,6 +90,7 @@ class Game {
             this.upgradeButtons.push(button)
             this.guiPanels[2].addItem(button)
         }
+        this.rangeMarkerRotation = 0
     }
 
     init(): Promise<void> {
@@ -357,6 +359,7 @@ class Game {
                 this.enemies.step(timeDiff)
                 this.particles.step(timeDiff)
                 this.projectiles.step(timeDiff)
+                this.rangeMarkerRotation += timeDiff * Angle.deg60
                 this.prevTime = time
                 this.time += timeDiff
                 return
@@ -509,6 +512,27 @@ class Game {
                         this.map[x][y].renderOverlay(ctx)
                     }
                 }
+                if (this.selectedTile && this.selectedTile.turret) {
+                    let range = this.selectedTile.turret.range
+                    let {x, y} = this.selectedTile.pos.addu(32, 32)
+                    let rot = this.rangeMarkerRotation
+                    ctx.beginPath()
+                    ctx.arc(x, y, range, 0, Angle.deg360)
+                    ctx.strokeStyle = "#00000060"
+                    ctx.lineWidth = 2
+                    ctx.stroke()
+                    ctx.beginPath()
+                    for (let k = 0; k < 2; ++k) {
+                        ctx.moveTo(Vec2.ldx(range, rot, x), Vec2.ldy(range, rot, y))
+                        for (let i = 1; i <= 8; ++i) {
+                            let a = rot + i * Angle.deg45
+                            ctx.lineTo(Vec2.ldx(range, a, x), Vec2.ldy(range, a, y))
+                        }
+                        rot += Angle.deg(22.5)
+                    }
+                    ctx.lineWidth = 1
+                    ctx.stroke()
+                }
                 let fps = this.performanceMeter.getFps()
                 ctx.fillStyle = "#000000"
                 ctx.textAlign = "left"
@@ -569,14 +593,15 @@ class Game {
 }
 
 function gen() {
+    let W = 6, H = 5
     let w = 258, h = 286
-    let c = new PreRenderedImage(w * 6, h * 4)
+    let c = new PreRenderedImage(w * W, h * H)
     let ctx = c.ctx, i = 0, c1 = "#A01713", c2 = "#FFE2A8", ch = "#CF7C5D"
     ctx.fillStyle = "#404040"
-    ctx.fillRect(0, 0, w * 6, h * 4)
+    ctx.fillRect(0, 0, w * W, h * H)
     function label(line1: string, line2?: string) {
-        let x = i % 6 * w + 1
-        let y = Math.floor(i / 6) * h + 257
+        let x = i % W * w + 1
+        let y = Math.floor(i / W) * h + 257
         ctx.fillStyle = "#C0C0C0"
         ctx.fillRect(x, y, 256, 28)
         ctx.fillStyle = "#000000"
@@ -591,89 +616,89 @@ function gen() {
     }
     ctx.drawImage(new CellularTextureGenerator(
         256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Euclidean
-    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Cellular", "Cells, Euclidean")
     ++i
     ctx.drawImage(new CellularTextureGenerator(
         256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Manhattan
-    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Cellular", "Cells, Manhattan")
     ++i
     ctx.drawImage(new CellularTextureGenerator(
         256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Euclidean
-    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Cellular", "Balls, Euclidean")
     ++i
     ctx.drawImage(new CellularTextureGenerator(
         256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Manhattan
-    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Cellular", "Balls, Manhattan")
     ++i
     ctx.drawImage(new CellularTextureGenerator(
         256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Euclidean
-    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Cellular", "Net, Euclidean")
     ++i
     ctx.drawImage(new CellularTextureGenerator(
         256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Manhattan
-    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Cellular", "Net, Manhattan")
     ++i
     ctx.drawImage(new CellularTextureGenerator(
         256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Chebyshev
-    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Cellular", "Cells, Chebyshev")
     ++i
     ctx.drawImage(new CellularTextureGenerator(
         256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Minkowski
-    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Cellular", "Cells, Minkowski")
     ++i
     ctx.drawImage(new CellularTextureGenerator(
         256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Chebyshev
-    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Cellular", "Balls, Chebyshev")
     ++i
     ctx.drawImage(new CellularTextureGenerator(
         256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Minkowski
-    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Cellular", "Balls, Minkowski")
     ++i
     ctx.drawImage(new CellularTextureGenerator(
         256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Chebyshev
-    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Cellular", "Net, Chebyshev")
     ++i
     ctx.drawImage(new CellularTextureGenerator(
         256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Minkowski
-    ).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Cellular", "Net, Minkowski")
     ++i
-    ctx.drawImage(new NoiseTextureGenerator(256, 256, ch, 0.5, 0.5, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ctx.drawImage(new NoiseTextureGenerator(256, 256, ch, 0.5, 0.5, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Noise")
     ++i
-    ctx.drawImage(new PerlinNoiseTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ctx.drawImage(new PerlinNoiseTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Perlin", "Noise")
     ++i
-    ctx.drawImage(new CloudsTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ctx.drawImage(new CloudsTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Perlin", "Clouds")
     ++i
-    ctx.drawImage(new VelvetTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ctx.drawImage(new VelvetTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Perlin", "Velvet")
     ++i
-    ctx.drawImage(new GlassTextureGenerator(256, 256, c1, c2, 1, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ctx.drawImage(new GlassTextureGenerator(256, 256, c1, c2, 1, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Perlin", "Glass")
     ++i
-    ctx.drawImage(new FrostedGlassTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ctx.drawImage(new FrostedGlassTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Perlin", "Frosted glass")
     ++i
-    ctx.drawImage(new BarkTextureGenerator(256, 256, c1, c2, 1, 0.75).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ctx.drawImage(new BarkTextureGenerator(256, 256, c1, c2, 1, 0.75).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Perlin", "Bark")
     ++i
-    ctx.drawImage(new CirclesTextureGenerator(256, 256, c1, c2, ch, 1, 4, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ctx.drawImage(new CirclesTextureGenerator(256, 256, c1, c2, ch, 1, 4, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Perlin", "Circles")
     ++i
-    ctx.drawImage(new CamouflageTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ctx.drawImage(new CamouflageTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Perlin", "Camouflage")
     ++i
     let grads = [
@@ -689,13 +714,134 @@ function gen() {
         g.addColorStop(0.833, "#FF00FF")
         g.addColorStop(1.000, "#FF0000")
     }
-    ctx.drawImage(grads[0].generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ctx.drawImage(grads[0].generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Gradient", "Radial")
     ++i
-    ctx.drawImage(new FisheyeSource(256, 256, grads[1], 0.5, 128, 128, 128).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ctx.drawImage(new FisheyeSource(256, 256, grads[1], 0.5, 128, 128, 128).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Gradient", "Linear, Fisheye[+]")
     ++i
-    ctx.drawImage(new FisheyeSource(256, 256, grads[1], -0.5, 128, 128, 128).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1)
+    ctx.drawImage(new FisheyeSource(256, 256, grads[1], -0.5, 128, 128, 128).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
     label("Gradient", "Linear, Fisheye[-]")
+    ++i
+    ctx.drawImage(
+        new PolarSource(
+            256, 256,
+            new BarkTextureGenerator(512, 256, c1, c2, 0.5, 0.75),
+            512, 256
+        ).generateImage(),
+        i % W * w + 1,
+        Math.floor(i / W) * h + 1
+    )
+    label("Perlin + Polar", "Bark")
+    ++i
+    ctx.drawImage(
+        new AntialiasedSource(
+            256, 256,
+            new ScalingSource(
+                256, 256,
+                new FisheyeSource(
+                    256, 256,
+                    new CircleSource(
+                        256, 256, 128, 128, 127,
+                        new PolarSource(
+                            256, 256,
+                            new RoofTilesSource(
+                                256, 256, 12, 3,
+                                new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1),
+                                "#706859", RgbaColor.transparent
+                            )
+                        ),
+                        RgbaColor.transparent
+                    ),
+                    0.5, 128, 128, 128
+                ),
+                0.1875, 0, 0
+            ),
+        ).generateImage(),
+        i % W * w + 1,
+        Math.floor(i / W) * h + 1
+    )
+    label("")
+    ++i
+    ctx.drawImage(
+        new RoofTilesSource(
+            256, 256, 8, 8,
+            new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1),
+            "#706859"
+        ).generateImage(),
+        i % W * w + 1,
+        Math.floor(i / W) * h + 1
+    )
+    label("Roof Tiles")
+    ++i
+    ctx.drawImage(
+        new CircleSource(
+            256, 256, 128, 128, 127,
+            new PolarSource(
+                256, 256,
+                new RoofTilesSource(
+                    256, 256, 16, 6,
+                    new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1),
+                    "#706859", RgbaColor.transparent
+                )
+            ),
+            RgbaColor.transparent
+        ).generateImage(),
+        i % W * w + 1,
+        Math.floor(i / W) * h + 1
+    )
+    label("Roof Tiles + Polar + Circle")
+    ++i
+    ctx.drawImage(
+        new FisheyeSource(
+            256, 256,
+            new CircleSource(
+                256, 256, 128, 128, 127,
+                new PolarSource(
+                    256, 256,
+                    new RoofTilesSource(
+                        256, 256, 16, 6,
+                        new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1),
+                        "#706859", RgbaColor.transparent
+                    )
+                ),
+                RgbaColor.transparent
+            ),
+            0.5, 128, 128, 128
+        ).generateImage(),
+        i % W * w + 1,
+        Math.floor(i / W) * h + 1
+    )
+    label("Roof Tiles + Polar + Circle + Eye[+]")
+    ++i
+    ctx.drawImage(
+        new FisheyeSource(
+            256, 256,
+            new CircleSource(
+                256, 256, 128, 128, 127,
+                new PolarSource(
+                    256, 256,
+                    new RoofTilesSource(
+                        256, 256, 16, 8,
+                        new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1),
+                        "#706859", RgbaColor.transparent
+                    )
+                ),
+                RgbaColor.transparent
+            ),
+            -0.5, 128, 128, 128
+        ).generateImage(),
+        i % W * w + 1,
+        Math.floor(i / W) * h + 1
+    )
+    label("Roof Tiles + Polar + Circle + Eye[-]")
+    
+
+
+
+
+
+
+
     c.saveImage("textures")
 }

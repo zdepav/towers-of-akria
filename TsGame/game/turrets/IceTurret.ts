@@ -39,7 +39,7 @@ class IceTurret extends Turret {
     static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
         let r = 24 + 2 * type.count
         let i = Utils.sign(type.water - type.air) + 1
-        ctx.drawImage(IceTurret.images, 0, i * 64, 64, 64, x + 32 - r, x + 32 - r, r * 2, r * 2)
+        ctx.drawImage(IceTurret.images, 0, i * 64, 64, 64, x + 32 - r, y + 32 - r, r * 2, r * 2)
     }
 
     addType(type: TurretElement): void {

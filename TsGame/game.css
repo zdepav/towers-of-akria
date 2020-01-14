@@ -1,13 +1,13 @@
 body {
-    font-family: 'Segoe UI', sans-serif
+    font-family: 'Segoe UI', sans-serif;
 }
 
 span {
-    font-style: italic
+    font-style: italic;
 }
 
 #zptd-game-container {
-    margin: 0 auto
-    width: 1152px
-    height: 704px
+    margin: 0 auto;
+    width: 1152px;
+    height: 704px;
 }

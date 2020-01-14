@@ -53,6 +53,7 @@ class Game {
             this.upgradeButtons.push(button);
             this.guiPanels[2].addItem(button);
         }
+        this.rangeMarkerRotation = 0;
     }
     get hoveredTile() {
         return this.hoveredTilePos !== null ? this.map[this.hoveredTilePos.x][this.hoveredTilePos.y] : null;
@@ -327,6 +328,7 @@ class Game {
                 this.enemies.step(timeDiff);
                 this.particles.step(timeDiff);
                 this.projectiles.step(timeDiff);
+                this.rangeMarkerRotation += timeDiff * Angle.deg60;
                 this.prevTime = time;
                 this.time += timeDiff;
                 return;
@@ -463,6 +465,27 @@ class Game {
                         this.map[x][y].renderOverlay(ctx);
                     }
                 }
+                if (this.selectedTile && this.selectedTile.turret) {
+                    let range = this.selectedTile.turret.range;
+                    let { x, y } = this.selectedTile.pos.addu(32, 32);
+                    let rot = this.rangeMarkerRotation;
+                    ctx.beginPath();
+                    ctx.arc(x, y, range, 0, Angle.deg360);
+                    ctx.strokeStyle = "#00000060";
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.beginPath();
+                    for (let k = 0; k < 2; ++k) {
+                        ctx.moveTo(Vec2.ldx(range, rot, x), Vec2.ldy(range, rot, y));
+                        for (let i = 1; i <= 8; ++i) {
+                            let a = rot + i * Angle.deg45;
+                            ctx.lineTo(Vec2.ldx(range, a, x), Vec2.ldy(range, a, y));
+                        }
+                        rot += Angle.deg(22.5);
+                    }
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
                 let fps = this.performanceMeter.getFps();
                 ctx.fillStyle = "#000000";
                 ctx.textAlign = "left";
@@ -511,14 +534,15 @@ class Game {
 }
 Game.saveImages = false;
 function gen() {
+    let W = 6, H = 5;
     let w = 258, h = 286;
-    let c = new PreRenderedImage(w * 6, h * 4);
+    let c = new PreRenderedImage(w * W, h * H);
     let ctx = c.ctx, i = 0, c1 = "#A01713", c2 = "#FFE2A8", ch = "#CF7C5D";
     ctx.fillStyle = "#404040";
-    ctx.fillRect(0, 0, w * 6, h * 4);
+    ctx.fillRect(0, 0, w * W, h * H);
     function label(line1, line2) {
-        let x = i % 6 * w + 1;
-        let y = Math.floor(i / 6) * h + 257;
+        let x = i % W * w + 1;
+        let y = Math.floor(i / W) * h + 257;
         ctx.fillStyle = "#C0C0C0";
         ctx.fillRect(x, y, 256, 28);
         ctx.fillStyle = "#000000";
@@ -531,67 +555,67 @@ function gen() {
             ctx.fillText(`(${line2})`, x + 250, y + 12, 248);
         }
     }
-    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Euclidean).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Euclidean).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Cellular", "Cells, Euclidean");
     ++i;
-    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Manhattan).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Manhattan).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Cellular", "Cells, Manhattan");
     ++i;
-    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Euclidean).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Euclidean).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Cellular", "Balls, Euclidean");
     ++i;
-    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Manhattan).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Manhattan).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Cellular", "Balls, Manhattan");
     ++i;
-    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Euclidean).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Euclidean).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Cellular", "Net, Euclidean");
     ++i;
-    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Manhattan).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Manhattan).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Cellular", "Net, Manhattan");
     ++i;
-    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Chebyshev).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Chebyshev).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Cellular", "Cells, Chebyshev");
     ++i;
-    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Minkowski).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Minkowski).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Cellular", "Cells, Minkowski");
     ++i;
-    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Chebyshev).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Chebyshev).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Cellular", "Balls, Chebyshev");
     ++i;
-    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Minkowski).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Minkowski).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Cellular", "Balls, Minkowski");
     ++i;
-    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Chebyshev).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Chebyshev).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Cellular", "Net, Chebyshev");
     ++i;
-    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Minkowski).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Minkowski).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Cellular", "Net, Minkowski");
     ++i;
-    ctx.drawImage(new NoiseTextureGenerator(256, 256, ch, 0.5, 0.5, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new NoiseTextureGenerator(256, 256, ch, 0.5, 0.5, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Noise");
     ++i;
-    ctx.drawImage(new PerlinNoiseTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new PerlinNoiseTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Perlin", "Noise");
     ++i;
-    ctx.drawImage(new CloudsTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CloudsTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Perlin", "Clouds");
     ++i;
-    ctx.drawImage(new VelvetTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new VelvetTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Perlin", "Velvet");
     ++i;
-    ctx.drawImage(new GlassTextureGenerator(256, 256, c1, c2, 1, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new GlassTextureGenerator(256, 256, c1, c2, 1, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Perlin", "Glass");
     ++i;
-    ctx.drawImage(new FrostedGlassTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new FrostedGlassTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Perlin", "Frosted glass");
     ++i;
-    ctx.drawImage(new BarkTextureGenerator(256, 256, c1, c2, 1, 0.75).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new BarkTextureGenerator(256, 256, c1, c2, 1, 0.75).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Perlin", "Bark");
     ++i;
-    ctx.drawImage(new CirclesTextureGenerator(256, 256, c1, c2, ch, 1, 4, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CirclesTextureGenerator(256, 256, c1, c2, ch, 1, 4, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Perlin", "Circles");
     ++i;
-    ctx.drawImage(new CamouflageTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new CamouflageTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Perlin", "Camouflage");
     ++i;
     let grads = [
@@ -607,14 +631,32 @@ function gen() {
         g.addColorStop(0.833, "#FF00FF");
         g.addColorStop(1.000, "#FF0000");
     }
-    ctx.drawImage(grads[0].generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(grads[0].generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Gradient", "Radial");
     ++i;
-    ctx.drawImage(new FisheyeSource(256, 256, grads[1], 0.5, 128, 128, 128).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new FisheyeSource(256, 256, grads[1], 0.5, 128, 128, 128).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Gradient", "Linear, Fisheye[+]");
     ++i;
-    ctx.drawImage(new FisheyeSource(256, 256, grads[1], -0.5, 128, 128, 128).generateImage(), i % 6 * w + 1, Math.floor(i / 6) * h + 1);
+    ctx.drawImage(new FisheyeSource(256, 256, grads[1], -0.5, 128, 128, 128).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
     label("Gradient", "Linear, Fisheye[-]");
+    ++i;
+    ctx.drawImage(new PolarSource(256, 256, new BarkTextureGenerator(512, 256, c1, c2, 0.5, 0.75), 512, 256).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Perlin + Polar", "Bark");
+    ++i;
+    ctx.drawImage(new AntialiasedSource(256, 256, new ScalingSource(256, 256, new FisheyeSource(256, 256, new CircleSource(256, 256, 128, 128, 127, new PolarSource(256, 256, new RoofTilesSource(256, 256, 12, 3, new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1), "#706859", RgbaColor.transparent)), RgbaColor.transparent), 0.5, 128, 128, 128), 0.1875, 0, 0)).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("");
+    ++i;
+    ctx.drawImage(new RoofTilesSource(256, 256, 8, 8, new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1), "#706859").generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Roof Tiles");
+    ++i;
+    ctx.drawImage(new CircleSource(256, 256, 128, 128, 127, new PolarSource(256, 256, new RoofTilesSource(256, 256, 16, 6, new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1), "#706859", RgbaColor.transparent)), RgbaColor.transparent).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Roof Tiles + Polar + Circle");
+    ++i;
+    ctx.drawImage(new FisheyeSource(256, 256, new CircleSource(256, 256, 128, 128, 127, new PolarSource(256, 256, new RoofTilesSource(256, 256, 16, 6, new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1), "#706859", RgbaColor.transparent)), RgbaColor.transparent), 0.5, 128, 128, 128).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Roof Tiles + Polar + Circle + Eye[+]");
+    ++i;
+    ctx.drawImage(new FisheyeSource(256, 256, new CircleSource(256, 256, 128, 128, 127, new PolarSource(256, 256, new RoofTilesSource(256, 256, 16, 8, new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1), "#706859", RgbaColor.transparent)), RgbaColor.transparent), -0.5, 128, 128, 128).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Roof Tiles + Polar + Circle + Eye[-]");
     c.saveImage("textures");
 }
 var TileType;
@@ -717,9 +759,9 @@ class Tile {
     }
     renderOverlay(ctx) {
         if (this.type === TileType.Tower && this.turret != null) {
-            var elems = this.turret.getType().toColorArray();
-            var x = this.pos.x + 2;
-            var y = this.pos.y + 2;
+            let elems = this.turret.getType().toColorArray();
+            let x = this.pos.x + 2;
+            let y = this.pos.y + 2;
             for (const c of elems) {
                 ctx.fillStyle = c;
                 ctx.fillRect(x, y, 4, 4);
@@ -1488,6 +1530,7 @@ class RgbaColor {
             RgbaColor.cyan = new RgbaColor(0, 255, 255);
             RgbaColor.magenta = new RgbaColor(255, 0, 255);
             RgbaColor.white = new RgbaColor(255, 255, 255);
+            RgbaColor.gray = new RgbaColor(128, 128, 128);
             resolve();
         });
     }
@@ -1601,6 +1644,29 @@ class RectangleSource extends ShapeSource {
     _getColor(x, y) {
         let _x = x - this.x, _y = y - this.y;
         return (_x >= 0 && _x < this.w && _y >= 0 && _y < this.h) ? this.color.getColor(x, y) : this.background.getColor(x, y);
+    }
+}
+class RoofTilesSource extends ShapeSource {
+    constructor(width, height, horizontalCount, verticalCount, color, background, empty) {
+        super(width, height, color, background);
+        this.empty = empty ? ColorSource.get(empty) : null;
+        this.horizontalCount = horizontalCount;
+        this.verticalCount = verticalCount;
+    }
+    _getColor(x, y) {
+        let _x = x / this.width;
+        let _y = y / this.height;
+        let a = _x * this.horizontalCount * 2 % 2 - 1;
+        _y += (1 - Math.sqrt(1 - a * a)) / (this.verticalCount * 2);
+        if (_x * this.horizontalCount % 2 > 1) {
+            _y += 0.5 / this.verticalCount;
+        }
+        if (this.empty && _y >= 1) {
+            return this.empty.getColor(x, y);
+        }
+        else {
+            return this.background.getColor(x, y).lerp(this.color.getColor(x, y), _y * this.verticalCount % 1);
+        }
     }
 }
 class TextureGenerator extends ColorSource {
@@ -1942,7 +2008,7 @@ class PolarSource extends TransformingSource {
         super(width, height, source);
         this.source = source;
         this.origin = new Vec2(this.width / 2, this.height / 2);
-        this.coef = new Vec2(sourceWidth / Angle.deg360, sourceHeight * 2 / Math.min(this.width, this.height));
+        this.coef = new Vec2(((sourceWidth !== null && sourceWidth !== void 0 ? sourceWidth : this.width)) / Angle.deg360, ((sourceHeight !== null && sourceHeight !== void 0 ? sourceHeight : this.height)) * 2 / Math.min(this.width, this.height));
     }
     reverseTransform(x, y) {
         let v = new Vec2(x, y);
@@ -3149,17 +3215,22 @@ ArcaneTurret.turretDescription = "Increases damage of all other towers by 25%, c
 class ArcherTurret extends Turret {
     constructor(tile, type) {
         super(tile, type);
+        this.angle = Angle.rand();
     }
-    get range() { return 32 + this.type.count * 64; }
+    get range() { return 80 + this.type.air * 64 + this.type.earth * 16; }
     step(time) {
         super.step(time);
     }
     render(ctx) {
         super.render(ctx);
-        ctx.drawImage(ArcherTurret.image, this.tile.pos.x, this.tile.pos.y);
+        ctx.translate(this.center.x, this.center.y);
+        ctx.rotate(this.angle);
+        ctx.drawImage(ArcherTurret.images, 0, (this.type.count - 2) * 48, 48, 48, -24, -24, 48, 48);
+        ctx.resetTransform();
     }
     static renderPreview(ctx, x, y, type) {
-        ctx.drawImage(ArcherTurret.image, x, y);
+        ctx.drawImage(ArcherTurret.images, x, y);
+        ctx.drawImage(ArcherTurret.images, 0, (type.count - 2) * 48, 48, 48, x, y, 48, 48);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -3215,10 +3286,27 @@ class ArcherTurret extends Turret {
         }
     }
     static init() {
-        return Utils.getImageFromCache("td_tower_AEfw_archer").then(tex => { ArcherTurret.image = tex; }, () => new Promise(resolve => {
-            let c = new PreRenderedImage(64, 64);
+        return Utils.getImageFromCache("td_tower_AEfw_archer").then(tex => { ArcherTurret.images = tex; }, () => new Promise(resolve => {
+            let c = new PreRenderedImage(48, 144);
+            let argSets = [
+                { h: 10, y: 0, s: 0.7 },
+                { h: 11, y: 48, s: 0.85 },
+                { h: 12, y: 96, s: 1 },
+            ];
+            let noise = new NoiseTextureGenerator(48, 48, "#E0D2B3", 0.125, 0, 1);
+            for (const args of argSets) {
+                let src = new RoofTilesSource(48, 48, args.h, 3, noise, "#706859", RgbaColor.transparent);
+                src = new PolarSource(48, 48, src);
+                if (args.s < 1) {
+                    src = new ScalingSource(48, 48, src, args.s, 24, 24);
+                }
+                src = new CircleSource(48, 48, 24, 24, 23 * args.s, src, RgbaColor.transparent);
+                src = new FisheyeSource(48, 48, src, 0.5, 24, 24, 24);
+                src = new AntialiasedSource(48, 48, src);
+                src.generateInto(c.ctx, 0, args.y);
+            }
             c.cacheImage("td_tower_AEfw_archer");
-            ArcherTurret.image = c.image;
+            ArcherTurret.images = c.image;
             resolve();
         }));
     }
@@ -3242,7 +3330,7 @@ class CannonTurret extends Turret {
             let p = Vec2.randUnit3d().mul(r).add(pos);
             this.game.spawnParticle(new SmokeParticle(p.x, p.y, Math.random() * 2));
         }
-        r = 20 + this.type.count * 4;
+        r = 24 + this.type.count * 4;
         for (const enemy of this.game.findEnemiesInRange(pos, r)) {
             enemy.dealDamage(20 * this.type.earth + 10 * this.type.fire - 10);
             if (Math.random() < (this.type.fire - 1) / 4) {
@@ -3257,7 +3345,7 @@ class CannonTurret extends Turret {
         let closestAngle = Infinity;
         for (const e of enemies) {
             let a = this.center.angleTo(e.pos);
-            let diff = Angle.absDifference(this.angle, a);
+            let diff = Angle.toDegrees(Angle.absDifference(this.angle, a)) + this.center.distanceTo(e.pos);
             if (diff < closestAngle) {
                 enemy = e;
                 closestAngle = diff;
@@ -3955,7 +4043,7 @@ class IceTurret extends Turret {
     static renderPreview(ctx, x, y, type) {
         let r = 24 + 2 * type.count;
         let i = Utils.sign(type.water - type.air) + 1;
-        ctx.drawImage(IceTurret.images, 0, i * 64, 64, 64, x + 32 - r, x + 32 - r, r * 2, r * 2);
+        ctx.drawImage(IceTurret.images, 0, i * 64, 64, 64, x + 32 - r, y + 32 - r, r * 2, r * 2);
     }
     addType(type) {
         if (this.type.count >= 4) {
