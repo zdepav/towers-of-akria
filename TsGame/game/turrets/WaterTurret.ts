@@ -127,9 +127,9 @@ class WaterTurret extends Turret {
             let d1 = Utils.rand(d2 + 2, 24)
             let d0 = Utils.rand(d1, 24)
             let a = i * Angle.deg45
-            pts[0].push({ pt: Utils.ld(d0, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero })
-            pts[1].push({ pt: Utils.ld(d1, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero })
-            pts[2].push({ pt: Utils.ld(d2, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero })
+            pts[0].push({ pt: Vec2.ld(d0, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero })
+            pts[1].push({ pt: Vec2.ld(d1, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero })
+            pts[2].push({ pt: Vec2.ld(d2, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero })
         }
         for (let j = 0; j < 3; ++j) {
             let layer = pts[j]
@@ -138,8 +138,8 @@ class WaterTurret extends Turret {
                 let o = layer[i]
                 let oa = layer[(i + 1) % 8]
                 let angle = Angle.between(ob.pt.angleTo(o.pt), o.pt.angleTo(oa.pt))
-                o.pt_a = Utils.ld(5, angle, o.pt.x, o.pt.y)
-                o.pt_b = Utils.ld(5, angle + Angle.deg180, o.pt.x, o.pt.y)
+                o.pt_a = Vec2.ld(5, angle, o.pt.x, o.pt.y)
+                o.pt_b = Vec2.ld(5, angle + Angle.deg180, o.pt.x, o.pt.y)
             }
         }
         let c = new PreRenderedImage(64, 64)

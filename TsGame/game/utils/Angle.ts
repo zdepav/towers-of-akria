@@ -1,6 +1,7 @@
 class Angle {
 
     private static rad2deg: number
+    private static deg2rad: number
 
     static deg10: number
     static deg15: number
@@ -25,7 +26,11 @@ class Angle {
     static deg330: number
     static deg360: number
 
-    static deg(radians: number): number {
+    static deg(degrees: number): number {
+        return degrees * Angle.deg2rad
+    }
+
+    static toDegrees(radians: number): number {
         return radians * Angle.rad2deg
     }
 
@@ -34,7 +39,7 @@ class Angle {
     }
 
     static wrap(angle: number): number {
-        return (angle < 0 ? (Angle.deg360 - (-angle) % Angle.deg360) : angle) % Angle.deg360
+        return (angle < 0 ? (Angle.deg360 + angle % Angle.deg360) : angle) % Angle.deg360
     }
 
     static difference(angle1: number, angle2: number): number {
@@ -42,17 +47,29 @@ class Angle {
         angle2 = Angle.wrap(angle2)
         let diff = Math.abs(angle2 - angle1)
         if (diff <= Angle.deg180) {
-            return angle2 - angle1
+            return angle1 < angle2 ? diff : -diff
         } else {
-            return Angle.deg360 - angle2 + angle1
+            diff = (Angle.deg360 - diff) % Angle.deg360
+            return angle1 < angle2 ? -diff : diff
         }
     }
 
-    static rotateTo(angle: number, targetAngle: number, rotation: number): number {
-        let diff = Angle.difference(angle, targetAngle)
-        if (Math.abs(diff) < rotation) {
+    static absDifference(angle1: number, angle2: number): number {
+        angle1 = Angle.wrap(angle1)
+        angle2 = Angle.wrap(angle2)
+        let diff = Math.abs(angle2 - angle1)
+        if (diff <= Angle.deg180) {
+            return diff
+        } else {
+            return (Angle.deg360 - diff) % Angle.deg360
+        }
+    }
+
+    static rotateTo(currentAngle: number, targetAngle: number, maxRotation: number): number {
+        let diff = Angle.difference(currentAngle, targetAngle)
+        if (Math.abs(diff) < maxRotation) {
             return targetAngle;
-        } else return Angle.wrap(angle + Math.sign(diff) * rotation)
+        } else return Angle.wrap(currentAngle + Math.sign(diff) * maxRotation)
     }
 
     static between(angle1: number, angle2: number): number {
@@ -69,6 +86,7 @@ class Angle {
     static init(): Promise<void> {
         return new Promise<void>(resolve => {
             Angle.rad2deg = 180 / Math.PI
+            Angle.deg2rad = Math.PI / 180
             Angle.deg10 = Math.PI / 18
             Angle.deg15 = Math.PI / 12
             Angle.deg18 = Math.PI / 10

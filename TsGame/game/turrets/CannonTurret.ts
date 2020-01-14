@@ -16,34 +16,52 @@ class CannonTurret extends Turret {
     }
 
     private createExplosionAt(pos: Vec2): void {
-        let r = 17 + this.type.count * 3
+        let r = 10 + this.type.count * 4
         for (let i = 0, c = 9 + this.type.count; i < c; ++i) {
             let p = Vec2.randUnit3d().mul(r).add(pos)
             this.game.spawnParticle(new ExplosionParticle(p.x, p.y))
         }
+        r = 16 + this.type.count * 4
         for (let i = 0, c = 9 + this.type.count * 4; i < c; ++i) {
             let p = Vec2.randUnit3d().mul(r).add(pos)
             this.game.spawnParticle(new SmokeParticle(p.x, p.y, Math.random() * 2))
         }
+        r = 20 + this.type.count * 4
         for (const enemy of this.game.findEnemiesInRange(pos, r)) {
-            enemy.dealDamage(10 * this.type.earth + 5 * this.type.fire - 5)
+            enemy.dealDamage(20 * this.type.earth + 10 * this.type.fire - 10)
             if (Math.random() < (this.type.fire - 1) / 4) {
-                enemy.addEffect(new BurningEffect(2))
+                enemy.addEffect(new BurningEffect(this.type.fire))
             }
         }
     }
 
     step(time: number): void {
         super.step(time)
-        let enemy = this.game.findNearestEnemy(this.center, this.range)
+        let enemies = this.game.findEnemiesInRange(this.center, this.range)
+        let enemy: Enemy | null = null
+        let closestAngle = Infinity
+        for (const e of enemies) {
+            let a = this.center.angleTo(e.pos)
+            let diff = Angle.absDifference(this.angle, a)
+            if (diff < closestAngle) {
+                enemy = e
+                closestAngle = diff
+            }
+        }
         if (enemy) {
             let a = this.center.angleTo(enemy.pos)
-            this.angle = Angle.rotateTo(this.angle, a, Angle.deg180 * time)
+            this.angle = Angle.rotateTo(this.angle, a, Angle.deg120 * time)
             if (this.ready) {
                 let d = this.center.distanceTo(enemy.pos)
-                let t = Utils.ld(d, this.angle, this.center.x, this.center.y)
+                let t = Vec2.ld(d, this.angle, this.center.x, this.center.y)
                 if (t.distanceTo(enemy.pos) < 16) {
-                    this.createExplosionAt(t)
+                    let firingPos = this.center.addld(18 + this.type.count * 2, this.angle)
+                    let cp = new CannonballProjectile(this.game, firingPos, t)
+                    cp.onhit = pos =>this.createExplosionAt(pos)
+                    this.game.spawnProjectile(cp)
+                    for (let i = 0; i < 8; ++i) {
+                        this.game.spawnParticle(new CannonSmokeParticle(firingPos, this.angle))
+                    }
                     this.cooldown = 2
                 }
             }

@@ -138,9 +138,9 @@ class SunTurret extends Turret {
                 let a1 = a0 + Angle.deg10
                 let a2 = a0 + Angle.deg30
                 ctx.arc(32, 32, 32, a0, a1)
-                ctx.lineTo(Utils.ldx(12, a1, 32), Utils.ldy(12, a1, 32))
+                ctx.lineTo(Vec2.ldx(12, a1, 32), Vec2.ldy(12, a1, 32))
                 ctx.arc(32, 32, 12, a1, a2)
-                ctx.lineTo(Utils.ldx(32, a2, 32), Utils.ldy(32, a2, 32))
+                ctx.lineTo(Vec2.ldx(32, a2, 32), Vec2.ldy(32, a2, 32))
             }
             ctx.fill()
             c.cacheImage("td_tower_AEFw_sun")

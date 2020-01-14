@@ -126,8 +126,8 @@ class IceTurret extends Turret {
         if (size >= 2.5) {
             ctx.beginPath()
             ctx.moveTo(x, y)
-            let x2 = Utils.ldx(8, angle, x)
-            let y2 = Utils.ldy(8, angle, y)
+            let x2 = Vec2.ldx(8, angle, x)
+            let y2 = Vec2.ldy(8, angle, y)
             ctx.lineTo(x2, y2)
             ctx.lineWidth = 3
             ctx.stroke()
@@ -138,8 +138,8 @@ class IceTurret extends Turret {
         else if (size >= 1.5) {
             ctx.beginPath()
             ctx.moveTo(x, y)
-            let x2 = Utils.ldx(6, angle, x)
-            let y2 = Utils.ldy(6, angle, y)
+            let x2 = Vec2.ldx(6, angle, x)
+            let y2 = Vec2.ldy(6, angle, y)
             ctx.lineTo(x2, y2)
             ctx.lineWidth = 2
             ctx.stroke()
@@ -150,8 +150,8 @@ class IceTurret extends Turret {
         else if (size >= 0.5) {
             ctx.beginPath()
             ctx.moveTo(x, y)
-            let x2 = Utils.ldx(4, angle, x)
-            let y2 = Utils.ldy(4, angle, y)
+            let x2 = Vec2.ldx(4, angle, x)
+            let y2 = Vec2.ldy(4, angle, y)
             ctx.lineTo(x2, y2)
             ctx.lineWidth = 1
             ctx.stroke()
@@ -166,12 +166,12 @@ class IceTurret extends Turret {
         for (let k = 0; k < 6; ++k) {
             let a = k * Angle.deg60
             if (k === 0) {
-                centerPath.moveTo(Utils.ldx(8, a, 32), baseY + Utils.ldy(8, a, 32))
+                centerPath.moveTo(Vec2.ldx(8, a, 32), baseY + Vec2.ldy(8, a, 32))
             }
             else {
-                centerPath.lineTo(Utils.ldx(8, a, 32), baseY + Utils.ldy(8, a, 32))
+                centerPath.lineTo(Vec2.ldx(8, a, 32), baseY + Vec2.ldy(8, a, 32))
             }
-            IceTurret.mkBranch(ctx, Utils.ldx(8, a, 32), baseY + Utils.ldy(8, a, 32), a, 3)
+            IceTurret.mkBranch(ctx, Vec2.ldx(8, a, 32), baseY + Vec2.ldy(8, a, 32), a, 3)
         }
         centerPath.closePath()
         ctx.restore()

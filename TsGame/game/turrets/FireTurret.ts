@@ -156,10 +156,10 @@ class FireTurret extends Turret {
                 let radius = 20 + 4 * Math.random()
                 let a = k * Angle.deg10
                 if (k === 0) {
-                    path.moveTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24))
+                    path.moveTo(Vec2.ldx(radius, a, 24), Vec2.ldy(radius, a, 24))
                 }
                 else {
-                    path.lineTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24))
+                    path.lineTo(Vec2.ldx(radius, a, 24), Vec2.ldy(radius, a, 24))
                 }
             }
             path.closePath()
@@ -173,10 +173,10 @@ class FireTurret extends Turret {
                 let radius = 9 + 2 * Math.random()
                 let a = k * Angle.deg20
                 if (k === 0) {
-                    path.moveTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24))
+                    path.moveTo(Vec2.ldx(radius, a, 24), Vec2.ldy(radius, a, 24))
                 }
                 else {
-                    path.lineTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24))
+                    path.lineTo(Vec2.ldx(radius, a, 24), Vec2.ldy(radius, a, 24))
                 }
             }
             path.closePath()

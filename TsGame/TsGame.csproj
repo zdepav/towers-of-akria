@@ -137,6 +137,7 @@
     <TypeScriptCompile Include="game\gui\Button.ts" />
     <TypeScriptCompile Include="game\gui\GuiPanel.ts" />
     <TypeScriptCompile Include="game\gui\IGuiItem.ts" />
+    <TypeScriptCompile Include="game\particles\CannonSmokeParticle.ts" />
     <TypeScriptCompile Include="game\particles\ExplosionParticle.ts" />
     <TypeScriptCompile Include="game\particles\TrailParticle.ts" />
     <TypeScriptCompile Include="game\particles\BubbleParticle.ts" />
@@ -148,6 +149,7 @@
     <TypeScriptCompile Include="game\particles\TileMarkParticle.ts" />
     <TypeScriptCompile Include="game\particles\WindParticle.ts" />
     <TypeScriptCompile Include="game\projectiles\AcidProjectile.ts" />
+    <TypeScriptCompile Include="game\projectiles\CannonballProjectile.ts" />
     <TypeScriptCompile Include="game\projectiles\FireProjectile.ts" />
     <TypeScriptCompile Include="game\projectiles\GuidedProjectile.ts" />
     <TypeScriptCompile Include="game\projectiles\Projectile.ts" />

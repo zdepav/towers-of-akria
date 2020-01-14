@@ -38,10 +38,10 @@ class Tile {
                         for (let k = 0; k < 4; ++k) {
                             let a = -Angle.deg45 + Angle.deg90 * (k + 0.25 + 0.5 * Math.random())
                             if (k === 0) {
-                                path.moveTo(Utils.ldx(radius, a, _x), Utils.ldy(radius, a, _y))
+                                path.moveTo(Vec2.ldx(radius, a, _x), Vec2.ldy(radius, a, _y))
                             }
                             else {
-                                path.lineTo(Utils.ldx(radius, a, _x), Utils.ldy(radius, a, _y))
+                                path.lineTo(Vec2.ldx(radius, a, _x), Vec2.ldy(radius, a, _y))
                             }
                         }
                         path.closePath()

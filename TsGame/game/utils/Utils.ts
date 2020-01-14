@@ -90,21 +90,6 @@ class Utils {
         return Utils.hex[Math.floor(byte / 16)] + Utils.hex[Math.floor(byte % 16)]
     }
 
-    static ldx(distance: number, direction: number, startX: number = 0): number {
-        return startX + distance * Math.cos(direction)
-    }
-
-    static ldy(distance: number, direction: number, startY: number = 0): number {
-        return startY + distance * Math.sin(direction)
-    }
-
-    static ld(distance: number, direction: number, startX: number = 0, startY: number = 0): Vec2 {
-        return new Vec2(
-            startX + distance * Math.cos(direction),
-            startY + distance * Math.sin(direction)
-        )
-    }
-
     /**
      * @param min min value (inclusive)
      * @param max max value (exclusive)

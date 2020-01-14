@@ -22,7 +22,9 @@ class SmokeParticle extends Particle {
     }
 
     step(time: number): void {
-        this.life += time
+        if (this.life < 1) {
+            this.life += time
+        }
     }
 
     render(ctx: CanvasRenderingContext2D): void {

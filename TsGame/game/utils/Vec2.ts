@@ -22,6 +22,10 @@ class Vec2 {
         return new Vec2(this.x + x, this.y + y)
     }
 
+    addld(distance: number, direction: number): Vec2 {
+        return Vec2.ld(distance, direction, this.x, this.y)
+    }
+
     sub(v: Vec2): Vec2 {
         return new Vec2(this.x - v.x, this.y - v.y)
     }
@@ -106,22 +110,37 @@ class Vec2 {
         return `${this.x};${this.y}`
     }
 
+    static ldx(distance: number, direction: number, startX: number = 0): number {
+        return startX + distance * Math.cos(direction)
+    }
+
+    static ldy(distance: number, direction: number, startY: number = 0): number {
+        return startY + distance * Math.sin(direction)
+    }
+
+    static ld(distance: number, direction: number, startX: number = 0, startY: number = 0): Vec2 {
+        return new Vec2(
+            startX + distance * Math.cos(direction),
+            startY + distance * Math.sin(direction)
+        )
+    }
+
     static randUnit(): Vec2 {
         let a = Angle.rand()
-        return new Vec2(Utils.ldx(1, a), Utils.ldy(1, a))
+        return new Vec2(Vec2.ldx(1, a), Vec2.ldy(1, a))
     }
 
     static randUnit3d(): Vec2 {
         let a = Angle.rand(), a2 = Angle.rand()
-        let len = Utils.ldx(1, a2)
-        return new Vec2(Utils.ldx(len, a), Utils.ldy(len, a))
+        let len = Vec2.ldx(1, a2)
+        return new Vec2(Vec2.ldx(len, a), Vec2.ldy(len, a))
     }
 
     static onEllipse(r1: number, r2: number, angle: number, center?: Vec2): Vec2 {
         if (center === undefined) {
             center = Vec2.zero
         }
-        return new Vec2(Utils.ldx(r1, angle, center.x), Utils.ldy(r2, angle, center.y))
+        return new Vec2(Vec2.ldx(r1, angle, center.x), Vec2.ldy(r2, angle, center.y))
     }
 
     static init(): void {

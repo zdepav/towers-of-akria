@@ -16,7 +16,7 @@ class Game {
 
     private static castleImage: CanvasImageSource
 
-    static saveImages = true // for debug purposes
+    static saveImages = false // for debug purposes
 
     private status: InitializationStatus
     private preRendered: CanvasImageSource

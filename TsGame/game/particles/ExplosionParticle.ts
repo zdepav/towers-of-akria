@@ -7,27 +7,27 @@ class ExplosionParticle extends Particle {
     private life: number
     private rgb: string
 
-    get expired(): boolean { return this.life < 1 }
+    get expired(): boolean { return this.life <= 0 }
 
     constructor(x: number, y: number) {
         super()
         this.x = x
         this.y = y
         this.life = 1
-        let green = Utils.randInt(64, 224)
-        let g = Utils.byteToHex(green)
-        this.rgb = `#ff${g}00`
+        this.rgb = `#ff${Utils.byteToHex(Utils.randInt(64, 224))}00`
     }
 
     step(time: number): void {
-        this.life -= time
+        if (this.life > 0) {
+            this.life -= time * 1.5
+        }
     }
 
     render(ctx: CanvasRenderingContext2D): void {
-        if (this.life < 0) {
+        if (this.life <= 0) {
             return
         }
-        let r = (1 - this.life) * 6 + 2
+        let r = (1 - this.life) * 10 + 4
         ctx.fillStyle = this.rgb + Utils.byteToHex(255 * this.life)
         ctx.beginPath()
         ctx.arc(this.x, this.y, r, 0, Angle.deg360)

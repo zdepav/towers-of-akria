@@ -509,7 +509,7 @@ class Game {
         }
     }
 }
-Game.saveImages = true;
+Game.saveImages = false;
 function gen() {
     let w = 258, h = 286;
     let c = new PreRenderedImage(w * 6, h * 4);
@@ -646,10 +646,10 @@ class Tile {
                         for (let k = 0; k < 4; ++k) {
                             let a = -Angle.deg45 + Angle.deg90 * (k + 0.25 + 0.5 * Math.random());
                             if (k === 0) {
-                                path.moveTo(Utils.ldx(radius, a, _x), Utils.ldy(radius, a, _y));
+                                path.moveTo(Vec2.ldx(radius, a, _x), Vec2.ldy(radius, a, _y));
                             }
                             else {
-                                path.lineTo(Utils.ldx(radius, a, _x), Utils.ldy(radius, a, _y));
+                                path.lineTo(Vec2.ldx(radius, a, _x), Vec2.ldy(radius, a, _y));
                             }
                         }
                         path.closePath();
@@ -2161,25 +2161,59 @@ class BubbleParticle extends Particle {
         ctx.stroke();
     }
 }
+class CannonSmokeParticle extends Particle {
+    constructor(startPosition, direction) {
+        super();
+        startPosition = startPosition.addld(Utils.rand(-3, 3), direction + Angle.deg90);
+        this.x = startPosition.x;
+        this.y = startPosition.y;
+        let v = Vec2.ld(Utils.rand(0, 12), direction);
+        this.vx = v.x;
+        this.vy = v.y;
+        this.life = 0;
+        let lightness = Utils.randInt(32, 112);
+        let h = Utils.byteToHex(lightness);
+        this.rgb = `#${h}${h}${h}`;
+        this.size = Utils.rand(1, 3);
+    }
+    get expired() { return this.life >= 1; }
+    step(time) {
+        if (this.life < 1) {
+            time *= 2;
+            this.life += time;
+            this.x += this.vx * time;
+            this.y += this.vy * time;
+        }
+    }
+    render(ctx) {
+        if (this.life >= 1) {
+            return;
+        }
+        ctx.fillStyle = this.rgb + Utils.byteToHex(255 * (1 - this.life));
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Angle.deg360);
+        ctx.fill();
+    }
+}
 class ExplosionParticle extends Particle {
     constructor(x, y) {
         super();
         this.x = x;
         this.y = y;
         this.life = 1;
-        let green = Utils.randInt(64, 224);
-        let g = Utils.byteToHex(green);
-        this.rgb = `#ff${g}00`;
+        this.rgb = `#ff${Utils.byteToHex(Utils.randInt(64, 224))}00`;
     }
-    get expired() { return this.life < 1; }
+    get expired() { return this.life <= 0; }
     step(time) {
-        this.life -= time;
+        if (this.life > 0) {
+            this.life -= time * 1.5;
+        }
     }
     render(ctx) {
-        if (this.life < 0) {
+        if (this.life <= 0) {
             return;
         }
-        let r = (1 - this.life) * 6 + 2;
+        let r = (1 - this.life) * 10 + 4;
         ctx.fillStyle = this.rgb + Utils.byteToHex(255 * this.life);
         ctx.beginPath();
         ctx.arc(this.x, this.y, r, 0, Angle.deg360);
@@ -2288,7 +2322,9 @@ class SmokeParticle extends Particle {
     }
     get expired() { return this.life >= 1; }
     step(time) {
-        this.life += time;
+        if (this.life < 1) {
+            this.life += time;
+        }
     }
     render(ctx) {
         if (this.life >= 1) {
@@ -2489,6 +2525,23 @@ class ThrownProjectile extends Projectile {
         this.position = this.target.sub(this.startPosition)
             .mul(this.relPos / distance)
             .add(this.startPosition);
+    }
+}
+class CannonballProjectile extends ThrownProjectile {
+    constructor(game, position, target) {
+        super(game, position, target, 640);
+    }
+    step(time) {
+        if (this.expired) {
+            return;
+        }
+        super.step(time);
+    }
+    render(ctx) {
+        ctx.fillStyle = "#000000";
+        ctx.beginPath();
+        ctx.arc(this.position.x, this.position.y, 3, 0, Angle.deg360);
+        ctx.fill();
     }
 }
 class EarthProjectile extends ThrownProjectile {
@@ -3179,33 +3232,51 @@ class CannonTurret extends Turret {
     }
     get range() { return 96 + this.type.count * 16; }
     createExplosionAt(pos) {
-        let r = 17 + this.type.count * 3;
+        let r = 10 + this.type.count * 4;
         for (let i = 0, c = 9 + this.type.count; i < c; ++i) {
             let p = Vec2.randUnit3d().mul(r).add(pos);
             this.game.spawnParticle(new ExplosionParticle(p.x, p.y));
         }
-        for (let i = 0, c = 9 + this.type.count * 2; i < c; ++i) {
+        r = 16 + this.type.count * 4;
+        for (let i = 0, c = 9 + this.type.count * 4; i < c; ++i) {
             let p = Vec2.randUnit3d().mul(r).add(pos);
             this.game.spawnParticle(new SmokeParticle(p.x, p.y, Math.random() * 2));
         }
+        r = 20 + this.type.count * 4;
         for (const enemy of this.game.findEnemiesInRange(pos, r)) {
-            enemy.dealDamage(10 * this.type.earth + 5 * this.type.fire - 5);
+            enemy.dealDamage(20 * this.type.earth + 10 * this.type.fire - 10);
             if (Math.random() < (this.type.fire - 1) / 4) {
-                enemy.addEffect(new BurningEffect(2));
+                enemy.addEffect(new BurningEffect(this.type.fire));
             }
         }
     }
     step(time) {
         super.step(time);
-        let enemy = this.game.findNearestEnemy(this.center, this.range);
+        let enemies = this.game.findEnemiesInRange(this.center, this.range);
+        let enemy = null;
+        let closestAngle = Infinity;
+        for (const e of enemies) {
+            let a = this.center.angleTo(e.pos);
+            let diff = Angle.absDifference(this.angle, a);
+            if (diff < closestAngle) {
+                enemy = e;
+                closestAngle = diff;
+            }
+        }
         if (enemy) {
             let a = this.center.angleTo(enemy.pos);
             this.angle = Angle.rotateTo(this.angle, a, Angle.deg120 * time);
             if (this.ready) {
                 let d = this.center.distanceTo(enemy.pos);
-                let t = Utils.ld(d, this.angle, this.center.x, this.center.y);
+                let t = Vec2.ld(d, this.angle, this.center.x, this.center.y);
                 if (t.distanceTo(enemy.pos) < 16) {
-                    this.createExplosionAt(t);
+                    let firingPos = this.center.addld(18 + this.type.count * 2, this.angle);
+                    let cp = new CannonballProjectile(this.game, firingPos, t);
+                    cp.onhit = pos => this.createExplosionAt(pos);
+                    this.game.spawnProjectile(cp);
+                    for (let i = 0; i < 8; ++i) {
+                        this.game.spawnParticle(new CannonSmokeParticle(firingPos, this.angle));
+                    }
                     this.cooldown = 2;
                 }
             }
@@ -3639,16 +3710,16 @@ class EarthquakeTurret extends Turret {
     static path(ctx) {
         ctx.beginPath();
         ctx.moveTo(12, -12);
-        ctx.lineTo(Utils.ldx(8, -Angle.deg30), Utils.ldy(8, -Angle.deg30));
+        ctx.lineTo(Vec2.ldx(8, -Angle.deg30), Vec2.ldy(8, -Angle.deg30));
         ctx.arc(0, 0, 8, -Angle.deg30, Angle.deg30);
         ctx.lineTo(12, 12);
-        ctx.lineTo(Utils.ldx(8, Angle.deg60), Utils.ldy(8, Angle.deg60));
+        ctx.lineTo(Vec2.ldx(8, Angle.deg60), Vec2.ldy(8, Angle.deg60));
         ctx.arc(0, 0, 8, Angle.deg60, Angle.deg120);
         ctx.lineTo(-12, 12);
-        ctx.lineTo(Utils.ldx(8, Angle.deg150), Utils.ldy(8, Angle.deg150));
+        ctx.lineTo(Vec2.ldx(8, Angle.deg150), Vec2.ldy(8, Angle.deg150));
         ctx.arc(0, 0, 8, Angle.deg150, Angle.deg210);
         ctx.lineTo(-12, -12);
-        ctx.lineTo(Utils.ldx(8, Angle.deg240), Utils.ldy(8, Angle.deg240));
+        ctx.lineTo(Vec2.ldx(8, Angle.deg240), Vec2.ldy(8, Angle.deg240));
         ctx.arc(0, 0, 8, Angle.deg240, Angle.deg300);
         ctx.closePath();
     }
@@ -3784,10 +3855,10 @@ class FireTurret extends Turret {
                 let radius = 20 + 4 * Math.random();
                 let a = k * Angle.deg10;
                 if (k === 0) {
-                    path.moveTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24));
+                    path.moveTo(Vec2.ldx(radius, a, 24), Vec2.ldy(radius, a, 24));
                 }
                 else {
-                    path.lineTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24));
+                    path.lineTo(Vec2.ldx(radius, a, 24), Vec2.ldy(radius, a, 24));
                 }
             }
             path.closePath();
@@ -3801,10 +3872,10 @@ class FireTurret extends Turret {
                 let radius = 9 + 2 * Math.random();
                 let a = k * Angle.deg20;
                 if (k === 0) {
-                    path.moveTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24));
+                    path.moveTo(Vec2.ldx(radius, a, 24), Vec2.ldy(radius, a, 24));
                 }
                 else {
-                    path.lineTo(Utils.ldx(radius, a, 24), Utils.ldy(radius, a, 24));
+                    path.lineTo(Vec2.ldx(radius, a, 24), Vec2.ldy(radius, a, 24));
                 }
             }
             path.closePath();
@@ -3958,8 +4029,8 @@ class IceTurret extends Turret {
         if (size >= 2.5) {
             ctx.beginPath();
             ctx.moveTo(x, y);
-            let x2 = Utils.ldx(8, angle, x);
-            let y2 = Utils.ldy(8, angle, y);
+            let x2 = Vec2.ldx(8, angle, x);
+            let y2 = Vec2.ldy(8, angle, y);
             ctx.lineTo(x2, y2);
             ctx.lineWidth = 3;
             ctx.stroke();
@@ -3970,8 +4041,8 @@ class IceTurret extends Turret {
         else if (size >= 1.5) {
             ctx.beginPath();
             ctx.moveTo(x, y);
-            let x2 = Utils.ldx(6, angle, x);
-            let y2 = Utils.ldy(6, angle, y);
+            let x2 = Vec2.ldx(6, angle, x);
+            let y2 = Vec2.ldy(6, angle, y);
             ctx.lineTo(x2, y2);
             ctx.lineWidth = 2;
             ctx.stroke();
@@ -3982,8 +4053,8 @@ class IceTurret extends Turret {
         else if (size >= 0.5) {
             ctx.beginPath();
             ctx.moveTo(x, y);
-            let x2 = Utils.ldx(4, angle, x);
-            let y2 = Utils.ldy(4, angle, y);
+            let x2 = Vec2.ldx(4, angle, x);
+            let y2 = Vec2.ldy(4, angle, y);
             ctx.lineTo(x2, y2);
             ctx.lineWidth = 1;
             ctx.stroke();
@@ -3997,12 +4068,12 @@ class IceTurret extends Turret {
         for (let k = 0; k < 6; ++k) {
             let a = k * Angle.deg60;
             if (k === 0) {
-                centerPath.moveTo(Utils.ldx(8, a, 32), baseY + Utils.ldy(8, a, 32));
+                centerPath.moveTo(Vec2.ldx(8, a, 32), baseY + Vec2.ldy(8, a, 32));
             }
             else {
-                centerPath.lineTo(Utils.ldx(8, a, 32), baseY + Utils.ldy(8, a, 32));
+                centerPath.lineTo(Vec2.ldx(8, a, 32), baseY + Vec2.ldy(8, a, 32));
             }
-            IceTurret.mkBranch(ctx, Utils.ldx(8, a, 32), baseY + Utils.ldy(8, a, 32), a, 3);
+            IceTurret.mkBranch(ctx, Vec2.ldx(8, a, 32), baseY + Vec2.ldy(8, a, 32), a, 3);
         }
         centerPath.closePath();
         ctx.restore();
@@ -4069,7 +4140,7 @@ class LightningTurret extends Turret {
             for (let i = 1; i < 16; ++i) {
                 let r = i % 2 == 0 ? 21 : 7;
                 let a = i * Angle.deg45 / 2;
-                ctx.lineTo(Utils.ldx(r, a, 24), Utils.ldy(r, a, 24));
+                ctx.lineTo(Vec2.ldx(r, a, 24), Vec2.ldy(r, a, 24));
             }
             ctx.closePath();
             ctx.fill();
@@ -4080,7 +4151,7 @@ class LightningTurret extends Turret {
             let j = true;
             for (let i = 0; i < 8; ++i, j = !j) {
                 let a = i * Angle.deg45;
-                ctx.translate(Utils.ldx(18, a, 24), Utils.ldy(18, a, 24));
+                ctx.translate(Vec2.ldx(18, a, 24), Vec2.ldy(18, a, 24));
                 if (j) {
                     ctx.rotate(Angle.deg45);
                 }
@@ -4440,9 +4511,9 @@ class SunTurret extends Turret {
                 let a1 = a0 + Angle.deg10;
                 let a2 = a0 + Angle.deg30;
                 ctx.arc(32, 32, 32, a0, a1);
-                ctx.lineTo(Utils.ldx(12, a1, 32), Utils.ldy(12, a1, 32));
+                ctx.lineTo(Vec2.ldx(12, a1, 32), Vec2.ldy(12, a1, 32));
                 ctx.arc(32, 32, 12, a1, a2);
-                ctx.lineTo(Utils.ldx(32, a2, 32), Utils.ldy(32, a2, 32));
+                ctx.lineTo(Vec2.ldx(32, a2, 32), Vec2.ldy(32, a2, 32));
             }
             ctx.fill();
             c.cacheImage("td_tower_AEFw_sun");
@@ -4630,9 +4701,9 @@ class WaterTurret extends Turret {
             let d1 = Utils.rand(d2 + 2, 24);
             let d0 = Utils.rand(d1, 24);
             let a = i * Angle.deg45;
-            pts[0].push({ pt: Utils.ld(d0, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero });
-            pts[1].push({ pt: Utils.ld(d1, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero });
-            pts[2].push({ pt: Utils.ld(d2, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero });
+            pts[0].push({ pt: Vec2.ld(d0, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero });
+            pts[1].push({ pt: Vec2.ld(d1, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero });
+            pts[2].push({ pt: Vec2.ld(d2, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero });
         }
         for (let j = 0; j < 3; ++j) {
             let layer = pts[j];
@@ -4641,8 +4712,8 @@ class WaterTurret extends Turret {
                 let o = layer[i];
                 let oa = layer[(i + 1) % 8];
                 let angle = Angle.between(ob.pt.angleTo(o.pt), o.pt.angleTo(oa.pt));
-                o.pt_a = Utils.ld(5, angle, o.pt.x, o.pt.y);
-                o.pt_b = Utils.ld(5, angle + Angle.deg180, o.pt.x, o.pt.y);
+                o.pt_a = Vec2.ld(5, angle, o.pt.x, o.pt.y);
+                o.pt_b = Vec2.ld(5, angle + Angle.deg180, o.pt.x, o.pt.y);
             }
         }
         let c = new PreRenderedImage(64, 64);
@@ -4670,33 +4741,48 @@ WaterTurret.turretDescription = [
     "Slows down enemies and pushes them back"
 ];
 class Angle {
-    static deg(radians) {
+    static deg(degrees) {
+        return degrees * Angle.deg2rad;
+    }
+    static toDegrees(radians) {
         return radians * Angle.rad2deg;
     }
     static rand() {
         return Math.random() * Angle.deg360;
     }
     static wrap(angle) {
-        return (angle < 0 ? (Angle.deg360 - (-angle) % Angle.deg360) : angle) % Angle.deg360;
+        return (angle < 0 ? (Angle.deg360 + angle % Angle.deg360) : angle) % Angle.deg360;
     }
     static difference(angle1, angle2) {
         angle1 = Angle.wrap(angle1);
         angle2 = Angle.wrap(angle2);
         let diff = Math.abs(angle2 - angle1);
         if (diff <= Angle.deg180) {
-            return angle2 - angle1;
+            return angle1 < angle2 ? diff : -diff;
         }
         else {
-            return Angle.deg360 - angle2 + angle1;
+            diff = (Angle.deg360 - diff) % Angle.deg360;
+            return angle1 < angle2 ? -diff : diff;
         }
     }
-    static rotateTo(angle, targetAngle, rotation) {
-        let diff = Angle.difference(angle, targetAngle);
-        if (Math.abs(diff) < rotation) {
+    static absDifference(angle1, angle2) {
+        angle1 = Angle.wrap(angle1);
+        angle2 = Angle.wrap(angle2);
+        let diff = Math.abs(angle2 - angle1);
+        if (diff <= Angle.deg180) {
+            return diff;
+        }
+        else {
+            return (Angle.deg360 - diff) % Angle.deg360;
+        }
+    }
+    static rotateTo(currentAngle, targetAngle, maxRotation) {
+        let diff = Angle.difference(currentAngle, targetAngle);
+        if (Math.abs(diff) < maxRotation) {
             return targetAngle;
         }
         else
-            return Angle.wrap(angle + Math.sign(diff) * rotation);
+            return Angle.wrap(currentAngle + Math.sign(diff) * maxRotation);
     }
     static between(angle1, angle2) {
         angle1 = Angle.wrap(angle1);
@@ -4712,6 +4798,7 @@ class Angle {
     static init() {
         return new Promise(resolve => {
             Angle.rad2deg = 180 / Math.PI;
+            Angle.deg2rad = Math.PI / 180;
             Angle.deg10 = Math.PI / 18;
             Angle.deg15 = Math.PI / 12;
             Angle.deg18 = Math.PI / 10;
@@ -4920,15 +5007,6 @@ class Utils {
         byte = Utils.clamp(byte, 0, 255);
         return Utils.hex[Math.floor(byte / 16)] + Utils.hex[Math.floor(byte % 16)];
     }
-    static ldx(distance, direction, startX = 0) {
-        return startX + distance * Math.cos(direction);
-    }
-    static ldy(distance, direction, startY = 0) {
-        return startY + distance * Math.sin(direction);
-    }
-    static ld(distance, direction, startX = 0, startY = 0) {
-        return new Vec2(startX + distance * Math.cos(direction), startY + distance * Math.sin(direction));
-    }
     static rand(min, max) {
         if (max <= min) {
             return min;
@@ -4998,6 +5076,9 @@ class Vec2 {
     addu(x, y) {
         return new Vec2(this.x + x, this.y + y);
     }
+    addld(distance, direction) {
+        return Vec2.ld(distance, direction, this.x, this.y);
+    }
     sub(v) {
         return new Vec2(this.x - v.x, this.y - v.y);
     }
@@ -5066,20 +5147,29 @@ class Vec2 {
     toString() {
         return `${this.x};${this.y}`;
     }
+    static ldx(distance, direction, startX = 0) {
+        return startX + distance * Math.cos(direction);
+    }
+    static ldy(distance, direction, startY = 0) {
+        return startY + distance * Math.sin(direction);
+    }
+    static ld(distance, direction, startX = 0, startY = 0) {
+        return new Vec2(startX + distance * Math.cos(direction), startY + distance * Math.sin(direction));
+    }
     static randUnit() {
         let a = Angle.rand();
-        return new Vec2(Utils.ldx(1, a), Utils.ldy(1, a));
+        return new Vec2(Vec2.ldx(1, a), Vec2.ldy(1, a));
     }
     static randUnit3d() {
         let a = Angle.rand(), a2 = Angle.rand();
-        let len = Utils.ldx(1, a2);
-        return new Vec2(Utils.ldx(len, a), Utils.ldy(len, a));
+        let len = Vec2.ldx(1, a2);
+        return new Vec2(Vec2.ldx(len, a), Vec2.ldy(len, a));
     }
     static onEllipse(r1, r2, angle, center) {
         if (center === undefined) {
             center = Vec2.zero;
         }
-        return new Vec2(Utils.ldx(r1, angle, center.x), Utils.ldy(r2, angle, center.y));
+        return new Vec2(Vec2.ldx(r1, angle, center.x), Vec2.ldy(r2, angle, center.y));
     }
     static init() {
         Vec2.zero = new Vec2(0, 0);

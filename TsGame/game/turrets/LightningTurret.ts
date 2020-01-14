@@ -60,7 +60,7 @@ class LightningTurret extends Turret {
             for (let i = 1; i < 16; ++i) {
                 let r = i % 2 == 0 ? 21 : 7
                 let a = i * Angle.deg45 / 2
-                ctx.lineTo(Utils.ldx(r, a, 24), Utils.ldy(r, a, 24))
+                ctx.lineTo(Vec2.ldx(r, a, 24), Vec2.ldy(r, a, 24))
             }
             ctx.closePath()
             ctx.fill()
@@ -71,7 +71,7 @@ class LightningTurret extends Turret {
             let j = true
             for (let i = 0; i < 8; ++i, j = !j) {
                 let a = i * Angle.deg45
-                ctx.translate(Utils.ldx(18, a, 24), Utils.ldy(18, a, 24))
+                ctx.translate(Vec2.ldx(18, a, 24), Vec2.ldy(18, a, 24))
                 if (j) {
                     ctx.rotate(Angle.deg45)
                 }
