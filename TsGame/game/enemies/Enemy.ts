@@ -11,22 +11,23 @@ abstract class Enemy extends Expirable {
     private speedMultiplier: number
     private prevSpeedMultiplier: number
 
-    protected hp: number
+    protected _hp: number
     protected startHp: number
     protected armor: number
     protected effects: EffectSet
 
+    protected baseColor: RgbaColor
+    protected baseHpColor: RgbaColor
+    protected baseArmorColor: RgbaColor
+
     game: Game
 
     get x(): number { return this.position.x }
-
     get y(): number { return this.position.y }
-
     get pos(): Vec2 { return this.position }
-
-    get expired(): boolean { return this.hp <= 0 }
-
-    get armorProtection(): number { return 1 + this.armor * 0.04 }
+    get hp(): number { return this._hp }
+    get expired(): boolean { return this._hp <= 0 }
+    get armorProtection(): number { return Math.log10(1 + this.armor * 0.1) }
 
     abstract get baseSpeed(): number
 
@@ -40,11 +41,14 @@ abstract class Enemy extends Expirable {
         this.speedMultiplier = 1
         this.prevSpeedMultiplier = 1
         this.position = this.currTilePos
-        this.hp = hp
         this.startHp = hp
+        this._hp = this.startHp
         this.armor = armor
         this.effects = new EffectSet()
         this.game = game
+        this.baseColor = RgbaColor.fromHex("#303030")
+        this.baseHpColor = RgbaColor.fromHex("#C08080")
+        this.baseArmorColor = RgbaColor.fromHex("#8080C0")
     }
 
     step(time: number): void {
@@ -58,7 +62,7 @@ abstract class Enemy extends Expirable {
                 this.relPos -= this.relDist
                 if (this.targetTile === null) {
                     this.game.takeLife()
-                    this.hp = -1
+                    this._hp = -1
                     return
                 } else if (this.targetTile.next === null) {
                     this.currTilePos = this.nextTilePos
@@ -81,7 +85,7 @@ abstract class Enemy extends Expirable {
     abstract render(ctx: CanvasRenderingContext2D): void
 
     dealDamage(ammount: number): void {
-        this.hp = Math.max(this.hp - ammount * this.game.towerDamageMultiplier / this.armorProtection, 0)
+        this._hp = Math.max(this._hp - ammount * this.game.towerDamageMultiplier / this.armorProtection, 0)
     }
 
     corodeArmor(ammount: number): void {
@@ -102,7 +106,7 @@ abstract class Enemy extends Expirable {
     }
 
     pushBack(): void {
-        this.relPos  = 0
+        this.relPos -= 8
     }
 
     posAhead(timeAhead: number): Vec2 {

@@ -2,8 +2,8 @@
 
 class AcidProjectile extends GuidedProjectile {
 
-    constructor(game: Game, position: Vec2, target: Enemy, strength: number) {
-        super(game, position, target, 150)
+    constructor(game: Game, position: Vec2, target: Enemy, strength: number, range: number) {
+        super(game, position, target, 250, range)
         this.onhit = enemy => {
             enemy.dealDamage(4)
             enemy.addEffect(new AcidEffect(2, strength))

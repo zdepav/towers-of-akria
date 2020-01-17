@@ -42,7 +42,8 @@ class ArcaneTurret extends Turret {
     step(time: number): void {
         super.step(time)
         this.frame = (this.frame + time * 25) % ArcaneTurret.frameCount
-        for (let i = 0; i < ArcaneTurret.orbitCount; ++i) {
+        let orbitCount = (1 - this.cooldown / ArcaneTurret.maxCooldown) * ArcaneTurret.orbitCount
+        for (let i = 0; i < orbitCount; ++i) {
             let pt = this.orbits[i]
             pt.pos = Angle.wrap(pt.pos + time * pt.speed)
         }

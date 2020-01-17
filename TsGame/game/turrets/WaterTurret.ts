@@ -6,9 +6,7 @@ class WaterTurret extends Turret {
     private static turretName = "Water Tower"
     private static turretDescription = [
         "Slows down enemies",
-        "Slows down enemies, can push them back",
-        "Slows down enemies, can push them back",
-        "Slows down enemies and pushes them back"
+        "Slows down enemies, can push them back"
     ]
 
     private angle: number
@@ -22,6 +20,14 @@ class WaterTurret extends Turret {
 
     step(time: number): void {
         super.step(time)
+        if (this.ready) {
+            let enemy = Utils.randItem(this.game.findEnemiesInRange(this.center, this.range))
+            if (enemy) {
+                let pos = Vec2.randUnit3d().mul(this.type.water * 2 + 8).add(this.center)
+                this.game.spawnProjectile(new WaterProjectile(this.game, pos, enemy, this.type.water, this.range))
+                this.cooldown = 0.5 / this.type.count
+            }
+        }
     }
 
     render(ctx: CanvasRenderingContext2D): void {
@@ -59,9 +65,9 @@ class WaterTurret extends Turret {
     static getInfo(type: TurretType): TurretInfo | undefined {
         return new TurretInfo(
             WaterTurret.turretName,
-            WaterTurret.turretDescription[type.water],
+            WaterTurret.turretDescription[type.water > 1 ? 1 : 0],
             112 + type.water * 16,
-            `${2 + type.water * 2}`
+            `${4 + type.water * 4}`
         )
     }
 

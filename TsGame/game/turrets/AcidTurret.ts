@@ -50,7 +50,7 @@ class AcidTurret extends Turret {
                 }
             }
             if (enemy) {
-                this.game.spawnProjectile(new AcidProjectile(this.game, this.center, enemy, this.type.count))
+                this.game.spawnProjectile(new AcidProjectile(this.game, this.center, enemy, this.type.count, this.range))
                 this.cooldown = 1 / this.type.count
             }
         }

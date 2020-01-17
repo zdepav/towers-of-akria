@@ -3,7 +3,7 @@
 
 class Button extends Rect implements IGuiItem {
 
-    private _pressed: boolean
+protected  _pressed: boolean
 
     enabled: boolean
     onclick: ((button: Button) => void) | null

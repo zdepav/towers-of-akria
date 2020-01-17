@@ -38,6 +38,7 @@ class Game {
     private time: number
     private upgradeButtons: TurretUpgradeButton[]
     private rangeMarkerRotation: number
+    private hoveredElement: TurretElement | null
 
     private get hoveredTile(): Tile | null {
         return this.hoveredTilePos !== null ? this.map[this.hoveredTilePos.x][this.hoveredTilePos.y] : null
@@ -91,6 +92,7 @@ class Game {
             this.guiPanels[2].addItem(button)
         }
         this.rangeMarkerRotation = 0
+        this.hoveredElement = null
     }
 
     init(): Promise<void> {
@@ -310,7 +312,7 @@ class Game {
         }))
     }
 
-    private start() {
+    private start(): void {
         let g = this
         this.render()
         function gameLoop() {
@@ -321,7 +323,7 @@ class Game {
         gameLoop()
     }
 
-    private step() {
+    private step(): void {
         switch (this.status) {
             case InitializationStatus.Uninitialized: {
                 this.status = InitializationStatus.Initializing
@@ -367,7 +369,7 @@ class Game {
         }
     }
 
-    markTile(tile: Tile) {
+    markTile(tile: Tile): void {
         this.spawnParticle(new TileMarkParticle(tile.pos.x + 4, tile.pos.y + 4, new Vec2(1, 0)))
         this.spawnParticle(new TileMarkParticle(tile.pos.x + 4, tile.pos.y + 4, new Vec2(0, 1)))
         this.spawnParticle(new TileMarkParticle(tile.pos.x + 60, tile.pos.y + 4, new Vec2(-1, 0)))
@@ -380,7 +382,7 @@ class Game {
 
     getMousePosition(): Vec2 { return this.mousePosition.copy() }
 
-    private setMousePosition(e: MouseEvent) {
+    private setMousePosition(e: MouseEvent): void {
         var rect = this.canvas.getBoundingClientRect()
         this.mousePosition = new Vec2(
             Utils.clamp(Math.floor(e.clientX - rect.left), 0, this.width - 1),
@@ -393,6 +395,7 @@ class Game {
             return
         }
         this.setMousePosition(e)
+        this.hoveredElement = null
         this.guiPanels[0].onMouseMove()
         if (this.hoveredTilePos === null) {
             return
@@ -481,7 +484,7 @@ class Game {
         })
     }
 
-    private render() {
+    private render(): void {
         let ctx = this.ctx
         switch (this.status) {
             case InitializationStatus.Uninitialized:
@@ -515,23 +518,13 @@ class Game {
                 if (this.selectedTile && this.selectedTile.turret) {
                     let range = this.selectedTile.turret.range
                     let {x, y} = this.selectedTile.pos.addu(32, 32)
-                    let rot = this.rangeMarkerRotation
-                    ctx.beginPath()
-                    ctx.arc(x, y, range, 0, Angle.deg360)
-                    ctx.strokeStyle = "#00000060"
-                    ctx.lineWidth = 2
-                    ctx.stroke()
-                    ctx.beginPath()
-                    for (let k = 0; k < 2; ++k) {
-                        ctx.moveTo(Vec2.ldx(range, rot, x), Vec2.ldy(range, rot, y))
-                        for (let i = 1; i <= 8; ++i) {
-                            let a = rot + i * Angle.deg45
-                            ctx.lineTo(Vec2.ldx(range, a, x), Vec2.ldy(range, a, y))
+                    this.renderRangeMarker(ctx, x, y, range, "#00000060")
+                    if (this.hoveredElement !== null) {
+                        let info = this.selectedTile.turret.getInfoAfterUpgrade(this.hoveredElement)
+                        if (info) {
+                            this.renderRangeMarker(ctx, x, y, info.range, "#40404040")
                         }
-                        rot += Angle.deg(22.5)
                     }
-                    ctx.lineWidth = 1
-                    ctx.stroke()
                 }
                 let fps = this.performanceMeter.getFps()
                 ctx.fillStyle = "#000000"
@@ -550,11 +543,31 @@ class Game {
         }
     }
 
-    spawnEnemy(e: Enemy) { this.enemies.add(e) }
+    renderRangeMarker(ctx: CanvasRenderingContext2D, x: number, y: number, range: number, color: string): void {
+        let rot = this.rangeMarkerRotation
+        ctx.beginPath()
+        ctx.arc(x, y, range, 0, Angle.deg360)
+        ctx.strokeStyle = color
+        ctx.lineWidth = 2
+        ctx.stroke()
+        ctx.beginPath()
+        for (let k = 0; k < 2; ++k) {
+            ctx.moveTo(Vec2.ldx(range, rot, x), Vec2.ldy(range, rot, y))
+            for (let i = 1; i <= 8; ++i) {
+                let a = rot + i * Angle.deg45
+                ctx.lineTo(Vec2.ldx(range, a, x), Vec2.ldy(range, a, y))
+            }
+            rot += Angle.deg(22.5)
+        }
+        ctx.lineWidth = 1
+        ctx.stroke()
+    }
 
-    spawnParticle(p: Particle) { this.particles.add(p) }
+    spawnEnemy(e: Enemy): void { this.enemies.add(e) }
 
-    spawnProjectile(p: Projectile) { this.projectiles.add(p) }
+    spawnParticle(p: Particle): void { this.particles.add(p) }
+
+    spawnProjectile(p: Projectile): void { this.projectiles.add(p) }
 
     findEnemy(point: Vec2, maxDistance: number): Enemy | null {
         return this.enemies.findAny(point, maxDistance)
@@ -580,6 +593,10 @@ class Game {
     buyUpgrade(upgradeCostMultiplier: number): boolean {
         // TODO: implement
         return upgradeCostMultiplier >= 0
+    }
+
+    hoverElement(type: TurretElement): void {
+        this.hoveredElement = type
     }
 
     static initializeAndRun(): void {

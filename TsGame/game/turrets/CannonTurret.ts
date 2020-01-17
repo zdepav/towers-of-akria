@@ -16,7 +16,7 @@ class CannonTurret extends Turret {
     }
 
     private createExplosionAt(pos: Vec2): void {
-        let r = 10 + this.type.count * 4
+        let r = 8 + this.type.count * 3
         for (let i = 0, c = 9 + this.type.count; i < c; ++i) {
             let p = Vec2.randUnit3d().mul(r).add(pos)
             this.game.spawnParticle(new ExplosionParticle(p.x, p.y))

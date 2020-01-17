@@ -30,6 +30,14 @@ class TurretUpgradeButton extends Button {
         }
     }
 
+    onMouseMove(): void {
+        if (this.pointIsInside(this.game.getMousePosition())) {
+            this.game.hoverElement(this.type)
+        } else if (this._pressed) {
+            this._pressed = false
+        }
+    }
+
     step(time: number): void {
         super.step(time)
         if (!this.targetTile || !this.targetTile.turret) {

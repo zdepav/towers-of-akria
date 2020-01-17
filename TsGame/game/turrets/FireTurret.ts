@@ -61,7 +61,8 @@ class FireTurret extends Turret {
                     this.center,
                     enemy,
                     9 / this.type.fire + 6,
-                    this.type.fire / 2 + 1
+                    this.type.fire / 2 + 1,
+                    this.range
                 ))
                 this.cooldown = 1.5 / this.type.count
             }
@@ -106,7 +107,7 @@ class FireTurret extends Turret {
         return new TurretInfo(
             FireTurret.turretName,
             type.fire > 2 ? FireTurret.turretDescription2 : FireTurret.turretDescription1,
-            80 + type.fire * 16,
+            96 + type.fire * 16,
             `${6 + type.fire * 4} + burning`
         )
     }

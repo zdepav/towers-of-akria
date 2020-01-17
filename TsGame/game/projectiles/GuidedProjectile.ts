@@ -2,20 +2,20 @@
 
 abstract class GuidedProjectile extends Projectile {
 
-    private relPos: number
-    private _expired: boolean
-    private startPosition: Vec2
-    private target: Vec2
-    private speed: number
-    
+    protected relPos: number
+    protected _expired: boolean
+    protected startPosition: Vec2
+    protected speed: number
+    protected target: Vec2
     protected targetEnemy: Enemy
     protected position: Vec2
+    protected range: number
     
     onhit: ((enemy: Enemy) => void) | null
 
     get expired(): boolean { return this._expired }
 
-    constructor(game: Game, position: Vec2, target: Enemy, speed: number) {
+    constructor(game: Game, position: Vec2, target: Enemy, speed: number, range: number) {
         super(game)
         this.relPos = 0
         this._expired = false
@@ -24,15 +24,20 @@ abstract class GuidedProjectile extends Projectile {
         this.target = target.pos
         this.targetEnemy = target
         this.speed = speed
+        this.range = range
+    }
+
+    protected adjustTargetPosition(): void {
+        if (!this.targetEnemy.expired) {
+            this.target = this.targetEnemy.pos
+        }
     }
 
     step(time: number): void {
         if (this._expired) {
             return
         }
-        if (!this.targetEnemy.expired) {
-            this.target = this.targetEnemy.pos
-        }
+        this.adjustTargetPosition()
         this.relPos += time * this.speed
         let direction = this.target.sub(this.startPosition)
         let distance = direction.length
@@ -46,5 +51,8 @@ abstract class GuidedProjectile extends Projectile {
         this.position = this.target.sub(this.startPosition)
                                    .mul(this.relPos / distance)
                                    .add(this.startPosition)
+        if (this.startPosition.distanceTo(this.position) > this.range) {
+            this._expired = true
+        }
     }
 }

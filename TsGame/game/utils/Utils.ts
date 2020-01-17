@@ -112,6 +112,10 @@ class Utils {
         return Math.floor(Math.random() * (max - min) + min)
     }
 
+    static randItem<T>(items: T[]): T | null {
+        return items.length > 0 ? items[Math.floor(Math.random() * items.length)] : null
+    }
+
     static randSign(num: number = 1): number {
         return (Math.floor(Math.random() * 2) * 2 - 1) * num
     }

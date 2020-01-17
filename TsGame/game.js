@@ -54,6 +54,7 @@ class Game {
             this.guiPanels[2].addItem(button);
         }
         this.rangeMarkerRotation = 0;
+        this.hoveredElement = null;
     }
     get hoveredTile() {
         return this.hoveredTilePos !== null ? this.map[this.hoveredTilePos.x][this.hoveredTilePos.y] : null;
@@ -308,6 +309,7 @@ class Game {
                 let time = new Date().getTime();
                 let timeDiff = (time - this.prevTime) / 1000;
                 this.performanceMeter.add(1 / timeDiff);
+                timeDiff *= 6;
                 let arcaneTowerCount = 0;
                 for (let x = 0; x < this.mapWidth; ++x) {
                     for (let y = 0; y < this.mapHeight; ++y) {
@@ -355,6 +357,7 @@ class Game {
             return;
         }
         this.setMousePosition(e);
+        this.hoveredElement = null;
         this.guiPanels[0].onMouseMove();
         if (this.hoveredTilePos === null) {
             return;
@@ -468,23 +471,13 @@ class Game {
                 if (this.selectedTile && this.selectedTile.turret) {
                     let range = this.selectedTile.turret.range;
                     let { x, y } = this.selectedTile.pos.addu(32, 32);
-                    let rot = this.rangeMarkerRotation;
-                    ctx.beginPath();
-                    ctx.arc(x, y, range, 0, Angle.deg360);
-                    ctx.strokeStyle = "#00000060";
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                    ctx.beginPath();
-                    for (let k = 0; k < 2; ++k) {
-                        ctx.moveTo(Vec2.ldx(range, rot, x), Vec2.ldy(range, rot, y));
-                        for (let i = 1; i <= 8; ++i) {
-                            let a = rot + i * Angle.deg45;
-                            ctx.lineTo(Vec2.ldx(range, a, x), Vec2.ldy(range, a, y));
+                    this.renderRangeMarker(ctx, x, y, range, "#00000060");
+                    if (this.hoveredElement !== null) {
+                        let info = this.selectedTile.turret.getInfoAfterUpgrade(this.hoveredElement);
+                        if (info) {
+                            this.renderRangeMarker(ctx, x, y, info.range, "#40404040");
                         }
-                        rot += Angle.deg(22.5);
                     }
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
                 }
                 let fps = this.performanceMeter.getFps();
                 ctx.fillStyle = "#000000";
@@ -501,6 +494,25 @@ class Game {
                 return;
             }
         }
+    }
+    renderRangeMarker(ctx, x, y, range, color) {
+        let rot = this.rangeMarkerRotation;
+        ctx.beginPath();
+        ctx.arc(x, y, range, 0, Angle.deg360);
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.beginPath();
+        for (let k = 0; k < 2; ++k) {
+            ctx.moveTo(Vec2.ldx(range, rot, x), Vec2.ldy(range, rot, y));
+            for (let i = 1; i <= 8; ++i) {
+                let a = rot + i * Angle.deg45;
+                ctx.lineTo(Vec2.ldx(range, a, x), Vec2.ldy(range, a, y));
+            }
+            rot += Angle.deg(22.5);
+        }
+        ctx.lineWidth = 1;
+        ctx.stroke();
     }
     spawnEnemy(e) { this.enemies.add(e); }
     spawnParticle(p) { this.particles.add(p); }
@@ -521,6 +533,9 @@ class Game {
     }
     buyUpgrade(upgradeCostMultiplier) {
         return upgradeCostMultiplier >= 0;
+    }
+    hoverElement(type) {
+        this.hoveredElement = type;
     }
     static initializeAndRun() {
         let container = document.getElementById("zptd-game-container");
@@ -822,17 +837,21 @@ class Enemy extends Expirable {
         this.speedMultiplier = 1;
         this.prevSpeedMultiplier = 1;
         this.position = this.currTilePos;
-        this.hp = hp;
         this.startHp = hp;
+        this._hp = this.startHp;
         this.armor = armor;
         this.effects = new EffectSet();
         this.game = game;
+        this.baseColor = RgbaColor.fromHex("#303030");
+        this.baseHpColor = RgbaColor.fromHex("#C08080");
+        this.baseArmorColor = RgbaColor.fromHex("#8080C0");
     }
     get x() { return this.position.x; }
     get y() { return this.position.y; }
     get pos() { return this.position; }
-    get expired() { return this.hp <= 0; }
-    get armorProtection() { return 1 + this.armor * 0.04; }
+    get hp() { return this._hp; }
+    get expired() { return this._hp <= 0; }
+    get armorProtection() { return Math.log10(1 + this.armor * 0.1); }
     step(time) {
         if (this.expired) {
             return;
@@ -844,7 +863,7 @@ class Enemy extends Expirable {
                 this.relPos -= this.relDist;
                 if (this.targetTile === null) {
                     this.game.takeLife();
-                    this.hp = -1;
+                    this._hp = -1;
                     return;
                 }
                 else if (this.targetTile.next === null) {
@@ -866,7 +885,7 @@ class Enemy extends Expirable {
         this.speedMultiplier = 1;
     }
     dealDamage(ammount) {
-        this.hp = Math.max(this.hp - ammount * this.game.towerDamageMultiplier / this.armorProtection, 0);
+        this._hp = Math.max(this._hp - ammount * this.game.towerDamageMultiplier / this.armorProtection, 0);
     }
     corodeArmor(ammount) {
         this.armor = Math.max(this.armor - ammount, 0);
@@ -882,7 +901,7 @@ class Enemy extends Expirable {
         this.speedMultiplier *= mult;
     }
     pushBack() {
-        this.relPos = 0;
+        this.relPos -= 8;
     }
     posAhead(timeAhead) {
         let relPos = this.relPos + this.prevSpeedMultiplier * this.baseSpeed * timeAhead;
@@ -893,32 +912,51 @@ class Enemy extends Expirable {
     }
 }
 class BasicEnemy extends Enemy {
+    get baseSpeed() { return 48; }
     constructor(game, spawn, hp, armor) {
         super(game, spawn, hp, armor);
-        this.baseColor = RgbaColor.fromHex("#303030");
-        this.baseHpColor = RgbaColor.fromHex("#C08080");
-        this.baseArmorColor = RgbaColor.fromHex("#8080C0");
-    }
-    get baseSpeed() { return 32; }
-    step(time) {
-        super.step(time);
     }
     render(ctx) {
         let r;
         if (this.armor > 0) {
             ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss();
-            r = 5 + Utils.clamp(this.armor / 100, 0, 4);
+            r = 7 + Utils.clamp(this.armor / 80, 0, 5);
             ctx.fillRect(this.x - r, this.y - r, r * 2, r * 2);
         }
         ctx.fillStyle = "#000000";
-        ctx.fillRect(this.x - 5, this.y - 5, 10, 10);
-        if (this.hp < this.startHp) {
+        ctx.fillRect(this.x - 7, this.y - 7, 14, 14);
+        if (this._hp < this.startHp) {
             ctx.fillStyle = this.effects.colorize(this.baseColor).toCss();
-            ctx.fillRect(this.x - 4, this.y - 4, 8, 8);
+            ctx.fillRect(this.x - 6, this.y - 6, 12, 12);
         }
         ctx.fillStyle = this.effects.colorize(this.baseHpColor).toCss();
-        r = 4 * this.hp / this.startHp;
+        r = 6 * this._hp / this.startHp;
         ctx.fillRect(this.x - r, this.y - r, r * 2, r * 2);
+    }
+}
+class BigEnemy extends Enemy {
+    get baseSpeed() { return 24; }
+    constructor(game, spawn, hp, armor) {
+        super(game, spawn, hp * 4, armor);
+    }
+    renderCircle(ctx, r) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, r, 0, Angle.deg360);
+        ctx.fill();
+    }
+    render(ctx) {
+        if (this.armor > 0) {
+            ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss();
+            this.renderCircle(ctx, 10 + Utils.clamp(this.armor / 67, 0, 6));
+        }
+        ctx.fillStyle = "#000000";
+        this.renderCircle(ctx, 10);
+        if (this._hp < this.startHp) {
+            ctx.fillStyle = this.effects.colorize(this.baseColor).toCss();
+            this.renderCircle(ctx, 8);
+        }
+        ctx.fillStyle = this.effects.colorize(this.baseHpColor).toCss();
+        this.renderCircle(ctx, 8 * this._hp / this.startHp);
     }
 }
 class ExpirableSet {
@@ -1028,14 +1066,119 @@ class EnemyWavePlanner {
         this.spawnTile = null;
         this.timer = 1;
         this.hp = 10;
+        this.enemyType = 0;
     }
     step(time) {
         this.timer -= time;
         if (this.timer <= 0 && this.spawnTile !== null) {
-            this.game.spawnEnemy(new BasicEnemy(this.game, this.spawnTile, this.hp, Math.floor(this.hp / 10)));
+            let armor = Math.floor(this.hp / 10);
+            let e;
+            switch (this.enemyType) {
+                case 1:
+                    e = new FastEnemy(this.game, this.spawnTile, this.hp, armor);
+                    break;
+                case 2:
+                    e = new RegeneratingEnemy(this.game, this.spawnTile, this.hp, armor);
+                    break;
+                case 3:
+                    e = new BigEnemy(this.game, this.spawnTile, this.hp, armor);
+                    break;
+                default:
+                    e = new BasicEnemy(this.game, this.spawnTile, this.hp, armor);
+                    break;
+            }
+            this.game.spawnEnemy(e);
             this.timer = 1;
             this.hp += Math.max(Math.floor(this.hp / 100), 1);
+            if (Math.random() < 0.1) {
+                this.enemyType = Utils.randInt(0, 4);
+            }
         }
+    }
+}
+class FastEnemy extends Enemy {
+    get baseSpeed() { return 160; }
+    constructor(game, spawn, hp, armor) {
+        super(game, spawn, hp * 0.35, armor * 0.25);
+    }
+    renderTriangle(ctx, a, b, c, r) {
+        ctx.beginPath();
+        ctx.moveTo(this.x + a.x * r, this.y + a.y * r);
+        ctx.lineTo(this.x + b.x * r, this.y + b.y * r);
+        ctx.lineTo(this.x + c.x * r, this.y + c.y * r);
+        ctx.closePath();
+        ctx.fill();
+    }
+    render(ctx) {
+        let angle = this.currTilePos.angleTo(this.nextTilePos);
+        let va = Vec2.ld(1, angle);
+        let vb = Vec2.ld(1, angle + Angle.deg120);
+        let vc = Vec2.ld(1, angle - Angle.deg120);
+        if (this.armor > 0) {
+            ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss();
+            this.renderTriangle(ctx, va, vb, vc, 8.5 + Utils.clamp(this.armor / 57, 0, 7));
+        }
+        ctx.fillStyle = "#000000";
+        this.renderTriangle(ctx, va, vb, vc, 8.5);
+        if (this._hp < this.startHp) {
+            ctx.fillStyle = this.effects.colorize(this.baseColor).toCss();
+            this.renderTriangle(ctx, va, vb, vc, 7);
+        }
+        ctx.fillStyle = this.effects.colorize(this.baseHpColor).toCss();
+        this.renderTriangle(ctx, va, vb, vc, 7 * this._hp / this.startHp);
+    }
+}
+class RegeneratingEnemy extends Enemy {
+    constructor(game, spawn, hp, armor) {
+        super(game, spawn, hp * 0.6, 0);
+        this.healingSpeed = -0.1;
+    }
+    get baseSpeed() { return 64; }
+    step(time) {
+        super.step(time);
+        if (this.healingSpeed > 0) {
+            this._hp = Math.min(this.startHp, this._hp + this.healingSpeed);
+        }
+        this.healingSpeed = Math.min(this.healingSpeed + 0.5 * time, 0.5);
+    }
+    renderHeart(ctx, pts, r) {
+        ctx.beginPath();
+        ctx.moveTo(this.x + pts[0].x * r, this.y + pts[0].y * r);
+        ctx.bezierCurveTo(this.x + pts[1].x * r, this.y + pts[1].y * r, this.x + pts[2].x * r, this.y + pts[2].y * r, this.x + pts[3].x * r, this.y + pts[3].y * r);
+        ctx.bezierCurveTo(this.x + pts[4].x * r, this.y + pts[4].y * r, this.x + pts[5].x * r, this.y + pts[5].y * r, this.x + pts[6].x * r, this.y + pts[6].y * r);
+        ctx.bezierCurveTo(this.x + pts[7].x * r, this.y + pts[7].y * r, this.x + pts[8].x * r, this.y + pts[8].y * r, this.x + pts[9].x * r, this.y + pts[9].y * r);
+        ctx.fill();
+    }
+    render(ctx) {
+        let angle = this.currTilePos.angleTo(this.nextTilePos);
+        let va = Vec2.ld(1, angle);
+        let vb = Vec2.ld(1, angle + Angle.deg90);
+        let p1 = va.mul(-1.5);
+        let p2 = va.mul(-0.5);
+        let p3 = va.mul(0.5);
+        let p4 = va.mul(1.5);
+        let points = [
+            p1,
+            p2, p2.add(vb), p3.add(vb),
+            p4.add(vb), p4.sub(vb), p3.sub(vb),
+            p2.sub(vb), p2, p1
+        ];
+        if (this.armor > 0) {
+            ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss();
+            this.renderHeart(ctx, points, 8.5 + Utils.clamp(this.armor / 57, 0, 7));
+        }
+        ctx.fillStyle = "#000000";
+        this.renderHeart(ctx, points, 8.5);
+        if (this._hp < this.startHp) {
+            ctx.fillStyle = this.effects.colorize(this.baseColor).toCss();
+            this.renderHeart(ctx, points, 7);
+        }
+        ctx.fillStyle = this.effects.colorize(this.baseHpColor).toCss();
+        this.renderHeart(ctx, points, 7 * this._hp / this.startHp);
+    }
+    dealDamage(ammount) {
+        super.dealDamage(ammount);
+        this.healingSpeed = -0.1;
     }
 }
 class Effect extends Expirable {
@@ -1085,7 +1228,7 @@ class AcidEffect extends LeveledEffect {
     step(time) {
         super.step(time);
         if (this.duration > 0 && this.affectedEnemy !== null) {
-            this.affectedEnemy.corodeArmor(time * 20 * this._strength);
+            this.affectedEnemy.corodeArmor(time * 20 * this._strength * this._strength);
             this.affectedEnemy.dealDamage(time * 2 * this._strength);
             if (Math.random() < 0.01) {
                 let v = Vec2.randUnit3d().mul(4);
@@ -2163,6 +2306,14 @@ class TurretUpgradeButton extends Button {
             turret.addType(this.type);
         }
     }
+    onMouseMove() {
+        if (this.pointIsInside(this.game.getMousePosition())) {
+            this.game.hoverElement(this.type);
+        }
+        else if (this._pressed) {
+            this._pressed = false;
+        }
+    }
     step(time) {
         super.step(time);
         if (!this.targetTile || !this.targetTile.turret) {
@@ -2456,18 +2607,19 @@ class TileMarkParticle extends Particle {
     }
 }
 class TrailParticle extends Particle {
-    constructor(x, y, color) {
+    constructor(x, y, color, scale = 1) {
         super();
         this.x = x;
         this.y = y;
         let v = Vec2.randUnit3d();
-        this.vx = v.x * 3;
-        this.vy = v.y * 3;
+        this.vx = v.x * 4;
+        this.vy = v.y * 4;
         this.life = 0;
         if (!/#[0-9a-f]{6}/i.test(color)) {
             throw new Error("Color format not supported");
         }
         this.color = color;
+        this.size = scale * 3;
     }
     get expired() { return this.life >= 1; }
     step(time) {
@@ -2479,7 +2631,7 @@ class TrailParticle extends Particle {
         }
         ctx.fillStyle = this.color + Utils.byteToHex(255 * (1 - this.life));
         ctx.beginPath();
-        ctx.arc(this.x + this.life * this.vx, this.y + this.life * this.vy, (1 - this.life) * 3, 0, Angle.deg360);
+        ctx.arc(this.x + this.life * this.vx, this.y + this.life * this.vy, (1 - this.life) * this.size, 0, Angle.deg360);
         ctx.fill();
     }
 }
@@ -2513,7 +2665,7 @@ class Projectile extends Expirable {
     }
 }
 class GuidedProjectile extends Projectile {
-    constructor(game, position, target, speed) {
+    constructor(game, position, target, speed, range) {
         super(game);
         this.relPos = 0;
         this._expired = false;
@@ -2522,15 +2674,19 @@ class GuidedProjectile extends Projectile {
         this.target = target.pos;
         this.targetEnemy = target;
         this.speed = speed;
+        this.range = range;
     }
     get expired() { return this._expired; }
+    adjustTargetPosition() {
+        if (!this.targetEnemy.expired) {
+            this.target = this.targetEnemy.pos;
+        }
+    }
     step(time) {
         if (this._expired) {
             return;
         }
-        if (!this.targetEnemy.expired) {
-            this.target = this.targetEnemy.pos;
-        }
+        this.adjustTargetPosition();
         this.relPos += time * this.speed;
         let direction = this.target.sub(this.startPosition);
         let distance = direction.length;
@@ -2544,11 +2700,14 @@ class GuidedProjectile extends Projectile {
         this.position = this.target.sub(this.startPosition)
             .mul(this.relPos / distance)
             .add(this.startPosition);
+        if (this.startPosition.distanceTo(this.position) > this.range) {
+            this._expired = true;
+        }
     }
 }
 class AcidProjectile extends GuidedProjectile {
-    constructor(game, position, target, strength) {
-        super(game, position, target, 150);
+    constructor(game, position, target, strength, range) {
+        super(game, position, target, 250, range);
         this.onhit = enemy => {
             enemy.dealDamage(4);
             enemy.addEffect(new AcidEffect(2, strength));
@@ -2562,6 +2721,31 @@ class AcidProjectile extends GuidedProjectile {
         this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#d0ff00"));
     }
     render(ctx) { }
+}
+class ArrowProjectile extends GuidedProjectile {
+    constructor(game, position, target, damage) {
+        super(game, position, target, 640, Infinity);
+        this.target = target.posAhead(position.distanceTo(target.pos) / 640);
+        this.onhit = enemy => enemy.dealDamage(damage);
+    }
+    adjustTargetPosition() {
+        if (!this.targetEnemy.expired) {
+            this.target = this.targetEnemy.posAhead(this.position.distanceTo(this.targetEnemy.pos) / 640);
+        }
+    }
+    render(ctx) {
+        if (this._expired) {
+            return;
+        }
+        let dv = this.target.sub(this.position).normalize();
+        let a = dv.mul(-4).add(this.position);
+        let b = dv.mul(4).add(this.position);
+        ctx.strokeStyle = "#542F00";
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+    }
 }
 class ThrownProjectile extends Projectile {
     constructor(game, position, target, speed) {
@@ -2597,13 +2781,10 @@ class CannonballProjectile extends ThrownProjectile {
     constructor(game, position, target) {
         super(game, position, target, 640);
     }
-    step(time) {
-        if (this.expired) {
+    render(ctx) {
+        if (this._expired) {
             return;
         }
-        super.step(time);
-    }
-    render(ctx) {
         ctx.fillStyle = "#000000";
         ctx.beginPath();
         ctx.arc(this.position.x, this.position.y, 3, 0, Angle.deg360);
@@ -2642,8 +2823,8 @@ class EarthProjectile extends ThrownProjectile {
     }
 }
 class FireProjectile extends GuidedProjectile {
-    constructor(game, position, target, damage, duration) {
-        super(game, position, target, 150);
+    constructor(game, position, target, damage, duration, range) {
+        super(game, position, target, 250, range);
         this.onhit = enemy => {
             enemy.dealDamage(damage);
             enemy.addEffect(new BurningEffect(duration));
@@ -2656,7 +2837,7 @@ class FireProjectile extends GuidedProjectile {
         super.step(time);
         let r = Math.random();
         if (r < 0.27) {
-            this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#ff8000"));
+            this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#ff5000"));
         }
         else if (r < 0.54) {
             this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#ff2000"));
@@ -2675,6 +2856,40 @@ class ProjectileSet extends ExpirableSet {
         for (const p of this.items) {
             p.render(ctx);
         }
+    }
+}
+class WaterProjectile extends GuidedProjectile {
+    constructor(game, position, target, strength, range) {
+        super(game, position, target, 350, range);
+        this.onhit = enemy => {
+            enemy.dealDamage(strength / 2 + 0.5);
+            enemy.addEffect(new WetEffect(2, strength));
+            if (strength > 1 && Math.random() < (strength - 1) / 10) {
+                enemy.pushBack();
+            }
+        };
+    }
+    step(time) {
+        if (this.expired) {
+            return;
+        }
+        super.step(time);
+        let r = Math.random();
+        if (r < 0.25) {
+            this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#3584CE", 0.75));
+        }
+        else if (r < 0.5) {
+            this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#399CDE", 0.75));
+        }
+    }
+    render(ctx) {
+        if (this._expired) {
+            return;
+        }
+        ctx.fillStyle = "#3584CE";
+        ctx.beginPath();
+        ctx.arc(this.position.x, this.position.y, 3, 0, Angle.deg360);
+        ctx.fill();
     }
 }
 class Turret {
@@ -2809,7 +3024,7 @@ class AcidTurret extends Turret {
                 }
             }
             if (enemy) {
-                this.game.spawnProjectile(new AcidProjectile(this.game, this.center, enemy, this.type.count));
+                this.game.spawnProjectile(new AcidProjectile(this.game, this.center, enemy, this.type.count, this.range));
                 this.cooldown = 1 / this.type.count;
             }
         }
@@ -3109,7 +3324,8 @@ class ArcaneTurret extends Turret {
     step(time) {
         super.step(time);
         this.frame = (this.frame + time * 25) % ArcaneTurret.frameCount;
-        for (let i = 0; i < ArcaneTurret.orbitCount; ++i) {
+        let orbitCount = (1 - this.cooldown / ArcaneTurret.maxCooldown) * ArcaneTurret.orbitCount;
+        for (let i = 0; i < orbitCount; ++i) {
             let pt = this.orbits[i];
             pt.pos = Angle.wrap(pt.pos + time * pt.speed);
         }
@@ -3220,6 +3436,21 @@ class ArcherTurret extends Turret {
     get range() { return 80 + this.type.air * 64 + this.type.earth * 16; }
     step(time) {
         super.step(time);
+        if (this.ready) {
+            let enemies = this.game.findEnemiesInRange(this.center, this.range);
+            let enemy = null;
+            let minHp = Infinity;
+            for (const e of enemies) {
+                if (e.hp < minHp) {
+                    enemy = e;
+                    minHp = e.hp;
+                }
+            }
+            if (enemy) {
+                this.game.spawnProjectile(new ArrowProjectile(this.game, enemy.pos.sub(this.center).toLength(28).add(this.center), enemy, this.type.air * 4 + this.type.earth * 6));
+                this.cooldown = 0.5;
+            }
+        }
     }
     render(ctx) {
         super.render(ctx);
@@ -3229,8 +3460,7 @@ class ArcherTurret extends Turret {
         ctx.resetTransform();
     }
     static renderPreview(ctx, x, y, type) {
-        ctx.drawImage(ArcherTurret.images, x, y);
-        ctx.drawImage(ArcherTurret.images, 0, (type.count - 2) * 48, 48, 48, x, y, 48, 48);
+        ctx.drawImage(ArcherTurret.images, 0, (type.count - 2) * 48, 48, 48, x + 8, y + 8, 48, 48);
     }
     addType(type) {
         if (this.type.count >= 4) {
@@ -3252,18 +3482,22 @@ class ArcherTurret extends Turret {
     static getInfo(type) {
         let a = type.air - 1;
         let e = type.earth - 1;
-        return new TurretInfo(ArcherTurret.turretName, ArcherTurret.turretDescription, 160 + a * 64 + e * 16, `${16 + a * 4 + e * 12}`);
+        return new TurretInfo(ArcherTurret.turretName, ArcherTurret.turretDescription, 160 + a * 64 + e * 16, `${16 + a * 8 + e * 12}`);
     }
-    getCurrentInfo() { return AcidTurret.getInfo(this.type); }
+    getCurrentInfo() { return ArcherTurret.getInfo(this.type); }
     getInfoAfterUpgrade(type) {
         if (this.type.count >= 4) {
             return undefined;
         }
         switch (type) {
-            case TurretElement.Air: return MoonTurret.getInfo(this.type.with(type));
-            case TurretElement.Earth: return AcidTurret.getInfo(this.type.with(type));
-            case TurretElement.Fire: return EarthquakeTurret.getInfo(this.type.with(type));
-            case TurretElement.Water: return AcidTurret.getInfo(this.type.with(type));
+            case TurretElement.Air:
+                return ArcherTurret.getInfo(this.type.with(type));
+            case TurretElement.Earth:
+                return ArcherTurret.getInfo(this.type.with(type));
+            case TurretElement.Fire:
+                return SunTurret.getInfo(this.type.with(type));
+            case TurretElement.Water:
+                return MoonTurret.getInfo(this.type.with(type));
         }
     }
     renderPreviewAfterUpgrade(ctx, x, y, type) {
@@ -3272,21 +3506,22 @@ class ArcherTurret extends Turret {
         }
         switch (type) {
             case TurretElement.Air:
-                MoonTurret.renderPreview(ctx, x, y, this.type.with(type));
+                ArcherTurret.renderPreview(ctx, x, y, this.type.with(type));
                 break;
             case TurretElement.Earth:
-                AcidTurret.renderPreview(ctx, x, y, this.type.with(type));
+                ArcherTurret.renderPreview(ctx, x, y, this.type.with(type));
                 break;
             case TurretElement.Fire:
-                EarthquakeTurret.renderPreview(ctx, x, y, this.type.with(type));
+                SunTurret.renderPreview(ctx, x, y, this.type.with(type));
                 break;
             case TurretElement.Water:
-                AcidTurret.renderPreview(ctx, x, y, this.type.with(type));
+                MoonTurret.renderPreview(ctx, x, y, this.type.with(type));
                 break;
         }
     }
     static init() {
-        return Utils.getImageFromCache("td_tower_AEfw_archer").then(tex => { ArcherTurret.images = tex; }, () => new Promise(resolve => {
+        return Utils.getImageFromCache("td_tower_AEfw_archer")
+            .then(tex => { ArcherTurret.images = tex; }, () => new Promise(resolve => {
             let c = new PreRenderedImage(48, 144);
             let argSets = [
                 { h: 10, y: 0, s: 0.7 },
@@ -3320,7 +3555,7 @@ class CannonTurret extends Turret {
     }
     get range() { return 96 + this.type.count * 16; }
     createExplosionAt(pos) {
-        let r = 10 + this.type.count * 4;
+        let r = 8 + this.type.count * 3;
         for (let i = 0, c = 9 + this.type.count; i < c; ++i) {
             let p = Vec2.randUnit3d().mul(r).add(pos);
             this.game.spawnParticle(new ExplosionParticle(p.x, p.y));
@@ -3862,7 +4097,7 @@ class FireTurret extends Turret {
                 }
             }
             if (enemy) {
-                this.game.spawnProjectile(new FireProjectile(this.game, this.center, enemy, 9 / this.type.fire + 6, this.type.fire / 2 + 1));
+                this.game.spawnProjectile(new FireProjectile(this.game, this.center, enemy, 9 / this.type.fire + 6, this.type.fire / 2 + 1, this.range));
                 this.cooldown = 1.5 / this.type.count;
             }
         }
@@ -3899,7 +4134,7 @@ class FireTurret extends Turret {
         }
     }
     static getInfo(type) {
-        return new TurretInfo(FireTurret.turretName, type.fire > 2 ? FireTurret.turretDescription2 : FireTurret.turretDescription1, 80 + type.fire * 16, `${6 + type.fire * 4} + burning`);
+        return new TurretInfo(FireTurret.turretName, type.fire > 2 ? FireTurret.turretDescription2 : FireTurret.turretDescription1, 96 + type.fire * 16, `${6 + type.fire * 4} + burning`);
     }
     getCurrentInfo() { return FireTurret.getInfo(this.type); }
     getInfoAfterUpgrade(type) {
@@ -4181,16 +4416,65 @@ IceTurret.turretDescription = "Freezes all enemies in range, causing them to tak
 class LightningTurret extends Turret {
     constructor(tile, type) {
         super(tile, type);
-        this.animationTimer = Math.random();
+        this.angle = Angle.rand();
+        this.animationTimer = 0;
+    }
+    get ready() { return this.animationTimer < 0.3 && this.cooldown <= 0; }
+    get range() { return 96 + this.type.air * 24 + this.type.fire * 8; }
+    castLightning(a, b, baseLife) {
+        let v = b.sub(a);
+        let vlength = v.length;
+        v = v.normalize();
+        let stepCount = Math.ceil(vlength / 8);
+        let step = vlength / stepCount;
+        let n = v.normal();
+        let d = v.mul(step).add(n.mul(Utils.rand(-6, 6))).add(a);
+        this.game.spawnParticle(new LineParticle(a.x, a.y, d.x, d.y, baseLife, "#AFE8FF", 2));
+        baseLife += 0.02;
+        for (var i = 2; i < stepCount; ++i) {
+            let nd = v.mul(step * i).add(n.mul(Utils.rand(-6, 6))).add(a);
+            this.game.spawnParticle(new LineParticle(d.x, d.y, nd.x, nd.y, baseLife, "#AFE8FF", 2));
+            baseLife += 0.02;
+            d = nd;
+        }
+        this.game.spawnParticle(new LineParticle(d.x, d.y, b.x, b.y, baseLife, "#AFE8FF", 2));
+        return baseLife + 0.02;
     }
     step(time) {
-        super.step(time);
-        this.animationTimer = (this.animationTimer + time * (this.type.air + this.type.fire - 1) * 0.5) % 1;
+        time *= (this.type.count - 1) * 0.5;
+        if (this.cooldown > 0) {
+            this.cooldown = Math.max(0, this.cooldown - time);
+        }
+        this.animationTimer = (this.animationTimer + time) % 1;
+        if (this.ready) {
+            let enemies = this.game.findEnemiesInRange(this.center, this.range);
+            if (enemies.length == 0) {
+                return;
+            }
+            let basePartLife = 0.5;
+            let hitEnemies = [];
+            let prev = this.center;
+            let maxDist = this.range;
+            let damage = (this.type.air * 6 + this.type.fire * 10) / ((this.type.count - 1) * 0.5);
+            for (let i = 0;; ++i) {
+                let e = Utils.randItem(enemies);
+                if (hitEnemies.indexOf(e) >= 0 || e.pos.distanceTo(prev) > maxDist) {
+                    break;
+                }
+                e.dealDamage(damage);
+                basePartLife = this.castLightning(prev, e.pos, basePartLife);
+                hitEnemies.push(e);
+                prev = e.pos;
+                maxDist *= 0.9;
+                damage *= 0.9;
+            }
+            this.cooldown = 0.6;
+        }
     }
     render(ctx) {
         super.render(ctx);
         ctx.translate(this.center.x, this.center.y);
-        ctx.rotate(-Math.floor(this.animationTimer * 8) * Angle.deg45);
+        ctx.rotate(this.angle - Math.floor(this.animationTimer * 8) * Angle.deg45);
         ctx.drawImage(LightningTurret.image, -24, -24);
         ctx.resetTransform();
     }
@@ -4214,8 +4498,43 @@ class LightningTurret extends Turret {
                 break;
         }
     }
+    static getInfo(type) {
+        return new TurretInfo(LightningTurret.turretName, LightningTurret.turretDescription, 96 + type.air * 24 + type.fire * 8, `${type.air * 6 + type.fire * 10}`);
+    }
+    getCurrentInfo() { return LightningTurret.getInfo(this.type); }
+    getInfoAfterUpgrade(type) {
+        if (this.type.count >= 4) {
+            return undefined;
+        }
+        switch (type) {
+            case TurretElement.Air: return LightningTurret.getInfo(this.type.with(type));
+            case TurretElement.Earth: return SunTurret.getInfo(this.type.with(type));
+            case TurretElement.Fire: return LightningTurret.getInfo(this.type.with(type));
+            case TurretElement.Water: return PlasmaTurret.getInfo(this.type.with(type));
+        }
+    }
+    renderPreviewAfterUpgrade(ctx, x, y, type) {
+        if (this.type.count >= 4) {
+            return;
+        }
+        switch (type) {
+            case TurretElement.Air:
+                LightningTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Earth:
+                SunTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Fire:
+                LightningTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+            case TurretElement.Water:
+                PlasmaTurret.renderPreview(ctx, x, y, this.type.with(type));
+                break;
+        }
+    }
     static init() {
-        return Utils.getImageFromCache("td_tower_AeFw_lightning").then(tex => { LightningTurret.image = tex; }, () => new Promise(resolve => {
+        return Utils.getImageFromCache("td_tower_AeFw_lightning")
+            .then(tex => { LightningTurret.image = tex; }, () => new Promise(resolve => {
             let c = new PreRenderedImage(48, 48);
             let ctx = c.ctx;
             let grad = ctx.createRadialGradient(24, 24, 0, 24, 24, 18);
@@ -4260,6 +4579,8 @@ class LightningTurret extends Turret {
         }));
     }
 }
+LightningTurret.turretName = "Lightning Tower";
+LightningTurret.turretDescription = "Creates electric arcs that can jump between multiple enemies";
 class MoonTurret extends Turret {
     constructor(tile, type) {
         super(tile, type);
@@ -4702,6 +5023,14 @@ class WaterTurret extends Turret {
     get range() { return 128 + this.type.water * 16; }
     step(time) {
         super.step(time);
+        if (this.ready) {
+            let enemy = Utils.randItem(this.game.findEnemiesInRange(this.center, this.range));
+            if (enemy) {
+                let pos = Vec2.randUnit3d().mul(this.type.water * 2 + 8).add(this.center);
+                this.game.spawnProjectile(new WaterProjectile(this.game, pos, enemy, this.type.water, this.range));
+                this.cooldown = 0.5 / this.type.count;
+            }
+        }
     }
     render(ctx) {
         super.render(ctx);
@@ -4733,7 +5062,7 @@ class WaterTurret extends Turret {
         }
     }
     static getInfo(type) {
-        return new TurretInfo(WaterTurret.turretName, WaterTurret.turretDescription[type.water], 112 + type.water * 16, `${2 + type.water * 2}`);
+        return new TurretInfo(WaterTurret.turretName, WaterTurret.turretDescription[type.water > 1 ? 1 : 0], 112 + type.water * 16, `${4 + type.water * 4}`);
     }
     getCurrentInfo() { return WaterTurret.getInfo(this.type); }
     getInfoAfterUpgrade(type) {
@@ -4824,9 +5153,7 @@ class WaterTurret extends Turret {
 WaterTurret.turretName = "Water Tower";
 WaterTurret.turretDescription = [
     "Slows down enemies",
-    "Slows down enemies, can push them back",
-    "Slows down enemies, can push them back",
-    "Slows down enemies and pushes them back"
+    "Slows down enemies, can push them back"
 ];
 class Angle {
     static deg(degrees) {
@@ -5106,6 +5433,9 @@ class Utils {
             return min;
         }
         return Math.floor(Math.random() * (max - min) + min);
+    }
+    static randItem(items) {
+        return items.length > 0 ? items[Math.floor(Math.random() * items.length)] : null;
     }
     static randSign(num = 1) {
         return (Math.floor(Math.random() * 2) * 2 - 1) * num;

@@ -2,8 +2,8 @@
 
 class FireProjectile extends GuidedProjectile {
 
-    constructor(game: Game, position: Vec2, target: Enemy, damage: number, duration: number) {
-        super(game, position, target, 150)
+    constructor(game: Game, position: Vec2, target: Enemy, damage: number, duration: number, range: number) {
+        super(game, position, target, 250, range)
         this.onhit = enemy => {
             enemy.dealDamage(damage)
             enemy.addEffect(new BurningEffect(duration))

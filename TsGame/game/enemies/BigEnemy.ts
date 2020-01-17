@@ -1,29 +1,32 @@
 /// <reference path="Enemy.ts"/>
 
-class BasicEnemy extends Enemy {
+class BigEnemy extends Enemy {
 
-    get baseSpeed(): number { return 48 }
+    get baseSpeed(): number { return 24 }
 
     constructor(game: Game, spawn: Tile, hp: number, armor: number) {
-        super(game, spawn, hp, armor)
+        super(game, spawn, hp * 4, armor)
+    }
+
+    private renderCircle(ctx: CanvasRenderingContext2D, r: number): void {
+        ctx.beginPath()
+        ctx.arc(this.x, this.y, r, 0, Angle.deg360)
+        ctx.fill()
     }
 
     render(ctx: CanvasRenderingContext2D): void {
-        let r: number
         if (this.armor > 0) {
             ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss()
-            r = 7 + Utils.clamp(this.armor / 80, 0, 5)
-            ctx.fillRect(this.x - r, this.y - r, r * 2, r * 2)
+            this.renderCircle(ctx, 10 + Utils.clamp(this.armor / 67, 0, 6))
         }
         ctx.fillStyle = "#000000"
-        ctx.fillRect(this.x - 7, this.y - 7, 14, 14)
+        this.renderCircle(ctx, 10)
         if (this._hp < this.startHp) {
             ctx.fillStyle = this.effects.colorize(this.baseColor).toCss()
-            ctx.fillRect(this.x - 6, this.y - 6, 12, 12)
+            this.renderCircle(ctx, 8)
         }
         ctx.fillStyle = this.effects.colorize(this.baseHpColor).toCss()
-        r = 6 * this._hp / this.startHp
-        ctx.fillRect(this.x - r, this.y - r, r * 2, r * 2)
+        this.renderCircle(ctx, 8 * this._hp / this.startHp)
     }
 
 }

@@ -2,12 +2,11 @@
 
 abstract class ThrownProjectile extends Projectile {
 
-    private relPos: number
-    private _expired: boolean
-    private startPosition: Vec2
-    private target: Vec2
-    private speed: number
-
+    protected relPos: number
+    protected _expired: boolean
+    protected startPosition: Vec2
+    protected target: Vec2
+    protected speed: number
     protected position: Vec2
     
     onhit: ((position: Vec2) => void) | null

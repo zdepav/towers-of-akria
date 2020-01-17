@@ -85,6 +85,9 @@
     <Content Include="Web.config" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="game\enemies\BigEnemy.ts" />
+    <TypeScriptCompile Include="game\enemies\RegeneratingEnemy.ts" />
+    <TypeScriptCompile Include="game\enemies\FastEnemy.ts" />
     <TypeScriptCompile Include="game\enemies\BasicEnemy.ts" />
     <TypeScriptCompile Include="game\enemies\effects\AcidEffect.ts" />
     <TypeScriptCompile Include="game\enemies\effects\BurningEffect.ts" />
@@ -149,7 +152,9 @@
     <TypeScriptCompile Include="game\particles\SmokeParticle.ts" />
     <TypeScriptCompile Include="game\particles\TileMarkParticle.ts" />
     <TypeScriptCompile Include="game\particles\WindParticle.ts" />
+    <TypeScriptCompile Include="game\projectiles\WaterProjectile.ts" />
     <TypeScriptCompile Include="game\projectiles\AcidProjectile.ts" />
+    <TypeScriptCompile Include="game\projectiles\ArrowProjectile.ts" />
     <TypeScriptCompile Include="game\projectiles\CannonballProjectile.ts" />
     <TypeScriptCompile Include="game\projectiles\FireProjectile.ts" />
     <TypeScriptCompile Include="game\projectiles\GuidedProjectile.ts" />
