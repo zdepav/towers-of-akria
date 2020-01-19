@@ -2,21 +2,19 @@
 
 class ShieldingEnemy extends Enemy {
 
-    private shieldCooldown: number
-
     private shield: number
 
     get baseSpeed(): number { return this.shield > 0 ? 48 : 64 }
 
     constructor(game: Game, wave: number, spawn: Tile, hp: number, armor: number) {
         super(game, wave, spawn, hp, 0)
-        this.shieldCooldown = 0
+        this.shield = -10
     }
 
     step(time: number): void {
         super.step(time)
-        if (this.shieldCooldown > 0) {
-            this.shieldCooldown -= time
+        if (this.shield > -4) {
+            this.shield -= time
         }
     }
 
@@ -69,24 +67,23 @@ class ShieldingEnemy extends Enemy {
         }
         ctx.fillStyle = this.effects.colorize(this.baseHpColor).toCss()
         this.renderShield(ctx, points, 7 * this._hp / this.startHp)
-        ctx.fillStyle = "#FFFF0080"
-        this.renderShield(ctx, points, 70 * this.shield / this.startHp)
+        if (this.shield > 0) {
+            ctx.fillStyle = "#FFFF0080"
+            this.renderShield(ctx, points, 8 * this.shield)
+        }
     }
 
-    dealDamage(ammount: number): void {
-        if (this.shield > 0) {
-            if (ammount < this.shield) {
-                this.shield -= ammount
-            } else {
-                let a = ammount - this.shield
-                super.dealDamage(a)
-                this.shield = 0
-            }
-        } else {
-            super.dealDamage(ammount)
-            if (this.shieldCooldown <= 0) {
-                this.shield = this.startHp * 0.1
-                this.shieldCooldown = 5
+    corodeArmor(ammount: number): void {
+        if (this.shield <= 0) {
+            this.armor = Math.max(this.armor - ammount, 0)
+        }
+    }
+
+    dealDamage(ammount: number, ignoreArmor: boolean = false): void {
+        if (this.shield <= 0) {
+            super.dealDamage(ammount, ignoreArmor)
+            if (this.shield <= -4) {
+                this.shield = 1
             }
         }
     }

@@ -1267,13 +1267,13 @@ class RegeneratingEnemy extends Enemy {
 class ShieldingEnemy extends Enemy {
     constructor(game, wave, spawn, hp, armor) {
         super(game, wave, spawn, hp, 0);
-        this.shieldCooldown = 0;
+        this.shield = -10;
     }
     get baseSpeed() { return this.shield > 0 ? 48 : 64; }
     step(time) {
         super.step(time);
-        if (this.shieldCooldown > 0) {
-            this.shieldCooldown -= time;
+        if (this.shield > -4) {
+            this.shield -= time;
         }
     }
     renderShield(ctx, pts, r) {
@@ -1312,25 +1312,16 @@ class ShieldingEnemy extends Enemy {
         }
         ctx.fillStyle = this.effects.colorize(this.baseHpColor).toCss();
         this.renderShield(ctx, points, 7 * this._hp / this.startHp);
-        ctx.fillStyle = "#FFFF0080";
-        this.renderShield(ctx, points, 70 * this.shield / this.startHp);
+        if (this.shield > 0) {
+            ctx.fillStyle = "#FFFF0080";
+            this.renderShield(ctx, points, 70 * this.shield / this.startHp);
+        }
     }
     dealDamage(ammount) {
-        if (this.shield > 0) {
-            if (ammount < this.shield) {
-                this.shield -= ammount;
-            }
-            else {
-                let a = ammount - this.shield;
-                super.dealDamage(a);
-                this.shield = 0;
-            }
-        }
-        else {
+        if (this.shield <= 0) {
             super.dealDamage(ammount);
-            if (this.shieldCooldown <= 0) {
-                this.shield = this.startHp * 0.1;
-                this.shieldCooldown = 5;
+            if (this.shield <= -4) {
+                this.shield = 1;
             }
         }
     }

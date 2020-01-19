@@ -71,8 +71,8 @@ class RegeneratingEnemy extends Enemy {
         this.renderHeart(ctx, points, 7 * this._hp / this.startHp)
     }
 
-    dealDamage(ammount: number): void {
-        super.dealDamage(ammount)
+    dealDamage(ammount: number, ignoreArmor: boolean = false): void {
+        super.dealDamage(ammount, ignoreArmor)
         this.healingSpeed = -0.1
     }
 }

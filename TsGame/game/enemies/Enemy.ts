@@ -91,9 +91,13 @@ abstract class Enemy extends Expirable {
 
     abstract render(ctx: CanvasRenderingContext2D): void
 
-    dealDamage(ammount: number): void {
+    dealDamage(ammount: number, ignoreArmor: boolean = false): void {
         if (this._hp > 0) {
-            this._hp = Math.max(this._hp - ammount * this.game.towerDamageMultiplier / this.armorProtection, 0)
+            if (ignoreArmor) {
+                this._hp = Math.max(this._hp - ammount * this.game.towerDamageMultiplier, 0)
+            } else {
+                this._hp = Math.max(this._hp - ammount * this.game.towerDamageMultiplier / this.armorProtection, 0)
+            }
             if (this._hp <= 0) {
                 this.death()
             }
