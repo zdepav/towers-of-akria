@@ -6,19 +6,20 @@ enum MouseButton {
     Forward
 }
 
-enum InitializationStatus {
-    Uninitialized,
-    Initializing,
-    Initialized
+enum GameScreen {
+    Intro,
+    Game,
+    End
 }
 
 class Game {
 
-    private static castleImage: CanvasImageSource
+    private castleImage: CanvasImageSource
+    private introBackground: CanvasImageSource
 
     static saveImages = false // for debug purposes
 
-    private status: InitializationStatus
+    private container: HTMLElement
     private preRendered: CanvasImageSource
     private canvas: HTMLCanvasElement
     private ctx: CanvasRenderingContext2D
@@ -39,6 +40,12 @@ class Game {
     private upgradeButtons: TurretUpgradeButton[]
     private rangeMarkerRotation: number
     private hoveredElement: TurretElement | null
+    private paused: boolean
+    private mana: number
+    private lives: number
+    private screen: GameScreen
+    private startGameButton: TextButton
+    private resetGameButton: TextButton
 
     private get hoveredTile(): Tile | null {
         return this.hoveredTilePos !== null ? this.map[this.hoveredTilePos.x][this.hoveredTilePos.y] : null
@@ -52,6 +59,7 @@ class Game {
     get towerDamageMultiplier(): number { return this.arcaneTowerCount * 0.25 + 1 }
 
     private constructor(container: HTMLElement) {
+        this.container = container
         this.width = 1152
         this.height = 704
         this.mapWidth = 15
@@ -62,7 +70,6 @@ class Game {
         canvas.height = this.height
         canvas.style.border = "2px solid #606060"
         canvas.style.outline = "none"
-        container.appendChild(canvas)
         this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D
         this.canvas = canvas
         this.prevTime = new Date().getTime()
@@ -75,49 +82,111 @@ class Game {
         this.hoveredTilePos = null
         this.selectedTile = null
         this.mouseButton = null
-        this.status = InitializationStatus.Uninitialized
         this.arcaneTowerCount = 0
         this.wavePlanner = new EnemyWavePlanner(this)
-        this.guiPanels = [
-            new GuiPanel(this, 0, 0, this.width, this.height),
-            new GuiPanel(this, 960, 0, 192, 384),
-            new GuiPanel(this, 0, 576, 1152, 704)
-        ]
-        this.guiPanels[0].addItem(this.guiPanels[1])
-        this.guiPanels[0].addItem(this.guiPanels[2])
-        this.upgradeButtons = []
-        for (let e = TurretElement.Air, x = 4; e <= TurretElement.Water; ++e, x += 287) {
-            let button = new TurretUpgradeButton(this, x, 582, 283, 118, e)
-            this.upgradeButtons.push(button)
-            this.guiPanels[2].addItem(button)
-        }
+        this.guiPanels = [new GuiPanel(this, 0, 0, this.width, this.height)]
         this.rangeMarkerRotation = 0
         this.hoveredElement = null
+        this.paused = false
+        this.mana = 200
+        this.lives = 20
+        this.screen = GameScreen.Intro
     }
 
-    init(): Promise<void> {
+    private init(): Promise<void> {
         return RgbaColor.init()
             .then(() => Angle.init())
             .then(() => Tile.init())
             .then(() => Turret.initAll())
-            .then(() => this.generateMap())
             .then(() => this.generateCastle())
+            .then(() => this.generateIntroBackground())
+            .then(() => this.initGui())
+            .then(() => this.initEvents())
+            .then(() => this.generateMap())
             .then(() => this.preRender())
-            .then(() => new Promise<void>(resolve => {
-                this.canvas.setAttribute("tabindex", "0")
-                this.canvas.focus()
-                this.canvas.addEventListener("contextmenu", (e: MouseEvent) => {
-                    e.preventDefault()
-                    return false
-                }, false)
-                let g = this
-                this.canvas.addEventListener("mousemove", (e: MouseEvent) => g.onMouseMove(e))
-                this.canvas.addEventListener("mousedown", (e: MouseEvent) => g.onMouseDown(e))
-                this.canvas.addEventListener("mouseup", (e: MouseEvent) => g.onMouseUp(e))
-                this.canvas.addEventListener("keydown", (e: KeyboardEvent) => g.onKeyDown(e))
-                this.canvas.addEventListener("keyup", (e: KeyboardEvent) => g.onKeyUp(e))
-                resolve()
-            }))
+    }
+
+    private initGui(): Promise<void> {
+        return new Promise<void>(resolve => {
+
+            let panel1 = new GuiPanel(this, 960, 0, 192, 384)
+            this.guiPanels.push(panel1)
+            this.guiPanels[0].addItem(panel1)
+            let pauseButton = new PauseButton(this, this.width - 24, 8, 16, 16)
+            pauseButton.onclick = () => this.paused = !this.paused
+            panel1.addItem(pauseButton)
+
+            let panel2 = new GuiPanel(this, 0, 576, 1152, 704)
+            this.guiPanels.push(panel2)
+            this.guiPanels[0].addItem(panel2)
+            this.upgradeButtons = []
+            for (let e = TurretElement.Air, x = 4; e <= TurretElement.Water; ++e, x += 287) {
+                let button = new TurretUpgradeButton(this, x, 582, 283, 118, e)
+                this.upgradeButtons.push(button)
+                panel2.addItem(button)
+            }
+
+            this.startGameButton = new TextButton(this, 32, this.height - 96, this.width - 64, 64, "Start game")
+            this.startGameButton.onclick = () => {
+                this.startGameButton.enabled = false
+                this.generateMap()
+                    .then(() => this.preRender())
+                    .then(() => new Promise<void>(resolve => {
+                        this.screen = GameScreen.Game
+                        resolve()
+                    }))
+            }
+
+            this.resetGameButton = new TextButton(this, 32, this.height - 96, this.width - 64, 64, "Back to menu")
+            this.resetGameButton.onclick = () => {
+                this.screen = GameScreen.Intro
+                this.startGameButton.enabled = true
+            }
+            resolve()
+        })
+    }
+
+    private initEvents(): Promise<void> {
+        return new Promise<void>(resolve => {
+            this.canvas.setAttribute("tabindex", "0")
+            this.canvas.focus()
+            this.canvas.addEventListener("contextmenu", (e: MouseEvent) => {
+                e.preventDefault()
+                return false
+            }, false)
+            let g = this
+            this.canvas.addEventListener("mousemove", (e: MouseEvent) => g.onMouseMove(e))
+            this.canvas.addEventListener("mousedown", (e: MouseEvent) => g.onMouseDown(e))
+            this.canvas.addEventListener("mouseup", (e: MouseEvent) => g.onMouseUp(e))
+            this.canvas.addEventListener("keydown", (e: KeyboardEvent) => g.onKeyDown(e))
+            this.canvas.addEventListener("keyup", (e: KeyboardEvent) => g.onKeyUp(e))
+            resolve()
+        })
+    }
+
+    private generateIntroBackground(): Promise<void> {
+        return Utils.getImageFromCache("td_intro_back").then(tex => { this.introBackground = tex }, () => new Promise<void>(resolve => {
+            let c = new CellularTextureGenerator(
+                256, 256, 2304,
+                new NoiseTextureGenerator(
+                    256, 256,
+                    RgbaColor.fromHex("#303030"),
+                    0.05, 0, 1
+                ),
+                new FrostedGlassTextureGenerator(
+                    256, 256,
+                    RgbaColor.fromHex("#AF9A3B"),
+                    RgbaColor.fromHex("#D8CA84"),
+                    1, Curve.linear
+                ),
+                CellularTextureType.Net,
+                CellularTextureDistanceMetric.Euclidean,
+                Curve.arc
+            ).generatePrImage()
+            c.cacheImage("td_intro_back")
+            this.introBackground = c.image
+            resolve()
+        }))
     }
 
     private generateMap(): Promise<void> {
@@ -148,7 +217,7 @@ class Game {
             }
             while (wallGens.size > 0) {
                 let wg: Vec2 = Vec2.zero
-                let i = Math.random() * wallGens.size
+                let i = Rand.r(wallGens.size)
                 for (const _wg of wallGens.values()) {
                     if (i < 1) {
                         wg = _wg
@@ -163,7 +232,7 @@ class Game {
                 }
                 let x = wg.x
                 let y = wg.y
-                switch (Math.floor(Math.random() * 4)) {
+                switch (Rand.i(4)) {
                     case 0:
                         for (; x < this.mapWidth && mapGen[x][y] !== TileType.Empty; ++x) {
                             mapGen[x][y] = TileType.Empty
@@ -186,7 +255,7 @@ class Game {
                         break
                 }
             }
-            let startY = 1 + 2 * Math.floor((this.mapHeight - 1) / 2 * Math.random())
+            let startY = 1 + 2 * Math.floor(Rand.r(this.mapHeight - 1) / 2)
             let endY = this.mapHeight - 2
             let startNode = new DijkstraNode(1, startY)
             dijkstraMap[1][0] = startNode
@@ -269,7 +338,7 @@ class Game {
     }
 
     private generateCastle(): Promise<void> {
-        return Utils.getImageFromCache("td_castle").then(tex => { Game.castleImage = tex; }, () => new Promise<void>(resolve => {
+        return Utils.getImageFromCache("td_castle").then(tex => { this.castleImage = tex }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(192, 192)
             let castle = new RenderablePathSet()
             let path = new Path2D()
@@ -307,66 +376,74 @@ class Game {
             castle.pushNew(path, "#606060")
             castle.render(c.ctx)
             c.cacheImage("td_castle")
-            Game.castleImage = c.image
+            this.castleImage = c.image
             resolve()
         }))
     }
 
-    private start(): void {
+    private start(introInit: Promise<void>, intro: (duration: number) => Promise<void>): void {
         let g = this
-        this.render()
-        function gameLoop() {
+        function gameLoop(): undefined {
             window.requestAnimationFrame(gameLoop)
             g.step()
             g.render()
+            return undefined
         }
-        gameLoop()
+        introInit
+            .then(() => this.init())
+            .then(() => intro(4000))
+            .then(() => new Promise<void>(resolve => {
+                this.container.appendChild(this.canvas)
+                this.prevTime = new Date().getTime()
+                resolve()
+            }))
+            .then(gameLoop)
     }
 
     private step(): void {
-        switch (this.status) {
-            case InitializationStatus.Uninitialized: {
-                this.status = InitializationStatus.Initializing
-                this.init().then(() => { this.status = InitializationStatus.Initialized })
-                return
-            }
-            case InitializationStatus.Initializing: {
-                let time = new Date().getTime()
-                let timeDiff = (time - this.prevTime) / 1000
-                this.prevTime = time
-                this.time += timeDiff
-                return
-            }
-            case InitializationStatus.Initialized: {
-                let time = new Date().getTime()
-                let timeDiff = (time - this.prevTime) / 1000
-                this.performanceMeter.add(1 / timeDiff)
-                let arcaneTowerCount = 0
-                for (let x = 0; x < this.mapWidth; ++x) {
-                    for (let y = 0; y < this.mapHeight; ++y) {
-                        let t = this.map[x][y]
-                        t.step(timeDiff)
-                        if (t.type == TileType.Tower) {
-                            if (this.selectedTile == t) {
-                                this.markTile(t)
-                            }
-                            if (t.turret instanceof ArcaneTurret) {
-                                ++arcaneTowerCount
+        let time = new Date().getTime()
+        let timeDiff = (time - this.prevTime) / 1000
+        this.performanceMeter.add(1 / timeDiff)
+        this.guiPanels[0].step(timeDiff)
+        switch (this.screen) {
+            case GameScreen.Intro:
+                this.startGameButton.step(timeDiff)
+                break
+            case GameScreen.Game:
+                if (!this.paused) {
+                    let arcaneTowerCount = 0
+                    for (let x = 0; x < this.mapWidth; ++x) {
+                        for (let y = 0; y < this.mapHeight; ++y) {
+                            let t = this.map[x][y]
+                            t.step(timeDiff)
+                            if (t.type == TileType.Tower) {
+                                if (this.selectedTile == t) {
+                                    this.markTile(t)
+                                }
+                                if (t.turret instanceof ArcaneTurret) {
+                                    ++arcaneTowerCount
+                                }
                             }
                         }
                     }
+                    this.arcaneTowerCount = arcaneTowerCount
+                    this.wavePlanner.step(timeDiff)
+                    this.enemies.step(timeDiff)
+                    this.particles.step(timeDiff)
+                    this.projectiles.step(timeDiff)
+                    this.rangeMarkerRotation += timeDiff * Angle.deg60
                 }
-                this.arcaneTowerCount = arcaneTowerCount
-                this.wavePlanner.step(timeDiff)
-                this.enemies.step(timeDiff)
-                this.particles.step(timeDiff)
-                this.projectiles.step(timeDiff)
-                this.rangeMarkerRotation += timeDiff * Angle.deg60
-                this.prevTime = time
-                this.time += timeDiff
-                return
-            }
+                break
+            case GameScreen.End:
+                this.resetGameButton.step(timeDiff)
+                break
         }
+        this.prevTime = time
+        this.time += timeDiff
+    }
+
+    end(): void {
+        this.screen = GameScreen.End
     }
 
     markTile(tile: Tile): void {
@@ -391,59 +468,68 @@ class Game {
     }
 
     private onMouseMove(e: MouseEvent): void {
-        if (this.status < InitializationStatus.Initialized) {
-            return
-        }
         this.setMousePosition(e)
-        this.hoveredElement = null
-        this.guiPanels[0].onMouseMove()
-        if (this.hoveredTilePos === null) {
-            return
-        }
-        let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64))
-        if (!tp.equals(this.hoveredTilePos)) {
-            this.hoveredTilePos = null
+        switch (this.screen) {
+            case GameScreen.Intro:
+                this.startGameButton.onMouseMove()
+                break
+            case GameScreen.Game:
+                this.hoveredElement = null
+                this.guiPanels[0].onMouseMove()
+                if (this.hoveredTilePos === null) {
+                    return
+                }
+                let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64))
+                if (!tp.equals(this.hoveredTilePos)) {
+                    this.hoveredTilePos = null
+                }
+                break
         }
     }
 
     private onMouseDown(e: MouseEvent): void {
-        if (this.status < InitializationStatus.Initialized) {
-            return
-        }
         this.setMousePosition(e)
-        this.guiPanels[0].onMouseDown(e.button)
-        let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64))
-        if (tp.x < this.mapWidth && tp.y < this.mapHeight) {
-            this.hoveredTilePos = tp
-            this.mouseButton = e.button
+        switch (this.screen) {
+            case GameScreen.Intro:
+                this.startGameButton.onMouseDown(e.button)
+                break
+            case GameScreen.Game:
+                this.guiPanels[0].onMouseDown(e.button)
+                let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64))
+                if (tp.x < this.mapWidth && tp.y < this.mapHeight) {
+                    this.hoveredTilePos = tp
+                    this.mouseButton = e.button
+                }
+                break
         }
     }
 
     private onMouseUp(e: MouseEvent): void {
-        if (this.status < InitializationStatus.Initialized) {
-            return
-        }
         this.setMousePosition(e)
-        this.guiPanels[0].onMouseUp(e.button)
-        if (this.hoveredTilePos) {
-            this.selectedTile = this.hoveredTile
-            for (const b of this.upgradeButtons) {
-                b.targetTile = this.selectedTile
-            }
-            this.selectedTile?.onClick(
-                this.mouseButton as MouseButton,
-                this.mousePosition.x % 64,
-                this.mousePosition.y % 64
-            )
-            this.hoveredTilePos = null
+        switch (this.screen) {
+            case GameScreen.Intro:
+                this.startGameButton.onMouseUp(e.button)
+                break
+            case GameScreen.Game:
+                this.guiPanels[0].onMouseUp(e.button)
+                if (this.hoveredTilePos) {
+                    this.selectedTile = this.hoveredTile
+                    for (const b of this.upgradeButtons) {
+                        b.targetTile = this.selectedTile
+                    }
+                    this.selectedTile?.onClick(
+                        this.mouseButton as MouseButton,
+                        this.mousePosition.x % 64,
+                        this.mousePosition.y % 64
+                    )
+                    this.hoveredTilePos = null
+                }
+                this.mouseButton = null
+                break
         }
-        this.mouseButton = null
     }
 
     private onKeyDown(e: KeyboardEvent): void {
-        if (this.status < InitializationStatus.Initialized) {
-            return
-        }
         switch (e.key.toUpperCase()) {
             case 'C':
                 if (e.altKey) {
@@ -451,8 +537,10 @@ class Game {
                     alert("Cache cleared.")
                 }
                 break
-            case 'G':
-                gen()
+            case 'P':
+                if (this.screen === GameScreen.Game) {
+                    this.paused = !this.paused
+                }
                 break
         }
     }
@@ -486,60 +574,97 @@ class Game {
 
     private render(): void {
         let ctx = this.ctx
-        switch (this.status) {
-            case InitializationStatus.Uninitialized:
-            case InitializationStatus.Initializing: {
-                ctx.fillStyle = "#C0C0C0"
+        switch (this.screen) {
+            case GameScreen.Intro:
+                ctx.fillStyle = ctx.createPattern(this.introBackground, "repeat") as CanvasPattern
                 ctx.fillRect(0, 0, this.width, this.height)
-                ctx.fillStyle = "#000000"
+                ctx.lineJoin = "round"
                 ctx.textAlign = "center"
                 ctx.textBaseline = "middle"
-                ctx.font = "bold 32px serif"
-                ctx.fillText("Loading", this.width / 2, this.height / 2)
-                return
+                ctx.font = "bold 112px sans-serif"
+                ctx.strokeStyle = "#00000060"
+                for (let i = 64; i >= 16; i -= 12) {
+                    ctx.lineWidth = i
+                    ctx.strokeText("Towers of Akria", this.width / 2, this.height / 4)
+                }
+                ctx.fillText("Towers of Akria", this.width / 2, this.height / 4)
+                ctx.fillStyle = "#D8CA8440"
+                ctx.fillText("Towers of Akria", this.width / 2, this.height / 4)
+                this.startGameButton.render(ctx)
+                break
+            case GameScreen.Game:
+                this.renderGame()
+                break
+            case GameScreen.End:
+                ctx.fillStyle = "#400000"
+                ctx.fillRect(0, 0, this.width, this.height)
+                ctx.fillStyle = "#FFE0E0"
+                ctx.textAlign = "center"
+                ctx.textBaseline = "middle"
+                ctx.font = "96px monospace"
+                ctx.fillText("GAME OVER", this.width / 2, this.height * 0.33)
+                ctx.font = "40px monospace"
+                ctx.fillText(`You survived ${this.wavePlanner.waveNumber - 1} waves`, this.width / 2, this.height * 0.67)
+                this.resetGameButton.render(ctx)
+                break
+        }
+    }
+
+    private renderGame(): void {
+        let ctx = this.ctx
+
+        ctx.drawImage(this.preRendered, 0, 0)
+
+        for (let x = 0; x < this.mapWidth; ++x) {
+            for (let y = 0; y < this.mapHeight; ++y) {
+                this.map[x][y].render(ctx, false)
             }
-            case InitializationStatus.Initialized: {
-                ctx.drawImage(this.preRendered, 0, 0)
-                for (let x = 0; x < this.mapWidth; ++x) {
-                    for (let y = 0; y < this.mapHeight; ++y) {
-                        this.map[x][y].render(ctx, false)
-                    }
-                }
-                this.guiPanels[0].render(ctx)
-                this.enemies.render(ctx)
-                ctx.drawImage(Game.castleImage, this.guiPanels[1].x, this.guiPanels[1].bottom)
-                this.particles.render(ctx)
-                this.projectiles.render(ctx)
-                for (let x = 0; x < this.mapWidth; ++x) {
-                    for (let y = 0; y < this.mapHeight; ++y) {
-                        this.map[x][y].renderOverlay(ctx)
-                    }
-                }
-                if (this.selectedTile && this.selectedTile.turret) {
-                    let range = this.selectedTile.turret.range
-                    let {x, y} = this.selectedTile.pos.addu(32, 32)
-                    this.renderRangeMarker(ctx, x, y, range, "#00000060")
-                    if (this.hoveredElement !== null) {
-                        let info = this.selectedTile.turret.getInfoAfterUpgrade(this.hoveredElement)
-                        if (info) {
-                            this.renderRangeMarker(ctx, x, y, info.range, "#40404040")
-                        }
-                    }
-                }
-                let fps = this.performanceMeter.getFps()
-                ctx.fillStyle = "#000000"
-                ctx.textAlign = "left"
-                ctx.textBaseline = "top"
-                ctx.font = "bold 12px monospace"
-                if (!isNaN(fps)) {
-                    let f = Math.floor(fps * 10)
-                    ctx.fillText(`FPS:         ${Math.floor(f / 10)}.${f % 10}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 6)
-                }
-                ctx.fillText(`Enemies:     ${this.enemies.count}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 20)
-                ctx.fillText(`Particles:   ${this.particles.count}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 34)
-                ctx.fillText(`Projectiles: ${this.projectiles.count}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 48)
-                return
+        }
+        this.guiPanels[0].render(ctx)
+        this.enemies.render(ctx)
+        ctx.drawImage(this.castleImage, this.guiPanels[1].x, this.guiPanels[1].bottom)
+        this.particles.render(ctx)
+        this.projectiles.render(ctx)
+        for (let x = 0; x < this.mapWidth; ++x) {
+            for (let y = 0; y < this.mapHeight; ++y) {
+                this.map[x][y].renderOverlay(ctx)
             }
+        }
+
+        if (this.selectedTile && this.selectedTile.turret) {
+            let range = this.selectedTile.turret.range
+            let { x, y } = this.selectedTile.pos.addu(32, 32)
+            this.renderRangeMarker(ctx, x, y, range, "#00000060")
+            if (this.hoveredElement !== null) {
+                let info = this.selectedTile.turret.getInfoAfterUpgrade(this.hoveredElement)
+                if (info) {
+                    this.renderRangeMarker(ctx, x, y, info.range, "#40404040")
+                }
+            }
+        }
+
+        let fps = this.performanceMeter.getFps()
+        ctx.fillStyle = "#000000"
+        ctx.textAlign = "right"
+        ctx.textBaseline = "top"
+        ctx.font = "bold 10px monospace"
+        if (!isNaN(fps)) {
+            ctx.fillText(`FPS: ${Math.floor(fps)}`, this.guiPanels[1].x + this.guiPanels[1].w - 40, this.guiPanels[1].y + 6)
+        }
+        ctx.textAlign = "left"
+        ctx.font = "bold 24px monospace"
+        ctx.fillText(`WAVE:  ${this.wavePlanner.waveNumber}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 8)
+        ctx.fillText(`MANA:  ${this.mana}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 36)
+        ctx.fillText(`LIVES: ${this.lives}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 64)
+
+        if (this.paused) {
+            ctx.fillStyle = "#20202080"
+            ctx.fillRect(0, 0, this.width, this.height)
+            ctx.fillStyle = "#E0E0E0"
+            ctx.textAlign = "center"
+            ctx.textBaseline = "middle"
+            ctx.font = "bold 32px monospace"
+            ctx.fillText("Paused", this.width / 2, this.height / 2)
         }
     }
 
@@ -582,283 +707,39 @@ class Game {
     }
 
     takeLife(): void {
-        // TODO: implement
+        --this.lives
+        if (this.lives <= 0) {
+            this.end()
+        }
+    }
+
+    addCurrency(enemyWave: number) {
+        this.mana += 4 + Math.floor(enemyWave * 0.25)
     }
 
     playerCanAffordUpgrade(upgradeCostMultiplier: number): boolean {
-        // TODO: implement
-        return upgradeCostMultiplier >= 0
+        return upgradeCostMultiplier >= 0 && this.mana >= 100 * upgradeCostMultiplier
     }
 
     buyUpgrade(upgradeCostMultiplier: number): boolean {
-        // TODO: implement
-        return upgradeCostMultiplier >= 0
+        let price = 100 * upgradeCostMultiplier
+        if (upgradeCostMultiplier >= 0 && this.mana >= price) {
+            this.mana -= price
+            return true
+        }
+        return false
     }
 
     hoverElement(type: TurretElement): void {
         this.hoveredElement = type
     }
 
-    static initializeAndRun(): void {
+    static initializeAndRun(introInit: Promise<void>, intro: (duration: number) => Promise<void>): void {
         let container = document.getElementById("zptd-game-container")
         if (container == null) {
             throw new Error('Html element with id "zptd-game-container" not found')
         } else {
-            new Game(container).start()
+            new Game(container).start(introInit, intro)
         }
     }
-}
-
-function gen() {
-    let W = 6, H = 5
-    let w = 258, h = 286
-    let c = new PreRenderedImage(w * W, h * H)
-    let ctx = c.ctx, i = 0, c1 = "#A01713", c2 = "#FFE2A8", ch = "#CF7C5D"
-    ctx.fillStyle = "#404040"
-    ctx.fillRect(0, 0, w * W, h * H)
-    function label(line1: string, line2?: string) {
-        let x = i % W * w + 1
-        let y = Math.floor(i / W) * h + 257
-        ctx.fillStyle = "#C0C0C0"
-        ctx.fillRect(x, y, 256, 28)
-        ctx.fillStyle = "#000000"
-        ctx.textAlign = "left"
-        ctx.textBaseline = "middle"
-        ctx.font = "bold 16px serif"
-        ctx.fillText(line1, x + 6, y + 14, 248)
-        if (line2) {
-            ctx.textAlign = "right"
-            ctx.fillText(`(${line2})`, x + 250, y + 12, 248)
-        }
-    }
-    ctx.drawImage(new CellularTextureGenerator(
-        256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Euclidean
-    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Cellular", "Cells, Euclidean")
-    ++i
-    ctx.drawImage(new CellularTextureGenerator(
-        256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Manhattan
-    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Cellular", "Cells, Manhattan")
-    ++i
-    ctx.drawImage(new CellularTextureGenerator(
-        256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Euclidean
-    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Cellular", "Balls, Euclidean")
-    ++i
-    ctx.drawImage(new CellularTextureGenerator(
-        256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Manhattan
-    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Cellular", "Balls, Manhattan")
-    ++i
-    ctx.drawImage(new CellularTextureGenerator(
-        256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Euclidean
-    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Cellular", "Net, Euclidean")
-    ++i
-    ctx.drawImage(new CellularTextureGenerator(
-        256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Manhattan
-    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Cellular", "Net, Manhattan")
-    ++i
-    ctx.drawImage(new CellularTextureGenerator(
-        256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Chebyshev
-    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Cellular", "Cells, Chebyshev")
-    ++i
-    ctx.drawImage(new CellularTextureGenerator(
-        256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Minkowski
-    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Cellular", "Cells, Minkowski")
-    ++i
-    ctx.drawImage(new CellularTextureGenerator(
-        256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Chebyshev
-    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Cellular", "Balls, Chebyshev")
-    ++i
-    ctx.drawImage(new CellularTextureGenerator(
-        256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Minkowski
-    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Cellular", "Balls, Minkowski")
-    ++i
-    ctx.drawImage(new CellularTextureGenerator(
-        256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Chebyshev
-    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Cellular", "Net, Chebyshev")
-    ++i
-    ctx.drawImage(new CellularTextureGenerator(
-        256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Minkowski
-    ).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Cellular", "Net, Minkowski")
-    ++i
-    ctx.drawImage(new NoiseTextureGenerator(256, 256, ch, 0.5, 0.5, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Noise")
-    ++i
-    ctx.drawImage(new PerlinNoiseTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Perlin", "Noise")
-    ++i
-    ctx.drawImage(new CloudsTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Perlin", "Clouds")
-    ++i
-    ctx.drawImage(new VelvetTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Perlin", "Velvet")
-    ++i
-    ctx.drawImage(new GlassTextureGenerator(256, 256, c1, c2, 1, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Perlin", "Glass")
-    ++i
-    ctx.drawImage(new FrostedGlassTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Perlin", "Frosted glass")
-    ++i
-    ctx.drawImage(new BarkTextureGenerator(256, 256, c1, c2, 1, 0.75).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Perlin", "Bark")
-    ++i
-    ctx.drawImage(new CirclesTextureGenerator(256, 256, c1, c2, ch, 1, 4, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Perlin", "Circles")
-    ++i
-    ctx.drawImage(new CamouflageTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Perlin", "Camouflage")
-    ++i
-    let grads = [
-        new RadialGradientSource(256, 256, 128, 128, 0, 128),
-        new LinearGradientSource(256, 256, 0, 128, 256, 128)
-    ]
-    for (const g of grads) {
-        g.addColorStop(0.000, "#FF0000")
-        g.addColorStop(0.167, "#FFFF00")
-        g.addColorStop(0.333, "#00FF00")
-        g.addColorStop(0.500, "#00FFFF")
-        g.addColorStop(0.667, "#0000FF")
-        g.addColorStop(0.833, "#FF00FF")
-        g.addColorStop(1.000, "#FF0000")
-    }
-    ctx.drawImage(grads[0].generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Gradient", "Radial")
-    ++i
-    ctx.drawImage(new FisheyeSource(256, 256, grads[1], 0.5, 128, 128, 128).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Gradient", "Linear, Fisheye[+]")
-    ++i
-    ctx.drawImage(new FisheyeSource(256, 256, grads[1], -0.5, 128, 128, 128).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1)
-    label("Gradient", "Linear, Fisheye[-]")
-    ++i
-    ctx.drawImage(
-        new PolarSource(
-            256, 256,
-            new BarkTextureGenerator(512, 256, c1, c2, 0.5, 0.75),
-            512, 256
-        ).generateImage(),
-        i % W * w + 1,
-        Math.floor(i / W) * h + 1
-    )
-    label("Perlin + Polar", "Bark")
-    ++i
-    ctx.drawImage(
-        new AntialiasedSource(
-            256, 256,
-            new ScalingSource(
-                256, 256,
-                new FisheyeSource(
-                    256, 256,
-                    new CircleSource(
-                        256, 256, 128, 128, 127,
-                        new PolarSource(
-                            256, 256,
-                            new RoofTilesSource(
-                                256, 256, 12, 3,
-                                new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1),
-                                "#706859", RgbaColor.transparent
-                            )
-                        ),
-                        RgbaColor.transparent
-                    ),
-                    0.5, 128, 128, 128
-                ),
-                0.1875, 0, 0
-            ),
-        ).generateImage(),
-        i % W * w + 1,
-        Math.floor(i / W) * h + 1
-    )
-    label("")
-    ++i
-    ctx.drawImage(
-        new RoofTilesSource(
-            256, 256, 8, 8,
-            new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1),
-            "#706859"
-        ).generateImage(),
-        i % W * w + 1,
-        Math.floor(i / W) * h + 1
-    )
-    label("Roof Tiles")
-    ++i
-    ctx.drawImage(
-        new CircleSource(
-            256, 256, 128, 128, 127,
-            new PolarSource(
-                256, 256,
-                new RoofTilesSource(
-                    256, 256, 16, 6,
-                    new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1),
-                    "#706859", RgbaColor.transparent
-                )
-            ),
-            RgbaColor.transparent
-        ).generateImage(),
-        i % W * w + 1,
-        Math.floor(i / W) * h + 1
-    )
-    label("Roof Tiles + Polar + Circle")
-    ++i
-    ctx.drawImage(
-        new FisheyeSource(
-            256, 256,
-            new CircleSource(
-                256, 256, 128, 128, 127,
-                new PolarSource(
-                    256, 256,
-                    new RoofTilesSource(
-                        256, 256, 16, 6,
-                        new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1),
-                        "#706859", RgbaColor.transparent
-                    )
-                ),
-                RgbaColor.transparent
-            ),
-            0.5, 128, 128, 128
-        ).generateImage(),
-        i % W * w + 1,
-        Math.floor(i / W) * h + 1
-    )
-    label("Roof Tiles + Polar + Circle + Eye[+]")
-    ++i
-    ctx.drawImage(
-        new FisheyeSource(
-            256, 256,
-            new CircleSource(
-                256, 256, 128, 128, 127,
-                new PolarSource(
-                    256, 256,
-                    new RoofTilesSource(
-                        256, 256, 16, 8,
-                        new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1),
-                        "#706859", RgbaColor.transparent
-                    )
-                ),
-                RgbaColor.transparent
-            ),
-            -0.5, 128, 128, 128
-        ).generateImage(),
-        i % W * w + 1,
-        Math.floor(i / W) * h + 1
-    )
-    label("Roof Tiles + Polar + Circle + Eye[-]")
-    
-
-
-
-
-
-
-
-    c.saveImage("textures")
 }

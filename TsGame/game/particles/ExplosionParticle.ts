@@ -14,7 +14,7 @@ class ExplosionParticle extends Particle {
         this.x = x
         this.y = y
         this.life = 1
-        this.rgb = `#ff${Utils.byteToHex(Utils.randInt(64, 224))}00`
+        this.rgb = `#ff${Utils.byteToHex(Rand.i(64, 224))}00`
     }
 
     step(time: number): void {

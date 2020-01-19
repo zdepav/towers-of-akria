@@ -7,7 +7,7 @@ class WaterProjectile extends GuidedProjectile {
         this.onhit = enemy => {
             enemy.dealDamage(strength / 2 + 0.5)
             enemy.addEffect(new WetEffect(2, strength))
-            if (strength > 1 && Math.random() < (strength - 1) / 10) {
+            if (strength > 1 && Rand.chance(strength * 0.2)) {
                 enemy.pushBack()
             }
         }
@@ -18,7 +18,7 @@ class WaterProjectile extends GuidedProjectile {
             return
         }
         super.step(time)
-        let r = Math.random()
+        let r = Rand.r()
         if (r < 0.25) {
             this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#3584CE", 0.75))
         } else if (r < 0.5) {

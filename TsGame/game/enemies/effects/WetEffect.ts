@@ -14,8 +14,8 @@ class WetEffect extends LeveledEffect {
             if (this._strength > 2) {
                 this.affectedEnemy.corodeArmor(time * 5 * (this._strength - 2))
             }
-            this.affectedEnemy.addSpeedMultiplier((10 - this._strength * 2) / 10)
-            if (Math.random() < 0.01) {
+            this.affectedEnemy.addSpeedMultiplier(1 - this._strength * 0.15)
+            if (Rand.chance(0.01)) {
                 let v = Vec2.randUnit3d().mul(4)
                 this.affectedEnemy.game.spawnParticle(
                     new BubbleParticle(

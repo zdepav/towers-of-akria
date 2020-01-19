@@ -4,15 +4,18 @@ class BasicEnemy extends Enemy {
 
     get baseSpeed(): number { return 48 }
 
-    constructor(game: Game, spawn: Tile, hp: number, armor: number) {
-        super(game, spawn, hp, armor)
+    constructor(game: Game, wave: number, spawn: Tile, hp: number, armor: number) {
+        super(game, wave, spawn, hp, armor)
     }
 
     render(ctx: CanvasRenderingContext2D): void {
+        if (this.expired) {
+            return
+        }
         let r: number
         if (this.armor > 0) {
             ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss()
-            r = 7 + Utils.clamp(this.armor / 80, 0, 5)
+            r = 7 + Utils.clamp(this.armor / 35, 0, 5)
             ctx.fillRect(this.x - r, this.y - r, r * 2, r * 2)
         }
         ctx.fillStyle = "#000000"
@@ -25,5 +28,4 @@ class BasicEnemy extends Enemy {
         r = 6 * this._hp / this.startHp
         ctx.fillRect(this.x - r, this.y - r, r * 2, r * 2)
     }
-
 }

@@ -13,7 +13,7 @@ class AcidEffect extends LeveledEffect {
         if (this.duration > 0 && this.affectedEnemy !== null) {
             this.affectedEnemy.corodeArmor(time * 20 * this._strength * this._strength)
             this.affectedEnemy.dealDamage(time * 2 * this._strength)
-            if (Math.random() < 0.01) {
+            if (Rand.chance(0.01)) {
                 let v = Vec2.randUnit3d().mul(4)
                 this.affectedEnemy.game.spawnParticle(
                     new BubbleParticle(

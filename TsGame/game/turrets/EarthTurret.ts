@@ -18,7 +18,7 @@ class EarthTurret extends Turret {
         if (this.ready) {
             let enemy = this.game.findNearestEnemy(this.center, this.range)
             if (enemy) {
-                this.game.spawnProjectile(new EarthProjectile(this.game, this.center, enemy, 15 + this.type.earth * 5))
+                this.game.spawnProjectile(new EarthProjectile(this.game, this.center, enemy, this.type.earth))
                 this.cooldown = 0.5
             }
         }
@@ -97,7 +97,7 @@ class EarthTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_aEfw_earth").then(tex => { EarthTurret.images = tex; }, () => new Promise<void>(resolve => {
+        return Utils.getImageFromCache("td_tower_aEfw_earth").then(tex => { EarthTurret.images = tex }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(48, 192)
             EarthTurret.preRender1(c.ctx, 0)
             EarthTurret.preRender2(c.ctx, 48)

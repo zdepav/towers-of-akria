@@ -24,7 +24,9 @@ class CellularTextureGenerator extends TextureGenerator {
     private range: number
     private curve: (x: number) => number
 
-    // density n => 1 point per n pixels
+    /**
+     * @param density n => 1 point per n pixels
+     */
     constructor(
         width: number,
         height: number,
@@ -41,16 +43,16 @@ class CellularTextureGenerator extends TextureGenerator {
         let distance: (dx: number, dy: number) => number
         switch (metric) {
             case CellularTextureDistanceMetric.Euclidean:
-                distance = Utils.euclideanDistance
+                distance = Metric.euclideanDistance
                 break
             case CellularTextureDistanceMetric.Manhattan:
-                distance = Utils.manhattanDistance
+                distance = Metric.manhattanDistance
                 break
             case CellularTextureDistanceMetric.Chebyshev:
-                distance = Utils.chebyshevDistance
+                distance = Metric.chebyshevDistance
                 break
             case CellularTextureDistanceMetric.Minkowski:
-                distance = Utils.minkowskiDistance
+                distance = Metric.minkowskiDistance
                 break
         }
         this.density = Math.max(1, density)
@@ -61,10 +63,7 @@ class CellularTextureGenerator extends TextureGenerator {
             pointCount = 2
         }
         for (let i = 0; i < pointCount; ++i) {
-            points[i] = new Vec2(
-                Math.random() * this.width,
-                Math.random() * this.height
-            )
+            points[i] = new Vec2(Rand.r(this.width), Rand.r(this.height))
         }
         this.distances = []
         this.min = Infinity

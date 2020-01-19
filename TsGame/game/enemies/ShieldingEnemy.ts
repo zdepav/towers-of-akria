@@ -1,25 +1,26 @@
-/// <reference path="Enemy.ts"/>
+﻿/// <reference path="Enemy.ts"/>
 
-class RegeneratingEnemy extends Enemy {
+class ShieldingEnemy extends Enemy {
 
-    private healingSpeed: number
+    private shieldCooldown: number
 
-    get baseSpeed(): number { return 64 }
+    private shield: number
+
+    get baseSpeed(): number { return this.shield > 0 ? 48 : 64 }
 
     constructor(game: Game, wave: number, spawn: Tile, hp: number, armor: number) {
-        super(game, wave, spawn, hp * 0.6, 0)
-        this.healingSpeed = -0.1
+        super(game, wave, spawn, hp, 0)
+        this.shieldCooldown = 0
     }
 
     step(time: number): void {
         super.step(time)
-        if (this.healingSpeed > 0) {
-            this._hp = Math.min(this.startHp, this._hp + this.healingSpeed)
+        if (this.shieldCooldown > 0) {
+            this.shieldCooldown -= time
         }
-        this.healingSpeed = Math.min(this.healingSpeed + 0.5 * time, 0.5)
     }
 
-    private renderHeart(ctx: CanvasRenderingContext2D, pts: Vec2[], r: number): void {
+    private renderShield(ctx: CanvasRenderingContext2D, pts: Vec2[], r: number): void {
         ctx.beginPath()
         ctx.moveTo(this.x + pts[0].x * r, this.y + pts[0].y * r)
         ctx.bezierCurveTo(
@@ -47,32 +48,46 @@ class RegeneratingEnemy extends Enemy {
         let angle = this.currTilePos.angleTo(this.nextTilePos)
         let va = Vec2.ld(1, angle)
         let vb = Vec2.ld(1, angle + Angle.deg90)
-        let p1 = va.mul(-1.5)
-        let p2 = va.mul(-0.5)
-        let p3 = va.mul(0.5)
-        let p4 = va.mul(1.5)
+        let p1 = va.mul(1.5)
+        let p2 = va.mul(-1)
+        let p3 = va.mul(-1.5)
         let points: Vec2[] = [
             p1,
-            p2,         p2.add(vb), p3.add(vb),
-            p4.add(vb), p4.sub(vb), p3.sub(vb),
-            p2.sub(vb), p2,         p1
+            vb, vb, p3.add(vb),
+            p2.add(vb), p2.sub(vb), p3.sub(vb),
+            vb.negate(), vb.negate(), p1
         ]
         if (this.armor > 0) {
             ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss()
-            this.renderHeart(ctx, points, 8.5 + Utils.clamp(this.armor / 25, 0, 7))
+            this.renderShield(ctx, points, 8.5 + Utils.clamp(this.armor / 25, 0, 7))
         }
         ctx.fillStyle = "#000000"
-        this.renderHeart(ctx, points, 8.5)
+        this.renderShield(ctx, points, 8.5)
         if (this._hp < this.startHp) {
             ctx.fillStyle = this.effects.colorize(this.baseColor).toCss()
-            this.renderHeart(ctx, points, 7)
+            this.renderShield(ctx, points, 7)
         }
         ctx.fillStyle = this.effects.colorize(this.baseHpColor).toCss()
-        this.renderHeart(ctx, points, 7 * this._hp / this.startHp)
+        this.renderShield(ctx, points, 7 * this._hp / this.startHp)
+        ctx.fillStyle = "#FFFF0080"
+        this.renderShield(ctx, points, 70 * this.shield / this.startHp)
     }
 
     dealDamage(ammount: number): void {
-        super.dealDamage(ammount)
-        this.healingSpeed = -0.1
+        if (this.shield > 0) {
+            if (ammount < this.shield) {
+                this.shield -= ammount
+            } else {
+                let a = ammount - this.shield
+                super.dealDamage(a)
+                this.shield = 0
+            }
+        } else {
+            super.dealDamage(ammount)
+            if (this.shieldCooldown <= 0) {
+                this.shield = this.startHp * 0.1
+                this.shieldCooldown = 5
+            }
+        }
     }
 }

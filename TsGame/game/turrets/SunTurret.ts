@@ -15,7 +15,7 @@ class SunTurret extends Turret {
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
-        this.frame = Utils.rand(0, SunTurret.frameCount)
+        this.frame = Rand.r(0, SunTurret.frameCount)
         this.angle = Angle.rand()
         this.rays = []
     }

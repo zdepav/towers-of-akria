@@ -68,56 +68,9 @@ class Utils {
         return Math.floor(value * steps) / steps + 1 / steps / 2
     }
 
-    static euclideanDistance(dx: number, dy: number): number {
-        return Math.sqrt(dx * dx + dy * dy)
-    }
-
-    static manhattanDistance(dx: number, dy: number): number {
-        return Math.abs(dx) + Math.abs(dy)
-    }
-
-    static chebyshevDistance(dx: number, dy: number): number {
-        return Math.max(Math.abs(dx), Math.abs(dy))
-    }
-
-    static minkowskiDistance(dx: number, dy: number): number {
-        let d = Math.sqrt(Math.abs(dx)) + Math.sqrt(Math.abs(dy))
-        return d * d
-    }
-
     static byteToHex(byte: number): string {
         byte = Utils.clamp(byte, 0, 255)
         return Utils.hex[Math.floor(byte / 16)] + Utils.hex[Math.floor(byte % 16)]
-    }
-
-    /**
-     * @param min min value (inclusive)
-     * @param max max value (exclusive)
-     */
-    static rand(min: number, max: number): number {
-        if (max <= min) {
-            return min
-        }
-        return Math.random() * (max - min) + min
-    }
-
-    /**
-     * @param min min value (inclusive)
-     * @param max max value (exclusive)
-     */
-    static randInt(min: number, max: number): number {
-        if (max <= min) {
-            return min
-        }
-        return Math.floor(Math.random() * (max - min) + min)
-    }
-
-    static randItem<T>(items: T[]): T | null {
-        return items.length > 0 ? items[Math.floor(Math.random() * items.length)] : null
-    }
-
-    static randSign(num: number = 1): number {
-        return (Math.floor(Math.random() * 2) * 2 - 1) * num
     }
 
     static isString(obj: any): boolean {

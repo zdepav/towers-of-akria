@@ -14,7 +14,7 @@ class MoonTurret extends Turret {
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
-        this.frame = Utils.rand(0, MoonTurret.frameCount)
+        this.frame = Rand.r(0, MoonTurret.frameCount)
         this.rays = []
     }
 
@@ -109,7 +109,7 @@ class MoonTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_AEfW_moon_strip" + MoonTurret.frameCount).then(tex => { MoonTurret.images = tex; }, () => new Promise<void>(resolve => {
+        return Utils.getImageFromCache("td_tower_AEfW_moon_strip" + MoonTurret.frameCount).then(tex => { MoonTurret.images = tex }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(MoonTurret.frameCount * 64, 64)
             let colorA = ColorSource.get("#E0E0E0")
             let colorB = ColorSource.get("#FFFFFF00")

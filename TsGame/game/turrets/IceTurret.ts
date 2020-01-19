@@ -105,7 +105,7 @@ class IceTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_AefW_ice").then(tex => { IceTurret.images = tex; }, () => new Promise<void>(resolve => {
+        return Utils.getImageFromCache("td_tower_AefW_ice").then(tex => { IceTurret.images = tex }, () => new Promise<void>(resolve => {
             let tex = new CellularTextureGenerator(64, 64, 64, "#D1EFFF", "#70BECC", CellularTextureType.Cells)
             let c = new PreRenderedImage(64, 192)
             let c2 = new PreRenderedImage(64, 64)

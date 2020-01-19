@@ -23,12 +23,12 @@ class PlasmaTurret extends Turret {
         if (this.ready) {
             let enemies = this.game.findEnemiesInRange(this.center, this.range)
             if (enemies.length > 0) {
-                let e = enemies[Math.floor(Math.random() * enemies.length)]
-                e.dealDamage(this.type.count * 5 - 5 + 10 * Math.random())
-                if (Math.random() < 0.05 * this.type.water) {
+                let e = enemies[Rand.i(enemies.length)]
+                e.dealDamage(this.type.count * 5 - 5 + Rand.r(10))
+                if (Rand.chance(0.05 * this.type.water)) {
                     e.addEffect(new StunEffect(0.5))
                 }
-                if (Math.random() < 0.05 * this.type.fire) {
+                if (Rand.chance(0.05 * this.type.fire)) {
                     e.addEffect(new BurningEffect(1))
                 }
                 this.game.spawnParticle(new PlasmaBeamParticle(this.center.x, this.center.y, e.x, e.y))
@@ -107,7 +107,7 @@ class PlasmaTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_AeFW_plasma_strip" + PlasmaTurret.frameCount).then(tex => { PlasmaTurret.images = tex; }, () => new Promise<void>(resolve => {
+        return Utils.getImageFromCache("td_tower_AeFW_plasma_strip" + PlasmaTurret.frameCount).then(tex => { PlasmaTurret.images = tex }, () => new Promise<void>(resolve => {
             let background = "#552BA800"
             let color1 = new PerlinNoiseTextureGenerator(64, 64, "#4B007A00", "#FFFFFF", 0.5)
             let tex1a = new CirclesTextureGenerator(64, 64, "#A389FFC0", color1, background, 0.4, 2, 0.7)

@@ -6,15 +6,8 @@ var MouseButton;
     MouseButton[MouseButton["Back"] = 3] = "Back";
     MouseButton[MouseButton["Forward"] = 4] = "Forward";
 })(MouseButton || (MouseButton = {}));
-var GameScreen;
-(function (GameScreen) {
-    GameScreen[GameScreen["Intro"] = 0] = "Intro";
-    GameScreen[GameScreen["Game"] = 1] = "Game";
-    GameScreen[GameScreen["End"] = 2] = "End";
-})(GameScreen || (GameScreen = {}));
 class Game {
     constructor(container) {
-        this.container = container;
         this.width = 1152;
         this.height = 704;
         this.mapWidth = 15;
@@ -25,6 +18,7 @@ class Game {
         canvas.height = this.height;
         canvas.style.border = "2px solid #606060";
         canvas.style.outline = "none";
+        container.appendChild(canvas);
         this.ctx = canvas.getContext("2d");
         this.canvas = canvas;
         this.prevTime = new Date().getTime();
@@ -43,9 +37,6 @@ class Game {
         this.rangeMarkerRotation = 0;
         this.hoveredElement = null;
         this.paused = false;
-        this.mana = 200;
-        this.lives = 20;
-        this.screen = GameScreen.Intro;
     }
     get hoveredTile() {
         return this.hoveredTilePos !== null ? this.map[this.hoveredTilePos.x][this.hoveredTilePos.y] : null;
@@ -56,15 +47,9 @@ class Game {
             .then(() => Angle.init())
             .then(() => Tile.init())
             .then(() => Turret.initAll())
-            .then(() => this.generateCastle())
-            .then(() => this.generateIntroBackground())
-            .then(() => this.initGui())
-            .then(() => this.initEvents())
             .then(() => this.generateMap())
-            .then(() => this.preRender());
-    }
-    initGui() {
-        return new Promise(resolve => {
+            .then(() => this.generateCastle())
+            .then(() => new Promise(resolve => {
             let panel1 = new GuiPanel(this, 960, 0, 192, 384);
             this.guiPanels.push(panel1);
             this.guiPanels[0].addItem(panel1);
@@ -80,26 +65,6 @@ class Game {
                 this.upgradeButtons.push(button);
                 panel2.addItem(button);
             }
-            this.startGameButton = new TextButton(this, 32, this.height - 96, this.width - 64, 64, "Start game");
-            this.startGameButton.onclick = () => {
-                this.startGameButton.enabled = false;
-                this.generateMap()
-                    .then(() => this.preRender())
-                    .then(() => new Promise(resolve => {
-                    this.screen = GameScreen.Game;
-                    resolve();
-                }));
-            };
-            this.resetGameButton = new TextButton(this, 32, this.height - 96, this.width - 64, 64, "Back to menu");
-            this.resetGameButton.onclick = () => {
-                this.screen = GameScreen.Intro;
-                this.startGameButton.enabled = true;
-            };
-            resolve();
-        });
-    }
-    initEvents() {
-        return new Promise(resolve => {
             this.canvas.setAttribute("tabindex", "0");
             this.canvas.focus();
             this.canvas.addEventListener("contextmenu", (e) => {
@@ -112,16 +77,10 @@ class Game {
             this.canvas.addEventListener("mouseup", (e) => g.onMouseUp(e));
             this.canvas.addEventListener("keydown", (e) => g.onKeyDown(e));
             this.canvas.addEventListener("keyup", (e) => g.onKeyUp(e));
+            this.prevTime = new Date().getTime();
             resolve();
-        });
-    }
-    generateIntroBackground() {
-        return Utils.getImageFromCache("td_intro_back").then(tex => { this.introBackground = tex; }, () => new Promise(resolve => {
-            let c = new CellularTextureGenerator(256, 256, 2304, new NoiseTextureGenerator(256, 256, RgbaColor.fromHex("#303030"), 0.05, 0, 1), new FrostedGlassTextureGenerator(256, 256, RgbaColor.fromHex("#AF9A3B"), RgbaColor.fromHex("#D8CA84"), 1, Curve.linear), CellularTextureType.Net, CellularTextureDistanceMetric.Euclidean, Curve.arc).generatePrImage();
-            c.cacheImage("td_intro_back");
-            this.introBackground = c.image;
-            resolve();
-        }));
+        }))
+            .then(() => this.preRender());
     }
     generateMap() {
         return new Promise(resolve => {
@@ -278,7 +237,7 @@ class Game {
         });
     }
     generateCastle() {
-        return Utils.getImageFromCache("td_castle").then(tex => { this.castleImage = tex; }, () => new Promise(resolve => {
+        return Utils.getImageFromCache("td_castle").then(tex => { Game.castleImage = tex; }, () => new Promise(resolve => {
             let c = new PreRenderedImage(192, 192);
             let castle = new RenderablePathSet();
             let path = new Path2D();
@@ -316,11 +275,11 @@ class Game {
             castle.pushNew(path, "#606060");
             castle.render(c.ctx);
             c.cacheImage("td_castle");
-            this.castleImage = c.image;
+            Game.castleImage = c.image;
             resolve();
         }));
     }
-    start(introInit, intro) {
+    start() {
         let g = this;
         function gameLoop() {
             window.requestAnimationFrame(gameLoop);
@@ -328,59 +287,38 @@ class Game {
             g.render();
             return undefined;
         }
-        introInit
-            .then(() => this.init())
-            .then(() => intro(4000))
-            .then(() => new Promise(resolve => {
-            this.container.appendChild(this.canvas);
-            this.prevTime = new Date().getTime();
-            resolve();
-        }))
-            .then(gameLoop);
+        g.init().then(gameLoop);
     }
     step() {
         let time = new Date().getTime();
         let timeDiff = (time - this.prevTime) / 1000;
         this.performanceMeter.add(1 / timeDiff);
         this.guiPanels[0].step(timeDiff);
-        switch (this.screen) {
-            case GameScreen.Intro:
-                this.startGameButton.step(timeDiff);
-                break;
-            case GameScreen.Game:
-                if (!this.paused) {
-                    let arcaneTowerCount = 0;
-                    for (let x = 0; x < this.mapWidth; ++x) {
-                        for (let y = 0; y < this.mapHeight; ++y) {
-                            let t = this.map[x][y];
-                            t.step(timeDiff);
-                            if (t.type == TileType.Tower) {
-                                if (this.selectedTile == t) {
-                                    this.markTile(t);
-                                }
-                                if (t.turret instanceof ArcaneTurret) {
-                                    ++arcaneTowerCount;
-                                }
-                            }
+        if (!this.paused) {
+            let arcaneTowerCount = 0;
+            for (let x = 0; x < this.mapWidth; ++x) {
+                for (let y = 0; y < this.mapHeight; ++y) {
+                    let t = this.map[x][y];
+                    t.step(timeDiff);
+                    if (t.type == TileType.Tower) {
+                        if (this.selectedTile == t) {
+                            this.markTile(t);
+                        }
+                        if (t.turret instanceof ArcaneTurret) {
+                            ++arcaneTowerCount;
                         }
                     }
-                    this.arcaneTowerCount = arcaneTowerCount;
-                    this.wavePlanner.step(timeDiff);
-                    this.enemies.step(timeDiff);
-                    this.particles.step(timeDiff);
-                    this.projectiles.step(timeDiff);
-                    this.rangeMarkerRotation += timeDiff * Angle.deg60;
                 }
-                break;
-            case GameScreen.End:
-                this.resetGameButton.step(timeDiff);
-                break;
+            }
+            this.arcaneTowerCount = arcaneTowerCount;
+            this.wavePlanner.step(timeDiff);
+            this.enemies.step(timeDiff);
+            this.particles.step(timeDiff);
+            this.projectiles.step(timeDiff);
+            this.rangeMarkerRotation += timeDiff * Angle.deg60;
         }
         this.prevTime = time;
         this.time += timeDiff;
-    }
-    end() {
-        this.screen = GameScreen.End;
     }
     markTile(tile) {
         this.spawnParticle(new TileMarkParticle(tile.pos.x + 4, tile.pos.y + 4, new Vec2(1, 0)));
@@ -399,59 +337,38 @@ class Game {
     }
     onMouseMove(e) {
         this.setMousePosition(e);
-        switch (this.screen) {
-            case GameScreen.Intro:
-                this.startGameButton.onMouseMove();
-                break;
-            case GameScreen.Game:
-                this.hoveredElement = null;
-                this.guiPanels[0].onMouseMove();
-                if (this.hoveredTilePos === null) {
-                    return;
-                }
-                let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64));
-                if (!tp.equals(this.hoveredTilePos)) {
-                    this.hoveredTilePos = null;
-                }
-                break;
+        this.hoveredElement = null;
+        this.guiPanels[0].onMouseMove();
+        if (this.hoveredTilePos === null) {
+            return;
+        }
+        let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64));
+        if (!tp.equals(this.hoveredTilePos)) {
+            this.hoveredTilePos = null;
         }
     }
     onMouseDown(e) {
         this.setMousePosition(e);
-        switch (this.screen) {
-            case GameScreen.Intro:
-                this.startGameButton.onMouseDown(e.button);
-                break;
-            case GameScreen.Game:
-                this.guiPanels[0].onMouseDown(e.button);
-                let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64));
-                if (tp.x < this.mapWidth && tp.y < this.mapHeight) {
-                    this.hoveredTilePos = tp;
-                    this.mouseButton = e.button;
-                }
-                break;
+        this.guiPanels[0].onMouseDown(e.button);
+        let tp = new Vec2(Math.floor(this.mousePosition.x / 64), Math.floor(this.mousePosition.y / 64));
+        if (tp.x < this.mapWidth && tp.y < this.mapHeight) {
+            this.hoveredTilePos = tp;
+            this.mouseButton = e.button;
         }
     }
     onMouseUp(e) {
         var _a;
         this.setMousePosition(e);
-        switch (this.screen) {
-            case GameScreen.Intro:
-                this.startGameButton.onMouseUp(e.button);
-                break;
-            case GameScreen.Game:
-                this.guiPanels[0].onMouseUp(e.button);
-                if (this.hoveredTilePos) {
-                    this.selectedTile = this.hoveredTile;
-                    for (const b of this.upgradeButtons) {
-                        b.targetTile = this.selectedTile;
-                    }
-                    (_a = this.selectedTile) === null || _a === void 0 ? void 0 : _a.onClick(this.mouseButton, this.mousePosition.x % 64, this.mousePosition.y % 64);
-                    this.hoveredTilePos = null;
-                }
-                this.mouseButton = null;
-                break;
+        this.guiPanels[0].onMouseUp(e.button);
+        if (this.hoveredTilePos) {
+            this.selectedTile = this.hoveredTile;
+            for (const b of this.upgradeButtons) {
+                b.targetTile = this.selectedTile;
+            }
+            (_a = this.selectedTile) === null || _a === void 0 ? void 0 : _a.onClick(this.mouseButton, this.mousePosition.x % 64, this.mousePosition.y % 64);
+            this.hoveredTilePos = null;
         }
+        this.mouseButton = null;
     }
     onKeyDown(e) {
         switch (e.key.toUpperCase()) {
@@ -461,10 +378,11 @@ class Game {
                     alert("Cache cleared.");
                 }
                 break;
+            case 'G':
+                gen();
+                break;
             case 'P':
-                if (this.screen === GameScreen.Game) {
-                    this.paused = !this.paused;
-                }
+                this.paused = !this.paused;
                 break;
         }
     }
@@ -495,43 +413,6 @@ class Game {
     }
     render() {
         let ctx = this.ctx;
-        switch (this.screen) {
-            case GameScreen.Intro:
-                ctx.fillStyle = ctx.createPattern(this.introBackground, "repeat");
-                ctx.fillRect(0, 0, this.width, this.height);
-                ctx.lineJoin = "round";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.font = "bold 112px sans-serif";
-                ctx.strokeStyle = "#00000060";
-                for (let i = 64; i >= 16; i -= 12) {
-                    ctx.lineWidth = i;
-                    ctx.strokeText("Towers of Akria", this.width / 2, this.height / 4);
-                }
-                ctx.fillText("Towers of Akria", this.width / 2, this.height / 4);
-                ctx.fillStyle = "#D8CA8440";
-                ctx.fillText("Towers of Akria", this.width / 2, this.height / 4);
-                this.startGameButton.render(ctx);
-                break;
-            case GameScreen.Game:
-                this.renderGame();
-                break;
-            case GameScreen.End:
-                ctx.fillStyle = "#400000";
-                ctx.fillRect(0, 0, this.width, this.height);
-                ctx.fillStyle = "#FFE0E0";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "middle";
-                ctx.font = "96px monospace";
-                ctx.fillText("GAME OVER", this.width / 2, this.height * 0.33);
-                ctx.font = "40px monospace";
-                ctx.fillText(`You survived ${this.wavePlanner.waveNumber - 1} waves`, this.width / 2, this.height * 0.67);
-                this.resetGameButton.render(ctx);
-                break;
-        }
-    }
-    renderGame() {
-        let ctx = this.ctx;
         ctx.drawImage(this.preRendered, 0, 0);
         for (let x = 0; x < this.mapWidth; ++x) {
             for (let y = 0; y < this.mapHeight; ++y) {
@@ -540,7 +421,7 @@ class Game {
         }
         this.guiPanels[0].render(ctx);
         this.enemies.render(ctx);
-        ctx.drawImage(this.castleImage, this.guiPanels[1].x, this.guiPanels[1].bottom);
+        ctx.drawImage(Game.castleImage, this.guiPanels[1].x, this.guiPanels[1].bottom);
         this.particles.render(ctx);
         this.projectiles.render(ctx);
         for (let x = 0; x < this.mapWidth; ++x) {
@@ -561,24 +442,23 @@ class Game {
         }
         let fps = this.performanceMeter.getFps();
         ctx.fillStyle = "#000000";
-        ctx.textAlign = "right";
-        ctx.textBaseline = "top";
-        ctx.font = "bold 10px monospace";
-        if (!isNaN(fps)) {
-            ctx.fillText(`FPS: ${Math.floor(fps)}`, this.guiPanels[1].x + this.guiPanels[1].w - 40, this.guiPanels[1].y + 6);
-        }
         ctx.textAlign = "left";
-        ctx.font = "bold 24px monospace";
-        ctx.fillText(`WAVE:  ${this.wavePlanner.waveNumber}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 8);
-        ctx.fillText(`MANA:  ${this.mana}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 36);
-        ctx.fillText(`LIVES: ${this.lives}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 64);
+        ctx.textBaseline = "top";
+        ctx.font = "bold 12px monospace";
+        if (!isNaN(fps)) {
+            ctx.fillText(`FPS:         ${Math.floor(fps)}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 6);
+        }
+        ctx.fillText(`Enemies:     ${this.enemies.count}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 20);
+        ctx.fillText(`Particles:   ${this.particles.count}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 34);
+        ctx.fillText(`Projectiles: ${this.projectiles.count}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 48);
+        ctx.fillText(`WAVE:        ${this.wavePlanner.waveNumber}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 62);
         if (this.paused) {
             ctx.fillStyle = "#20202080";
             ctx.fillRect(0, 0, this.width, this.height);
             ctx.fillStyle = "#E0E0E0";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
-            ctx.font = "bold 32px monospace";
+            ctx.font = "bold 24px monospace";
             ctx.fillText("Paused", this.width / 2, this.height / 2);
         }
     }
@@ -614,39 +494,153 @@ class Game {
         return this.enemies.findInRange(point, maxDistance);
     }
     takeLife() {
-        --this.lives;
-        if (this.lives <= 0) {
-            this.end();
-        }
-    }
-    addCurrency(enemyWave) {
-        this.mana += 4 + Math.floor(enemyWave * 0.25);
     }
     playerCanAffordUpgrade(upgradeCostMultiplier) {
-        return upgradeCostMultiplier >= 0 && this.mana >= 100 * upgradeCostMultiplier;
+        return upgradeCostMultiplier >= 0;
     }
     buyUpgrade(upgradeCostMultiplier) {
-        let price = 100 * upgradeCostMultiplier;
-        if (upgradeCostMultiplier >= 0 && this.mana >= price) {
-            this.mana -= price;
-            return true;
-        }
-        return false;
+        return upgradeCostMultiplier >= 0;
     }
     hoverElement(type) {
         this.hoveredElement = type;
     }
-    static initializeAndRun(introInit, intro) {
+    static initializeAndRun() {
         let container = document.getElementById("zptd-game-container");
         if (container == null) {
             throw new Error('Html element with id "zptd-game-container" not found');
         }
         else {
-            new Game(container).start(introInit, intro);
+            new Game(container).start();
         }
     }
 }
 Game.saveImages = false;
+function gen() {
+    let W = 6, H = 5;
+    let w = 258, h = 286;
+    let c = new PreRenderedImage(w * W, h * H);
+    let ctx = c.ctx, i = 0, c1 = "#A01713", c2 = "#FFE2A8", ch = "#CF7C5D";
+    ctx.fillStyle = "#404040";
+    ctx.fillRect(0, 0, w * W, h * H);
+    function label(line1, line2) {
+        let x = i % W * w + 1;
+        let y = Math.floor(i / W) * h + 257;
+        ctx.fillStyle = "#C0C0C0";
+        ctx.fillRect(x, y, 256, 28);
+        ctx.fillStyle = "#000000";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+        ctx.font = "bold 16px serif";
+        ctx.fillText(line1, x + 6, y + 14, 248);
+        if (line2) {
+            ctx.textAlign = "right";
+            ctx.fillText(`(${line2})`, x + 250, y + 12, 248);
+        }
+    }
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Euclidean).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Cellular", "Cells, Euclidean");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Manhattan).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Cellular", "Cells, Manhattan");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Euclidean).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Cellular", "Balls, Euclidean");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Manhattan).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Cellular", "Balls, Manhattan");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Euclidean).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Cellular", "Net, Euclidean");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Manhattan).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Cellular", "Net, Manhattan");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Chebyshev).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Cellular", "Cells, Chebyshev");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Cells, CellularTextureDistanceMetric.Minkowski).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Cellular", "Cells, Minkowski");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Chebyshev).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Cellular", "Balls, Chebyshev");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Balls, CellularTextureDistanceMetric.Minkowski).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Cellular", "Balls, Minkowski");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Chebyshev).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Cellular", "Net, Chebyshev");
+    ++i;
+    ctx.drawImage(new CellularTextureGenerator(256, 256, 1024, c1, c2, CellularTextureType.Net, CellularTextureDistanceMetric.Minkowski).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Cellular", "Net, Minkowski");
+    ++i;
+    ctx.drawImage(new NoiseTextureGenerator(256, 256, ch, 0.5, 0.5, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Noise");
+    ++i;
+    ctx.drawImage(new PerlinNoiseTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Perlin", "Noise");
+    ++i;
+    ctx.drawImage(new CloudsTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Perlin", "Clouds");
+    ++i;
+    ctx.drawImage(new VelvetTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Perlin", "Velvet");
+    ++i;
+    ctx.drawImage(new GlassTextureGenerator(256, 256, c1, c2, 1, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Perlin", "Glass");
+    ++i;
+    ctx.drawImage(new FrostedGlassTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Perlin", "Frosted glass");
+    ++i;
+    ctx.drawImage(new BarkTextureGenerator(256, 256, c1, c2, 1, 0.75).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Perlin", "Bark");
+    ++i;
+    ctx.drawImage(new CirclesTextureGenerator(256, 256, c1, c2, ch, 1, 4, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Perlin", "Circles");
+    ++i;
+    ctx.drawImage(new CamouflageTextureGenerator(256, 256, c1, c2, 1).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Perlin", "Camouflage");
+    ++i;
+    let grads = [
+        new RadialGradientSource(256, 256, 128, 128, 0, 128),
+        new LinearGradientSource(256, 256, 0, 128, 256, 128)
+    ];
+    for (const g of grads) {
+        g.addColorStop(0.000, "#FF0000");
+        g.addColorStop(0.167, "#FFFF00");
+        g.addColorStop(0.333, "#00FF00");
+        g.addColorStop(0.500, "#00FFFF");
+        g.addColorStop(0.667, "#0000FF");
+        g.addColorStop(0.833, "#FF00FF");
+        g.addColorStop(1.000, "#FF0000");
+    }
+    ctx.drawImage(grads[0].generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Gradient", "Radial");
+    ++i;
+    ctx.drawImage(new FisheyeSource(256, 256, grads[1], 0.5, 128, 128, 128).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Gradient", "Linear, Fisheye[+]");
+    ++i;
+    ctx.drawImage(new FisheyeSource(256, 256, grads[1], -0.5, 128, 128, 128).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Gradient", "Linear, Fisheye[-]");
+    ++i;
+    ctx.drawImage(new PolarSource(256, 256, new BarkTextureGenerator(512, 256, c1, c2, 0.5, 0.75), 512, 256).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Perlin + Polar", "Bark");
+    ++i;
+    ctx.drawImage(new AntialiasedSource(256, 256, new ScalingSource(256, 256, new FisheyeSource(256, 256, new CircleSource(256, 256, 128, 128, 127, new PolarSource(256, 256, new RoofTilesSource(256, 256, 12, 3, new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1), "#706859", RgbaColor.transparent)), RgbaColor.transparent), 0.5, 128, 128, 128), 0.1875, 0, 0)).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("");
+    ++i;
+    ctx.drawImage(new RoofTilesSource(256, 256, 8, 8, new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1), "#706859").generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Roof Tiles");
+    ++i;
+    ctx.drawImage(new CircleSource(256, 256, 128, 128, 127, new PolarSource(256, 256, new RoofTilesSource(256, 256, 16, 6, new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1), "#706859", RgbaColor.transparent)), RgbaColor.transparent).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Roof Tiles + Polar + Circle");
+    ++i;
+    ctx.drawImage(new FisheyeSource(256, 256, new CircleSource(256, 256, 128, 128, 127, new PolarSource(256, 256, new RoofTilesSource(256, 256, 16, 6, new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1), "#706859", RgbaColor.transparent)), RgbaColor.transparent), 0.5, 128, 128, 128).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Roof Tiles + Polar + Circle + Eye[+]");
+    ++i;
+    ctx.drawImage(new FisheyeSource(256, 256, new CircleSource(256, 256, 128, 128, 127, new PolarSource(256, 256, new RoofTilesSource(256, 256, 16, 8, new NoiseTextureGenerator(256, 256, "#E0D2B3", 0.125, 0, 1), "#706859", RgbaColor.transparent)), RgbaColor.transparent), -0.5, 128, 128, 128).generateImage(), i % W * w + 1, Math.floor(i / W) * h + 1);
+    label("Roof Tiles + Polar + Circle + Eye[-]");
+    c.saveImage("textures");
+}
 var TileType;
 (function (TileType) {
     TileType[TileType["Unknown"] = 0] = "Unknown";
@@ -797,25 +791,10 @@ class Tile {
         ctx.drawImage(Tile.tiles, 0, 192, 64, 64, x, y, 64, 64);
     }
 }
-window.addEventListener("load", () => {
-    let container = document.getElementById("zptd-game-container");
-    let img = document.createElement("img");
-    Game.initializeAndRun(new Promise(resolve => {
-        container.appendChild(img);
-        img.alt = "competition screen";
-        img.addEventListener("load", () => resolve());
-        img.src = "itnetwork_winter_2019_1.jpg";
-    }), duration => new Promise(resolve => {
-        setTimeout(() => {
-            container.removeChild(img);
-            resolve();
-        }, duration);
-    }));
-});
 class Expirable {
 }
 class Enemy extends Expirable {
-    constructor(game, wave, spawn, hp, armor) {
+    constructor(game, spawn, hp, armor) {
         super();
         this.targetTile = spawn.next;
         this.currTilePos = spawn.pos.addu(0, Rand.i(16, 48));
@@ -828,7 +807,6 @@ class Enemy extends Expirable {
         this.position = this.currTilePos;
         this.startHp = hp;
         this._hp = this.startHp;
-        this.wave = wave;
         this.armor = armor;
         this.effects = new EffectSet();
         this.game = game;
@@ -878,12 +856,7 @@ class Enemy extends Expirable {
         }
     }
     dealDamage(ammount) {
-        if (this._hp > 0) {
-            this._hp = Math.max(this._hp - ammount * this.game.towerDamageMultiplier / this.armorProtection, 0);
-            if (this._hp <= 0) {
-                this.death();
-            }
-        }
+        this._hp = Math.max(this._hp - ammount * this.game.towerDamageMultiplier / this.armorProtection, 0);
     }
     corodeArmor(ammount) {
         this.armor = Math.max(this.armor - ammount, 0);
@@ -908,37 +881,16 @@ class Enemy extends Expirable {
         let relPos = this.relPos + this.prevSpeedMultiplier * this.baseSpeed * 1.5 * timeAhead;
         return this.currTilePos.lerp(this.nextTilePos, relPos / this.relDist);
     }
-    death() {
-        this.game.addCurrency(this.wave);
-        let c = Rand.i(5, 10);
-        for (let i = 0; i < c; ++i) {
-            let r = Rand.r();
-            let color;
-            if (this.armor > 10 && r < 0.2) {
-                color = this.effects.colorize(this.baseArmorColor).toRgbCss();
-            }
-            else if (r < 0.8) {
-                color = this.effects.colorize(this.baseHpColor).toRgbCss();
-            }
-            else {
-                color = this.effects.colorize(this.baseColor).toRgbCss();
-            }
-            this.game.spawnParticle(new EnemyDeathParticle(this.x, this.y, color));
-        }
-    }
     static positionInTile(tile) {
         return tile.pos.addu(Rand.i(16, 48), Rand.i(16, 48));
     }
 }
 class BasicEnemy extends Enemy {
     get baseSpeed() { return 48; }
-    constructor(game, wave, spawn, hp, armor) {
-        super(game, wave, spawn, hp, armor);
+    constructor(game, spawn, hp, armor) {
+        super(game, spawn, hp, armor);
     }
     render(ctx) {
-        if (this.expired) {
-            return;
-        }
         let r;
         if (this.armor > 0) {
             ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss();
@@ -958,8 +910,8 @@ class BasicEnemy extends Enemy {
 }
 class BigEnemy extends Enemy {
     get baseSpeed() { return 24; }
-    constructor(game, wave, spawn, hp, armor) {
-        super(game, wave, spawn, hp * 4, armor * 1.5);
+    constructor(game, spawn, hp, armor) {
+        super(game, spawn, hp * 4, armor * 1.5);
     }
     renderCircle(ctx, r) {
         ctx.beginPath();
@@ -967,9 +919,6 @@ class BigEnemy extends Enemy {
         ctx.fill();
     }
     render(ctx) {
-        if (this.expired) {
-            return;
-        }
         if (this.armor > 0) {
             ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss();
             this.renderCircle(ctx, 10 + Utils.clamp(this.armor / 30, 0, 6));
@@ -1101,7 +1050,7 @@ class EnemyWavePlanner {
         this.enemyHp = 10;
         this.enemyArmor = 0;
         this.wave = [];
-        this.avgWaveSize = 10;
+        this.avgWaveSize = 5;
         this._waveNumber = 0;
     }
     get waveNumber() { return this._waveNumber; }
@@ -1114,7 +1063,7 @@ class EnemyWavePlanner {
             return;
         }
         if (this.wave.length == 0) {
-            let waveSize = Math.floor(this.avgWaveSize) + Rand.i(-3, 4);
+            let waveSize = Math.floor(this.avgWaveSize) + Rand.i(-2, 3);
             let enemyType = this.chooseEnemyType();
             if (enemyType === EnemyType.Big) {
                 waveSize = Math.max(Math.floor(waveSize / 5), 1);
@@ -1128,17 +1077,14 @@ class EnemyWavePlanner {
             this.updateWaveSize();
         }
         this.game.spawnEnemy(this.wave.pop());
-        this.timer = this.wave.length > 0 ? 0.75 : 5;
+        this.timer = this.wave.length > 0 ? 1 : 5;
     }
     updateWaveSize() {
-        if (this.avgWaveSize < 15) {
+        if (this.avgWaveSize < 10) {
             this.avgWaveSize += 0.25;
         }
-        else if (this.avgWaveSize < 22) {
+        else if (this.avgWaveSize < 20) {
             this.avgWaveSize += 0.2;
-        }
-        else if (this.avgWaveSize < 30) {
-            this.avgWaveSize += 0.15;
         }
     }
     chooseEnemyType() {
@@ -1161,22 +1107,22 @@ class EnemyWavePlanner {
     createEnemy(type) {
         switch (type) {
             case EnemyType.Fast:
-                return new FastEnemy(this.game, this._waveNumber + 1, this.spawnTile, this.enemyHp, this.enemyArmor);
+                return new FastEnemy(this.game, this.spawnTile, this.enemyHp, this.enemyArmor);
             case EnemyType.Regenerating:
-                return new RegeneratingEnemy(this.game, this._waveNumber + 1, this.spawnTile, this.enemyHp, this.enemyArmor);
+                return new RegeneratingEnemy(this.game, this.spawnTile, this.enemyHp, this.enemyArmor);
             case EnemyType.Shielding:
-                return new ShieldingEnemy(this.game, this._waveNumber + 1, this.spawnTile, this.enemyHp, this.enemyArmor);
+                return new ShieldingEnemy(this.game, this.spawnTile, this.enemyHp, this.enemyArmor);
             case EnemyType.Big:
-                return new BigEnemy(this.game, this._waveNumber + 1, this.spawnTile, this.enemyHp, this.enemyArmor);
+                return new BigEnemy(this.game, this.spawnTile, this.enemyHp, this.enemyArmor);
             default:
-                return new BasicEnemy(this.game, this._waveNumber + 1, this.spawnTile, this.enemyHp, this.enemyArmor);
+                return new BasicEnemy(this.game, this.spawnTile, this.enemyHp, this.enemyArmor);
         }
     }
 }
 class FastEnemy extends Enemy {
-    get baseSpeed() { return 128; }
-    constructor(game, wave, spawn, hp, armor) {
-        super(game, wave, spawn, hp * 0.35, armor * 0.25);
+    get baseSpeed() { return 160; }
+    constructor(game, spawn, hp, armor) {
+        super(game, spawn, hp * 0.35, armor * 0.25);
     }
     renderTriangle(ctx, a, b, c, r) {
         ctx.beginPath();
@@ -1187,9 +1133,6 @@ class FastEnemy extends Enemy {
         ctx.fill();
     }
     render(ctx) {
-        if (this.expired) {
-            return;
-        }
         let angle = this.currTilePos.angleTo(this.nextTilePos);
         let va = Vec2.ld(1, angle);
         let vb = Vec2.ld(1, angle + Angle.deg120);
@@ -1209,8 +1152,8 @@ class FastEnemy extends Enemy {
     }
 }
 class RegeneratingEnemy extends Enemy {
-    constructor(game, wave, spawn, hp, armor) {
-        super(game, wave, spawn, hp * 0.6, 0);
+    constructor(game, spawn, hp, armor) {
+        super(game, spawn, hp * 0.6, 0);
         this.healingSpeed = -0.1;
     }
     get baseSpeed() { return 64; }
@@ -1230,9 +1173,6 @@ class RegeneratingEnemy extends Enemy {
         ctx.fill();
     }
     render(ctx) {
-        if (this.expired) {
-            return;
-        }
         let angle = this.currTilePos.angleTo(this.nextTilePos);
         let va = Vec2.ld(1, angle);
         let vb = Vec2.ld(1, angle + Angle.deg90);
@@ -1265,8 +1205,8 @@ class RegeneratingEnemy extends Enemy {
     }
 }
 class ShieldingEnemy extends Enemy {
-    constructor(game, wave, spawn, hp, armor) {
-        super(game, wave, spawn, hp, 0);
+    constructor(game, spawn, hp, armor) {
+        super(game, spawn, hp * 0.6, 0);
         this.shieldCooldown = 0;
     }
     get baseSpeed() { return this.shield > 0 ? 48 : 64; }
@@ -1285,9 +1225,6 @@ class ShieldingEnemy extends Enemy {
         ctx.fill();
     }
     render(ctx) {
-        if (this.expired) {
-            return;
-        }
         let angle = this.currTilePos.angleTo(this.nextTilePos);
         let va = Vec2.ld(1, angle);
         let vb = Vec2.ld(1, angle + Angle.deg90);
@@ -1805,12 +1742,6 @@ class RgbaColor {
     }
     source(width = 1, height = 1) {
         return new RgbaColorSource(this, width, height);
-    }
-    toRgbCss() {
-        return "#"
-            + Utils.byteToHex(this.r)
-            + Utils.byteToHex(this.g)
-            + Utils.byteToHex(this.b);
     }
     toCss() {
         return "#"
@@ -2448,6 +2379,7 @@ class GuiPanel extends Rect {
     }
 }
 class PauseButton extends Button {
+    get pressed() { return this._pressed && this.enabled; }
     constructor(game, x, y, w, h) {
         super(game, x, y, w, h);
     }
@@ -2455,20 +2387,6 @@ class PauseButton extends Button {
         ctx.fillStyle = this._pressed ? "#606060" : "#808080";
         ctx.fillRect(this.x, this.y, this.w * 0.4, this.h);
         ctx.fillRect(this.x + this.w * 0.6, this.y, this.w * 0.4, this.h);
-    }
-}
-class TextButton extends Button {
-    constructor(game, x, y, w, h, text) {
-        super(game, x, y, w, h);
-        this.text = text;
-    }
-    render(ctx) {
-        super.render(ctx);
-        ctx.fillStyle = this.enabled ? "#000000" : "#808080";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.font = "24px sans-serif";
-        ctx.fillText(this.text, this.x + this.w / 2, this.y + this.h / 2);
     }
 }
 class TurretUpgradeButton extends Button {
@@ -2541,6 +2459,9 @@ class BubbleParticle extends Particle {
         this.x = x;
         this.y = y;
         this.life = 0;
+        if (!/#[0-9a-f]{6}/i.test(color)) {
+            throw new Error("Color format not supported");
+        }
         this.rgb = color;
         this.startSize = startSize;
     }
@@ -2593,47 +2514,6 @@ class CannonSmokeParticle extends Particle {
         ctx.fill();
     }
 }
-class EnemyDeathParticle extends Particle {
-    constructor(x, y, color) {
-        super();
-        this.x = x;
-        this.y = y;
-        this.angle = Angle.rand();
-        let v = Vec2.randUnit3d();
-        this.vx = 24 * v.x;
-        this.vy = 24 * v.y;
-        this.va = Angle.rand() - Angle.deg180;
-        this.life = Rand.r(0.4, 1);
-        this.startLife = this.life;
-        this.color = color;
-    }
-    get expired() { return this.life < 0; }
-    step(time) {
-        this.life -= time;
-        this.x += time * this.vx;
-        this.y += time * this.vy;
-        this.angle += time * this.va;
-    }
-    render(ctx) {
-        if (this.life < 0) {
-            return;
-        }
-        let a = Utils.byteToHex(this.life / this.startLife * 255);
-        ctx.fillStyle = this.color + a;
-        ctx.strokeStyle = "#000000" + a;
-        ctx.lineWidth = 0.5;
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.angle);
-        ctx.beginPath();
-        ctx.moveTo(5, 1);
-        ctx.lineTo(-4, 3);
-        ctx.lineTo(1, -5);
-        ctx.closePath();
-        ctx.stroke();
-        ctx.fill();
-        ctx.resetTransform();
-    }
-}
 class ExplosionParticle extends Particle {
     constructor(x, y) {
         super();
@@ -2667,6 +2547,9 @@ class LineParticle extends Particle {
         this.x2 = x2;
         this.y2 = y2;
         this.life = life;
+        if (!/#[0-9a-f]{6}/i.test(color)) {
+            throw new Error("Color format not supported");
+        }
         this.rgb = color;
         this.width = Utils.clamp(width, 0.1, 100);
     }
@@ -2779,16 +2662,19 @@ class SparkParticle extends Particle {
         this.x = x;
         this.y = y;
         let v = Vec2.randUnit3d();
-        this.vx = 30 * v.x;
-        this.vy = 30 * v.y;
+        this.vx = v.x;
+        this.vy = v.y;
         this.life = 0;
+        if (!/#[0-9a-f]{6}/i.test(color)) {
+            throw new Error("Color format not supported");
+        }
         this.color = color + "40";
     }
     get expired() { return this.life >= 1; }
     step(time) {
         this.life += time * 2;
-        this.x += time * this.vx;
-        this.y += time * this.vy;
+        this.x += this.vx;
+        this.y += this.vy;
     }
     render(ctx) {
         if (this.life >= 1) {
@@ -2831,6 +2717,9 @@ class TrailParticle extends Particle {
         this.vx = v.x * 4;
         this.vy = v.y * 4;
         this.life = 0;
+        if (!/#[0-9a-f]{6}/i.test(color)) {
+            throw new Error("Color format not supported");
+        }
         this.color = color;
         this.size = scale * 3;
     }

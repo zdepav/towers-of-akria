@@ -120,7 +120,7 @@ class ArcherTurret extends Turret {
 
     static init(): Promise<void> {
         return Utils.getImageFromCache("td_tower_AEfw_archer")
-            .then(tex => { ArcherTurret.images = tex; },
+            .then(tex => { ArcherTurret.images = tex },
                 () => new Promise<void>(resolve => {
                     let c = new PreRenderedImage(48, 144)
                     let argSets = [

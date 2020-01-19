@@ -127,7 +127,7 @@ class AcidTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_aEfW_acid_strip" + AcidTurret.frameCount).then(tex => { AcidTurret.images = tex; }, () => new Promise<void>(resolve => {
+        return Utils.getImageFromCache("td_tower_aEfW_acid_strip" + AcidTurret.frameCount).then(tex => { AcidTurret.images = tex }, () => new Promise<void>(resolve => {
             let acidTex = new CellularTextureGenerator(32, 32, 9, "#E0FF00", "#5B7F00", CellularTextureType.Balls).generateImage()
             let c = new PreRenderedImage(48 * AcidTurret.frameCount, 144)
             for (let i = 0; i < AcidTurret.frameCount; ++i) {

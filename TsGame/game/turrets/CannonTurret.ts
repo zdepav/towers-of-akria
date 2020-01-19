@@ -24,12 +24,12 @@ class CannonTurret extends Turret {
         r = 16 + this.type.count * 4
         for (let i = 0, c = 9 + this.type.count * 4; i < c; ++i) {
             let p = Vec2.randUnit3d().mul(r).add(pos)
-            this.game.spawnParticle(new SmokeParticle(p.x, p.y, Math.random() * 2))
+            this.game.spawnParticle(new SmokeParticle(p.x, p.y, Rand.r(2)))
         }
         r = 24 + this.type.count * 4
         for (const enemy of this.game.findEnemiesInRange(pos, r)) {
             enemy.dealDamage(20 * this.type.earth + 10 * this.type.fire - 10)
-            if (Math.random() < (this.type.fire - 1) / 4) {
+            if (Rand.chance(this.type.fire * 0.25 - 0.25)) {
                 enemy.addEffect(new BurningEffect(this.type.fire))
             }
         }
@@ -150,7 +150,7 @@ class CannonTurret extends Turret {
 
     static init(): Promise<void> {
         return Utils.getImageFromCache("td_tower_aEFw_cannon")
-            .then(tex => { CannonTurret.image = tex; },
+            .then(tex => { CannonTurret.image = tex },
                 () => new Promise<void>(resolve => {
                     let c = new PreRenderedImage(64, 32)
                     let ctx = c.ctx

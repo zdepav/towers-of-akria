@@ -19,9 +19,6 @@ class LineParticle extends Particle {
         this.x2 = x2
         this.y2 = y2
         this.life = life
-        if (!/#[0-9a-f]{6}/i.test(color)) {
-            throw new Error("Color format not supported")
-        }
         this.rgb = color
         this.width = Utils.clamp(width, 0.1, 100)
     }

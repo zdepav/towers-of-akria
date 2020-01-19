@@ -18,7 +18,7 @@ class PlasmaBeamParticle extends Particle {
         let v = this.b.sub(this.a)
         this.c1 = this.a.add(v.mul(1 / 3))
         this.c2 = this.a.add(v.mul(2 / 3))
-        this.n = v.normalize().normal().mul(Utils.randSign(v.length / 3))
+        this.n = v.normalize().normal().mul(Rand.sign(v.length / 3))
         this.life = 0.75
     }
 

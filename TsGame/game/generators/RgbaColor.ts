@@ -109,23 +109,23 @@ class RgbaColor {
     }
 
     addNoise(intensity: number, saturation: number, coverage: number): RgbaColor {
-        if (Math.random() < coverage) {
+        if (Rand.chance(coverage)) {
             intensity *= 255
             if (saturation <= 0) {
-                let n = Utils.rand(-intensity, intensity)
+                let n = Rand.r(-intensity, intensity)
                 return new RgbaColor(this.r + n, this.g + n, this.b + n, this.a)
             } else if (saturation >= 1) {
                 return new RgbaColor(
-                    this.r + Utils.rand(-intensity, intensity),
-                    this.g + Utils.rand(-intensity, intensity),
-                    this.b + Utils.rand(-intensity, intensity),
+                    this.r + Rand.r(-intensity, intensity),
+                    this.g + Rand.r(-intensity, intensity),
+                    this.b + Rand.r(-intensity, intensity),
                     this.a
                 )
             } else {
                 let s2 = 1 - saturation
-                let rn = Utils.rand(-intensity, intensity)
-                let gn = saturation * Utils.rand(-intensity, intensity) + s2 * rn
-                let bn = saturation * Utils.rand(-intensity, intensity) + s2 * rn
+                let rn = Rand.r(-intensity, intensity)
+                let gn = saturation * Rand.r(-intensity, intensity) + s2 * rn
+                let bn = saturation * Rand.r(-intensity, intensity) + s2 * rn
                 return new RgbaColor(this.r + rn, this.g + gn, this.b + bn, this.a)
             }
         } else {
@@ -135,6 +135,13 @@ class RgbaColor {
 
     source(width: number = 1, height: number = 1): RgbaColorSource {
         return new RgbaColorSource(this, width, height)
+    }
+
+    toRgbCss(): string { // without alpha channel
+        return "#"
+            + Utils.byteToHex(this.r)
+            + Utils.byteToHex(this.g)
+            + Utils.byteToHex(this.b)
     }
 
     toCss(): string {

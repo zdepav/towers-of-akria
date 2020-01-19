@@ -85,6 +85,10 @@ class Vec2 {
         return new Vec2(this.x * m, this.y * m)
     }
 
+    negate(): Vec2 {
+        return new Vec2(-this.x, -this.y)
+    }
+
     toLength(length: number): Vec2 {
         let m = length / this.length
         return new Vec2(this.x * m, this.y * m)

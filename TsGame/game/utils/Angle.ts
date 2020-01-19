@@ -35,7 +35,7 @@ class Angle {
     }
 
     static rand(): number {
-        return Math.random() * Angle.deg360
+        return Rand.r(Angle.deg360)
     }
 
     static wrap(angle: number): number {

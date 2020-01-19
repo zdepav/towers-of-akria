@@ -10,7 +10,7 @@ class BurningEffect extends Effect {
         super.step(time)
         if (this.duration > 0 && this.affectedEnemy !== null) {
             this.affectedEnemy.dealDamage(5 * time)
-            if (Math.random() < 0.01) {
+            if (Rand.chance(0.01)) {
                 let v = Vec2.randUnit3d().mul(4)
                 this.affectedEnemy.game.spawnParticle(
                     new SmokeParticle(

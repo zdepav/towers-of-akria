@@ -100,6 +100,7 @@
     <TypeScriptCompile Include="game\enemies\EnemySet.ts" />
     <TypeScriptCompile Include="game\enemies\Enemy.ts" />
     <TypeScriptCompile Include="game\enemies\EnemyWavePlanner.ts" />
+    <TypeScriptCompile Include="game\enemies\ShieldingEnemy.ts" />
     <TypeScriptCompile Include="game\generators\combinations\AddingSource.ts" />
     <TypeScriptCompile Include="game\generators\AntialiasedSource.ts" />
     <TypeScriptCompile Include="game\generators\shapes\RoofTilesSource.ts" />
@@ -141,7 +142,10 @@
     <TypeScriptCompile Include="game\gui\Button.ts" />
     <TypeScriptCompile Include="game\gui\GuiPanel.ts" />
     <TypeScriptCompile Include="game\gui\IGuiItem.ts" />
+    <TypeScriptCompile Include="game\gui\PauseButton.ts" />
+    <TypeScriptCompile Include="game\gui\TextButton.ts" />
     <TypeScriptCompile Include="game\particles\CannonSmokeParticle.ts" />
+    <TypeScriptCompile Include="game\particles\EnemyDeathParticle.ts" />
     <TypeScriptCompile Include="game\particles\ExplosionParticle.ts" />
     <TypeScriptCompile Include="game\particles\TrailParticle.ts" />
     <TypeScriptCompile Include="game\particles\BubbleParticle.ts" />
@@ -162,12 +166,14 @@
     <TypeScriptCompile Include="game\projectiles\ProjectileSet.ts" />
     <TypeScriptCompile Include="game\projectiles\EarthProjectile.ts" />
     <TypeScriptCompile Include="game\projectiles\ThrownProjectile.ts" />
+    <TypeScriptCompile Include="game\runner.ts" />
     <TypeScriptCompile Include="game\turrets\TurretInfo.ts" />
     <TypeScriptCompile Include="game\gui\TurretUpgradeButtons.ts" />
     <TypeScriptCompile Include="game\utils\Angle.ts" />
     <TypeScriptCompile Include="game\utils\Curve.ts" />
     <TypeScriptCompile Include="game\utils\Expirable.ts" />
     <TypeScriptCompile Include="game\utils\ExpirableSet.ts" />
+    <TypeScriptCompile Include="game\utils\Metric.ts" />
     <TypeScriptCompile Include="game\utils\PerformanceMeter.ts" />
     <TypeScriptCompile Include="game\Tile.ts" />
     <TypeScriptCompile Include="game\turrets\AcidTurret.ts" />
@@ -191,6 +197,7 @@
     <TypeScriptCompile Include="game\turrets\Turret.ts" />
     <TypeScriptCompile Include="game\turrets\WaterTurret.ts" />
     <TypeScriptCompile Include="game\utils\PreRenderedImage.ts" />
+    <TypeScriptCompile Include="game\utils\Rand.ts" />
     <TypeScriptCompile Include="game\utils\Rect.ts" />
     <TypeScriptCompile Include="game\utils\RenderablePath.ts" />
     <TypeScriptCompile Include="game\utils\RenderablePathSet.ts" />

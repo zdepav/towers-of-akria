@@ -15,7 +15,7 @@ class FireProjectile extends GuidedProjectile {
             return
         }
         super.step(time)
-        let r = Math.random()
+        let r = Rand.r()
         if (r < 0.27) {
             this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#ff5000"))
         } else if (r < 0.54) {

@@ -24,6 +24,7 @@ class ArrowProjectile extends GuidedProjectile {
         let a = dv.mul(-4).add(this.position)
         let b = dv.mul(4).add(this.position)
         ctx.strokeStyle = "#542F00"
+        ctx.lineWidth = 1
         ctx.beginPath()
         ctx.moveTo(a.x, a.y)
         ctx.lineTo(b.x, b.y)

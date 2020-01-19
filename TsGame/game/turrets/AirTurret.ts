@@ -19,9 +19,9 @@ class AirTurret extends Turret {
         super.step(time)
         this.angle = (this.angle + Angle.deg360 - time * Angle.deg120) % Angle.deg360
         for (const enemy of this.game.findEnemiesInRange(this.center, this.range)) {
-            enemy.dealDamage((6 + this.type.air * 4) * time)
-            if (Math.random() < 0.01 * this.type.air) {
-                this.game.spawnParticle(new WindParticle(enemy.x + Utils.randInt(-6, 7), enemy.y + Utils.randInt(-6, 7)))
+            enemy.dealDamage((4 + this.type.air * 4) * time)
+            if (Rand.chance(0.01 * this.type.air)) {
+                this.game.spawnParticle(new WindParticle(enemy.x + Rand.i(-6, 7), enemy.y + Rand.i(-6, 7)))
             }
         }
     }
@@ -91,8 +91,7 @@ class AirTurret extends Turret {
             AirTurret.turretName,
             AirTurret.turretDescription,
             96 + type.air * 32,
-            `${6 + type.air * 4}`
-            
+            `${4 + type.air * 4}`
         )
     }
 
@@ -131,7 +130,7 @@ class AirTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_Aefw_air").then(tex => { AirTurret.image = tex; }, () => new Promise<void>(resolve => {
+        return Utils.getImageFromCache("td_tower_Aefw_air").then(tex => { AirTurret.image = tex }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(48, 16)
             let renderable = new RenderablePathSet()
             let path = new Path2D()

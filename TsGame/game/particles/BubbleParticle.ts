@@ -15,9 +15,6 @@ class BubbleParticle extends Particle {
         this.x = x
         this.y = y
         this.life = 0
-        if (!/#[0-9a-f]{6}/i.test(color)) {
-            throw new Error("Color format not supported")
-        }
         this.rgb = color
         this.startSize = startSize
     }

@@ -12,7 +12,7 @@ class TileMarkParticle extends Particle {
     constructor(x: number, y: number, direction: Vec2) {
         super()
         this.startPosition = new Vec2(x - 2, y - 2)
-        this.speed = Utils.rand(1, 4)
+        this.speed = Rand.r(1, 4)
         this.life = 0
         this.direction = direction.normalize()
     }

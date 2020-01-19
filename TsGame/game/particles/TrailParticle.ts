@@ -20,9 +20,6 @@ class TrailParticle extends Particle {
         this.vx = v.x * 4
         this.vy = v.y * 4
         this.life = 0
-        if (!/#[0-9a-f]{6}/i.test(color)) {
-            throw new Error("Color format not supported")
-        }
         this.color = color
         this.size = scale * 3
     }

@@ -40,7 +40,7 @@ class FlamethrowerTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_aeFW_flamethrower").then(tex => { FlamethrowerTurret.image = tex; }, () => new Promise<void>(resolve => {
+        return Utils.getImageFromCache("td_tower_aeFW_flamethrower").then(tex => { FlamethrowerTurret.image = tex }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(64, 64)
             c.cacheImage("td_tower_aeFW_flamethrower")
             FlamethrowerTurret.image = c.image

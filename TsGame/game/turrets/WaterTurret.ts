@@ -21,7 +21,7 @@ class WaterTurret extends Turret {
     step(time: number): void {
         super.step(time)
         if (this.ready) {
-            let enemy = Utils.randItem(this.game.findEnemiesInRange(this.center, this.range))
+            let enemy = Rand.item(this.game.findEnemiesInRange(this.center, this.range))
             if (enemy) {
                 let pos = Vec2.randUnit3d().mul(this.type.water * 2 + 8).add(this.center)
                 this.game.spawnProjectile(new WaterProjectile(this.game, pos, enemy, this.type.water, this.range))
@@ -106,7 +106,7 @@ class WaterTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_aefW_water").then(tex => { WaterTurret.images = tex; }, () => new Promise<void>(resolve => {
+        return Utils.getImageFromCache("td_tower_aefW_water").then(tex => { WaterTurret.images = tex }, () => new Promise<void>(resolve => {
             let sandTex = new NoiseTextureGenerator(48, 48, "#F2EBC1", 0.08, 0, 1).generateImage()
             let groundTex = new NoiseTextureGenerator(48, 48, "#B9B5A0", 0.05, 0, 1).generateImage()
             let c = new PreRenderedImage(48, 192)
@@ -121,7 +121,7 @@ class WaterTurret extends Turret {
     }
 
     private static preRender(groundTex: CanvasImageSource, sandTex: CanvasImageSource): CanvasImageSource {
-        let waterTex = new CellularTextureGenerator(64, 64, Utils.randInt(16, 36), "#3584CE", "#3EB4EF", CellularTextureType.Balls).generateImage()
+        let waterTex = new CellularTextureGenerator(64, 64, Rand.i(16, 36), "#3584CE", "#3EB4EF", CellularTextureType.Balls).generateImage()
         let textures = [groundTex, sandTex, waterTex]
         let pts: {
             pt_b: Vec2
@@ -129,9 +129,9 @@ class WaterTurret extends Turret {
             pt_a: Vec2
         }[][] = [[], [], []]
         for (let i = 0; i < 8; ++i) {
-            let d2 = Utils.rand(16, 20)
-            let d1 = Utils.rand(d2 + 2, 24)
-            let d0 = Utils.rand(d1, 24)
+            let d2 = Rand.r(16, 20)
+            let d1 = Rand.r(d2 + 2, 24)
+            let d0 = Rand.r(d1, 24)
             let a = i * Angle.deg45
             pts[0].push({ pt: Vec2.ld(d0, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero })
             pts[1].push({ pt: Vec2.ld(d1, a, 32, 32), pt_b: Vec2.zero, pt_a: Vec2.zero })

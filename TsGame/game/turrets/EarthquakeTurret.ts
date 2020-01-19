@@ -25,7 +25,7 @@ class EarthquakeTurret extends Turret {
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
-        this.frame = Utils.rand(0, EarthquakeTurret.totalFrameCount)
+        this.frame = Rand.r(0, EarthquakeTurret.totalFrameCount)
     }
 
     step(time: number): void {
@@ -33,7 +33,7 @@ class EarthquakeTurret extends Turret {
         this.frame = (this.frame + time * 25) % EarthquakeTurret.totalFrameCount
         if (this.ready) {
             for (const enemy of this.game.findEnemiesInRange(this.center, this.range)) {
-                enemy.dealDamage((this.type.count === 4 ? 15 : 20) * Math.random())
+                enemy.dealDamage(Rand.r(this.type.count === 4 ? 15 : 20))
                 enemy.addEffect(new StunEffect(0.2))
             }
             this.cooldown = 0.25
@@ -119,12 +119,12 @@ class EarthquakeTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_aEFW_earthquake_strip" + (EarthquakeTurret.halfFrameCount + 4)).then(tex => { EarthquakeTurret.images = tex; }, () => new Promise<void>(resolve => {
+        return Utils.getImageFromCache("td_tower_aEFW_earthquake_strip" + (EarthquakeTurret.halfFrameCount + 4)).then(tex => { EarthquakeTurret.images = tex }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(192 + EarthquakeTurret.halfFrameCount * 48, 48)
             let ctx = c.ctx
             for (let i = 0; i < 4; ++i) {
-                let cel = new CellularTextureGenerator(48, 48, Utils.randInt(32, 128), "#808080", new PerlinNoiseTextureGenerator(48, 48, RgbaColor.black, "#808080", 0.75), CellularTextureType.Cells, CellularTextureDistanceMetric.Manhattan, Curve.sqr)
-                cel = new CellularTextureGenerator(48, 48, Utils.randInt(32, 128), cel, new PerlinNoiseTextureGenerator(48, 48, RgbaColor.black, "#808080", 0.75), CellularTextureType.Cells, CellularTextureDistanceMetric.Chebyshev, Curve.sqr)
+                let cel = new CellularTextureGenerator(48, 48, Rand.i(32, 128), "#808080", new PerlinNoiseTextureGenerator(48, 48, RgbaColor.black, "#808080", 0.75), CellularTextureType.Cells, CellularTextureDistanceMetric.Manhattan, Curve.sqr)
+                cel = new CellularTextureGenerator(48, 48, Rand.i(32, 128), cel, new PerlinNoiseTextureGenerator(48, 48, RgbaColor.black, "#808080", 0.75), CellularTextureType.Cells, CellularTextureDistanceMetric.Chebyshev, Curve.sqr)
                 cel.generateInto(ctx, i * 48, 0)
             }
             for (let i = 0; i < EarthquakeTurret.halfFrameCount; ++i) {

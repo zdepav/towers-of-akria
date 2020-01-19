@@ -14,17 +14,17 @@ class CannonSmokeParticle extends Particle {
 
     constructor(startPosition: Vec2, direction: number) {
         super()
-        startPosition = startPosition.addld(Utils.rand(-3, 3), direction + Angle.deg90)
+        startPosition = startPosition.addld(Rand.r(-3, 3), direction + Angle.deg90)
         this.x = startPosition.x
         this.y = startPosition.y
-        let v = Vec2.ld(Utils.rand(0, 12), direction)
+        let v = Vec2.ld(Rand.r(0, 12), direction)
         this.vx = v.x
         this.vy = v.y
         this.life = 0
-        let lightness = Utils.randInt(32, 112)
+        let lightness = Rand.i(32, 112)
         let h = Utils.byteToHex(lightness)
         this.rgb = `#${h}${h}${h}`
-        this.size = Utils.rand(1, 3)
+        this.size = Rand.r(1, 3)
     }
 
     step(time: number): void {

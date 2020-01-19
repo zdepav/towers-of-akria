@@ -16,19 +16,16 @@ class SparkParticle extends Particle {
         this.x = x
         this.y = y
         let v = Vec2.randUnit3d()
-        this.vx = v.x
-        this.vy = v.y
+        this.vx = 30 * v.x
+        this.vy = 30 * v.y
         this.life = 0
-        if (!/#[0-9a-f]{6}/i.test(color)) {
-            throw new Error("Color format not supported")
-        }
         this.color = color + "40"
     }
 
     step(time: number): void {
         this.life += time * 2
-        this.x += this.vx
-        this.y += this.vy
+        this.x += time * this.vx
+        this.y += time * this.vy
     }
 
     render(ctx: CanvasRenderingContext2D): void {

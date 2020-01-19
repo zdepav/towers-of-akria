@@ -28,12 +28,12 @@ class ArcaneTurret extends Turret {
         this.orbits = []
         for (let i = 0; i < ArcaneTurret.orbitCount; ++i) {
             this.orbits.push({
-                r1: Utils.rand(36, 64),
-                r2: Utils.rand(64, 92),
+                r1: Rand.r(36, 64),
+                r2: Rand.r(64, 92),
                 angle: Angle.rand(),
                 pos: Angle.rand(),
-                speed: Utils.randSign(Utils.rand(Angle.deg120, Angle.deg240)),
-                size: Utils.rand(1.5, 2.5)
+                speed: Rand.sign(Rand.r(Angle.deg120, Angle.deg240)),
+                size: Rand.r(1.5, 2.5)
             })
         }
         this.cooldown = ArcaneTurret.maxCooldown
@@ -106,7 +106,7 @@ class ArcaneTurret extends Turret {
 
     static init(): Promise<void> {
         ArcaneTurret.orbitColors = new TurretType([1, 1, 1, 1]).toColorArray()
-        return Utils.getImageFromCache("td_tower_AEFW_arcane").then(tex => { ArcaneTurret.images = tex; }, () => new Promise<void>(resolve => {
+        return Utils.getImageFromCache("td_tower_AEFW_arcane").then(tex => { ArcaneTurret.images = tex }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(ArcaneTurret.frameCount * 64, 64)
             let r: ColorSource = this.prepareGradient(RgbaColor.red)
             let g: ColorSource = new RotatingSource(64, 64, this.prepareGradient(RgbaColor.green), Angle.deg60, 32, 32)

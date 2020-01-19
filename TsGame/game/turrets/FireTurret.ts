@@ -15,7 +15,7 @@ class FireTurret extends Turret {
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
         this.angle = Angle.rand()
-        this.smokeTimer = Utils.randInt(0.5, 4)
+        this.smokeTimer = Rand.i(0.5, 4)
     }
 
     spawnSmoke(): void {
@@ -23,10 +23,10 @@ class FireTurret extends Turret {
         let y: number
         let r = 5 + this.type.fire
         do {
-            x = Math.random() * r * 2 - r
-            y = Math.random() * r * 2 - r
+            x = Rand.r(r * 2) - r
+            y = Rand.r(r * 2) - r
         } while (x * x + y * y > 100)
-        this.smokeTimer = Utils.randInt(0.5, 6 - this.type.fire)
+        this.smokeTimer = Rand.i(0.5, 6 - this.type.fire)
         this.game.spawnParticle(new SmokeParticle(this.center.x + x, this.center.y + y, 0))
     }
 
@@ -147,14 +147,14 @@ class FireTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_aeFw_fire").then(tex => { FireTurret.image = tex; }, () => new Promise<void>(resolve => {
+        return Utils.getImageFromCache("td_tower_aeFw_fire").then(tex => { FireTurret.image = tex }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(48, 48)
             let texLava = new CellularTextureGenerator(48, 48, 36, "#FF5020", "#C00000", CellularTextureType.Balls)
             let texRock = new CellularTextureGenerator(48, 48, 144, "#662D22", "#44150D", CellularTextureType.Balls)
             let renderable = new RenderablePathSet()
             let path = new Path2D()
             for (let k = 0; k < 36; ++k) {
-                let radius = 20 + 4 * Math.random()
+                let radius = 20 + Rand.r(4)
                 let a = k * Angle.deg10
                 if (k === 0) {
                     path.moveTo(Vec2.ldx(radius, a, 24), Vec2.ldy(radius, a, 24))
@@ -171,7 +171,7 @@ class FireTurret extends Turret {
             renderable.pushNew(path, grad)
             path = new Path2D()
             for (let k = 0; k < 18; ++k) {
-                let radius = 9 + 2 * Math.random()
+                let radius = 9 + Rand.r(2)
                 let a = k * Angle.deg20
                 if (k === 0) {
                     path.moveTo(Vec2.ldx(radius, a, 24), Vec2.ldy(radius, a, 24))

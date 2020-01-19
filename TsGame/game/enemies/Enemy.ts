@@ -10,6 +10,8 @@ abstract class Enemy extends Expirable {
     private position: Vec2
     private speedMultiplier: number
     private prevSpeedMultiplier: number
+    private pushTimeout: number
+    private wave: number
 
     protected _hp: number
     protected startHp: number
@@ -27,22 +29,24 @@ abstract class Enemy extends Expirable {
     get pos(): Vec2 { return this.position }
     get hp(): number { return this._hp }
     get expired(): boolean { return this._hp <= 0 }
-    get armorProtection(): number { return Math.log10(1 + this.armor * 0.1) }
+    get armorProtection(): number { return 1 + Math.log10(1 + this.armor * 0.1) }
 
     abstract get baseSpeed(): number
 
-    constructor(game: Game, spawn: Tile, hp: number, armor: number) {
+    constructor(game: Game, wave: number, spawn: Tile, hp: number, armor: number) {
         super()
         this.targetTile = spawn.next
-        this.currTilePos = spawn.pos.addu(0, Utils.randInt(16, 48))
+        this.currTilePos = spawn.pos.addu(0, Rand.i(16, 48))
         this.nextTilePos = Enemy.positionInTile(spawn.next as Tile)
         this.relDist = this.currTilePos.distanceTo(this.nextTilePos)
         this.relPos = 0
         this.speedMultiplier = 1
         this.prevSpeedMultiplier = 1
+        this.pushTimeout = 0
         this.position = this.currTilePos
         this.startHp = hp
         this._hp = this.startHp
+        this.wave = wave
         this.armor = armor
         this.effects = new EffectSet()
         this.game = game
@@ -56,8 +60,8 @@ abstract class Enemy extends Expirable {
             return
         }
         this.effects.step(time)
-        if (this.baseSpeed * this.speedMultiplier > 0) {
-            this.relPos += this.baseSpeed * this.speedMultiplier * time
+        if (this.speedMultiplier > 0) {
+            this.relPos += this.baseSpeed * 1.5 * this.speedMultiplier * time
             while (this.relPos >= this.relDist) {
                 this.relPos -= this.relDist
                 if (this.targetTile === null) {
@@ -66,7 +70,7 @@ abstract class Enemy extends Expirable {
                     return
                 } else if (this.targetTile.next === null) {
                     this.currTilePos = this.nextTilePos
-                    this.nextTilePos = this.targetTile.pos.addu(112, Utils.randInt(16, 48))
+                    this.nextTilePos = this.targetTile.pos.addu(112, Rand.i(16, 48))
                     this.relDist = this.currTilePos.distanceTo(this.nextTilePos)
                     this.targetTile = null
                 } else {
@@ -80,12 +84,20 @@ abstract class Enemy extends Expirable {
         }
         this.prevSpeedMultiplier = this.speedMultiplier
         this.speedMultiplier = 1
+        if (this.pushTimeout > 0) {
+            this.pushTimeout -= time
+        }
     }
 
     abstract render(ctx: CanvasRenderingContext2D): void
 
     dealDamage(ammount: number): void {
-        this._hp = Math.max(this._hp - ammount * this.game.towerDamageMultiplier / this.armorProtection, 0)
+        if (this._hp > 0) {
+            this._hp = Math.max(this._hp - ammount * this.game.towerDamageMultiplier / this.armorProtection, 0)
+            if (this._hp <= 0) {
+                this.death()
+            }
+        }
     }
 
     corodeArmor(ammount: number): void {
@@ -106,16 +118,35 @@ abstract class Enemy extends Expirable {
     }
 
     pushBack(): void {
-        this.relPos -= 8
+        if (this.pushTimeout <= 0) {
+            this.relPos = Math.max(this.relPos - Rand.r(4, 16), -8)
+            this.pushTimeout = 2
+        }
     }
 
     posAhead(timeAhead: number): Vec2 {
-        let relPos = this.relPos + this.prevSpeedMultiplier * this.baseSpeed * timeAhead
+        let relPos = this.relPos + this.prevSpeedMultiplier * this.baseSpeed * 1.5 * timeAhead
         return this.currTilePos.lerp(this.nextTilePos, relPos / this.relDist)
     }
 
-    private static positionInTile(tile: Tile): Vec2 {
-        return tile.pos.addu(Utils.randInt(16, 48), Utils.randInt(16, 48))
+    death(): void {
+        this.game.addCurrency(this.wave)
+        let c = Rand.i(5, 10)
+        for (let i = 0; i < c; ++i) {
+            let r = Rand.r()
+            let color: string
+            if (this.armor > 10 && r < 0.2) {
+                color = this.effects.colorize(this.baseArmorColor).toRgbCss()
+            } else if (r < 0.8) {
+                color = this.effects.colorize(this.baseHpColor).toRgbCss()
+            } else {
+                color = this.effects.colorize(this.baseColor).toRgbCss()
+            }
+            this.game.spawnParticle(new EnemyDeathParticle(this.x, this.y, color))
+        }
     }
 
+    private static positionInTile(tile: Tile): Vec2 {
+        return tile.pos.addu(Rand.i(16, 48), Rand.i(16, 48))
+    }
 }

@@ -15,7 +15,7 @@ class SmokeParticle extends Particle {
         this.x = x
         this.y = y
         this.life = 0
-        let lightness = Utils.randInt(112, 176)
+        let lightness = Rand.i(112, 176)
         let h = Utils.byteToHex(lightness)
         this.rgb = `#${h}${h}${h}`
         this.startSize = startSize

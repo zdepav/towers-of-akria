@@ -26,11 +26,11 @@ class LightningTurret extends Turret {
         let stepCount = Math.ceil(vlength / 8)
         let step = vlength / stepCount
         let n = v.normal()
-        let d = v.mul(step).add(n.mul(Utils.rand(-6, 6))).add(a)
+        let d = v.mul(step).add(n.mul(Rand.r(-6, 6))).add(a)
         this.game.spawnParticle(new LineParticle(a.x, a.y, d.x, d.y, baseLife, "#AFE8FF", 2))
         baseLife += 0.02
         for (var i = 2; i < stepCount; ++i) {
-            let nd = v.mul(step * i).add(n.mul(Utils.rand(-6, 6))).add(a)
+            let nd = v.mul(step * i).add(n.mul(Rand.r(-6, 6))).add(a)
             this.game.spawnParticle(new LineParticle(d.x, d.y, nd.x, nd.y, baseLife, "#AFE8FF", 2))
             baseLife += 0.02
             d = nd
@@ -56,7 +56,7 @@ class LightningTurret extends Turret {
             let maxDist = this.range
             let damage = (this.type.air * 6 + this.type.fire * 10) / ((this.type.count - 1) * 0.5)
             for (let i = 0;; ++i) {
-                let e = Utils.randItem(enemies) as Enemy
+                let e = Rand.item(enemies) as Enemy
                 if (hitEnemies.indexOf(e) >= 0 || e.pos.distanceTo(prev) > maxDist) {
                     break
                 }
@@ -146,7 +146,7 @@ class LightningTurret extends Turret {
 
     static init(): Promise<void> {
         return Utils.getImageFromCache("td_tower_AeFw_lightning")
-            .then(tex => { LightningTurret.image = tex; },
+            .then(tex => { LightningTurret.image = tex },
                 () => new Promise<void>(resolve => {
                     let c = new PreRenderedImage(48, 48)
                     let ctx = c.ctx

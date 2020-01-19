@@ -31,12 +31,12 @@ class Tile {
             let path = new Path2D()
             for (let i = 0; i < 4; ++i) {
                 for (let j = 0; j < 4; ++j) {
-                    if (Math.random() < 0.25) {
-                        let _x = x + i * 16 + 4 + Math.random() * 8
-                        let _y = y + j * 16 + 4 + Math.random() * 8
-                        let radius = 2 + 2 * Math.random()
+                    if (Rand.chance(0.25)) {
+                        let _x = x + i * 16 + 4 + Rand.r(8)
+                        let _y = y + j * 16 + 4 + Rand.r(8)
+                        let radius = 2 + Rand.r(2)
                         for (let k = 0; k < 4; ++k) {
-                            let a = -Angle.deg45 + Angle.deg90 * (k + 0.25 + 0.5 * Math.random())
+                            let a = -Angle.deg45 + Angle.deg90 * (k + 0.25 + Rand.r(0.5))
                             if (k === 0) {
                                 path.moveTo(Vec2.ldx(radius, a, _x), Vec2.ldy(radius, a, _y))
                             }
@@ -62,9 +62,9 @@ class Tile {
             let path2 = new Path2D()
             for (let i = 0; i < 3; ++i) {
                 for (let j = 0; j < 3; ++j) {
-                    if (Math.random() < 0.25) {
-                        let path = Math.random() < 0.5 ? path1 : path2
-                        path.arc(x + 6 + 21 * i + Math.random() * 10, y + 6 + 21 * j + Math.random() * 10, 4 + 2 * Math.random(), 0, Angle.deg360)
+                    if (Rand.chance(0.25)) {
+                        let path = Rand.chance(0.5) ? path1 : path2
+                        path.arc(x + 6 + 21 * i + Rand.r(10), y + 6 + 21 * j + Rand.r(10), 4 + Rand.r(2), 0, Angle.deg360)
                         path.closePath()
                     }
                 }
@@ -131,7 +131,7 @@ class Tile {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tiles").then(tex => { Tile.tiles = tex; }, () => new Promise<void>(resolve => {
+        return Utils.getImageFromCache("td_tiles").then(tex => { Tile.tiles = tex }, () => new Promise<void>(resolve => {
             let c = new PreRenderedImage(64, 256)
             let ctx = c.ctx
             new NoiseTextureGenerator(64, 64, "#5BA346", 0.075, 0, 0.25).generateInto(ctx, 0, 0)
