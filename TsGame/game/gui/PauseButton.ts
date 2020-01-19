@@ -8,6 +8,9 @@ class PauseButton extends Button implements IGuiItem {
     }
 
     render(ctx: CanvasRenderingContext2D): void {
+        if (!this.visible) {
+            return
+        }
         ctx.fillStyle = this._pressed ? "#606060" : "#808080"
         ctx.fillRect(this.x, this.y, this.w * 0.4, this.h)
         ctx.fillRect(this.x + this.w * 0.6, this.y, this.w * 0.4, this.h)

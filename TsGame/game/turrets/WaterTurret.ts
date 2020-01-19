@@ -67,7 +67,7 @@ class WaterTurret extends Turret {
             WaterTurret.turretName,
             WaterTurret.turretDescription[type.water > 1 ? 1 : 0],
             112 + type.water * 16,
-            `${4 + type.water * 4}`
+            `${type.water * 5}`
         )
     }
 

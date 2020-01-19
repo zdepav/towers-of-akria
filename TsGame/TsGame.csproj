@@ -147,6 +147,7 @@
     <TypeScriptCompile Include="game\particles\CannonSmokeParticle.ts" />
     <TypeScriptCompile Include="game\particles\EnemyDeathParticle.ts" />
     <TypeScriptCompile Include="game\particles\ExplosionParticle.ts" />
+    <TypeScriptCompile Include="game\particles\FlameParticle.ts" />
     <TypeScriptCompile Include="game\particles\TrailParticle.ts" />
     <TypeScriptCompile Include="game\particles\BubbleParticle.ts" />
     <TypeScriptCompile Include="game\particles\SparkParticle.ts" />
@@ -156,6 +157,7 @@
     <TypeScriptCompile Include="game\particles\SmokeParticle.ts" />
     <TypeScriptCompile Include="game\particles\TileMarkParticle.ts" />
     <TypeScriptCompile Include="game\particles\WindParticle.ts" />
+    <TypeScriptCompile Include="game\projectiles\FlameProjectile.ts" />
     <TypeScriptCompile Include="game\projectiles\WaterProjectile.ts" />
     <TypeScriptCompile Include="game\projectiles\AcidProjectile.ts" />
     <TypeScriptCompile Include="game\projectiles\ArrowProjectile.ts" />

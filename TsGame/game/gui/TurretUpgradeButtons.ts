@@ -3,9 +3,6 @@
 
 class TurretUpgradeButton extends Button {
     
-    private backColor: string
-    private pressedColor: string
-
     targetTile: Tile | null
     type: TurretElement
     game: Game
@@ -15,8 +12,9 @@ class TurretUpgradeButton extends Button {
         this.targetTile = null
         this.type = type
         let elementColor = RgbaColor.fromHex(TurretType.getColor(type))
-        this.backColor = elementColor.lerp(RgbaColor.fromHex("#C0C0C0"), 0.5).toCss()
-        this.pressedColor = elementColor.lerp(RgbaColor.fromHex("#A0A0A0"), 0.5).toCss()
+        this.fillColor = elementColor.lerp(RgbaColor.fromHex("#C0C0C0"), 0.5).toCss()
+        this.pressedFillColor = elementColor.lerp(RgbaColor.fromHex("#A0A0A0"), 0.5).toCss()
+        this.disabledFillColor = this.fillColor
     }
 
     protected onClick() {
@@ -56,21 +54,30 @@ class TurretUpgradeButton extends Button {
         if (info === undefined) {
             return
         }
-        ctx.fillStyle = this.enabled ? "#606060" : "#808080"
+        let upgradeCostMultiplier = this.targetTile.turret.upgradeCostMultiplier(this.type)
+        let cost = this.game.getUpgradeCost(upgradeCostMultiplier)
+
+        ctx.fillStyle = this.borderColor
         ctx.fillRect(this.x, this.y, this.w, this.h)
-        ctx.fillStyle = this.pressed ? this.pressedColor : this.backColor
+        ctx.fillStyle = this.pressed ? this.pressedFillColor : this.fillColor
         ctx.fillRect(this.x + 2, this.y + 2, this.w - 4, this.h - 4)
         Tile.drawTowerGround(ctx, this.x + 4, this.y + 4)
         turret.renderPreviewAfterUpgrade(ctx, this.x + 4, this.y + 4, this.type)
         ctx.fillStyle = "#000000"
-        ctx.textAlign = "left"
+        ctx.textAlign = "right"
         ctx.textBaseline = "top"
         ctx.font = "bold 14px serif"
+        ctx.fillText(`${cost} MP`, this.x + this.w - 8, this.y + 8)
+        ctx.textAlign = "left"
         ctx.fillText(info.name, this.x + 74, this.y + 8)
         ctx.font = "12px monospace"
         ctx.fillText(`Range:   ${info.range}`, this.x + 74, this.y + 30)
         ctx.fillText(`Max DPS: ${info.dps}`, this.x + 74, this.y + 48)
         ctx.font = "13px serif"
         Utils.fillWrappedText(ctx, info.description, this.x + 6, this.y + 74, this.w - 12, 14)
+        if (!this.enabled) {
+            ctx.fillStyle = "#C0C0C080"
+            ctx.fillRect(this.x, this.y, this.w, this.h)
+        }
     }
 }

@@ -5,7 +5,7 @@ class WaterProjectile extends GuidedProjectile {
     constructor(game: Game, position: Vec2, target: Enemy, strength: number, range: number) {
         super(game, position, target, 350, range)
         this.onhit = enemy => {
-            enemy.dealDamage(strength / 2 + 0.5)
+            enemy.dealDamage(2.5)
             enemy.addEffect(new WetEffect(2, strength))
             if (strength > 1 && Rand.chance(strength * 0.2)) {
                 enemy.pushBack()

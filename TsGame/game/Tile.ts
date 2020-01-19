@@ -120,13 +120,13 @@ class Tile {
         }
     }
 
-    onClick(button: MouseButton, x: number, y: number): void {
-        if (this.type == TileType.Tower && this.turret != null) {
-            switch (button) {
-                case MouseButton.Right:
-                    this.turret = new Turret(this)
-                    break
-            }
+    sellTurret(): TurretType | null {
+        if (this.type == TileType.Tower && this.turret != null && this.turret.getType().count > 0) {
+            let t = this.turret.getType()
+            this.turret = new Turret(this)
+            return t
+        } else {
+            return null
         }
     }
 

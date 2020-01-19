@@ -30,7 +30,7 @@ class Game {
     private projectiles: ProjectileSet
     private particles: ParticleSystem
     private prevTime: number
-    private performanceMeter: PerformanceMeter
+    // private performanceMeter: PerformanceMeter
     private mousePosition: Vec2
     private hoveredTilePos: Vec2 | null
     private selectedTile: Tile | null
@@ -44,6 +44,7 @@ class Game {
     private mana: number
     private lives: number
     private screen: GameScreen
+    private sellButton: TextButton
     private startGameButton: TextButton
     private resetGameButton: TextButton
 
@@ -75,7 +76,7 @@ class Game {
         this.prevTime = new Date().getTime()
         this.time = 0
         this.mousePosition = Vec2.zero
-        this.performanceMeter = new PerformanceMeter()
+        // this.performanceMeter = new PerformanceMeter()
         this.projectiles = new ProjectileSet()
         this.particles = new ParticleSystem()
         this.enemies = new EnemySet()
@@ -115,6 +116,16 @@ class Game {
             let pauseButton = new PauseButton(this, this.width - 24, 8, 16, 16)
             pauseButton.onclick = () => this.paused = !this.paused
             panel1.addItem(pauseButton)
+            this.sellButton = new TextButton(this, panel1.x + 4, panel1.y + panel1.h - 52, panel1.w - 6, 48, "Sell Tower")
+            this.sellButton.onclick = () => {
+                if (this.selectedTile) {
+                    let t = this.selectedTile.sellTurret()
+                    if (t) {
+                        this.mana += t.count * 50
+                    }
+                }
+            }
+            panel1.addItem(this.sellButton)
 
             let panel2 = new GuiPanel(this, 0, 576, 1152, 704)
             this.guiPanels.push(panel2)
@@ -126,7 +137,11 @@ class Game {
                 panel2.addItem(button)
             }
 
-            this.startGameButton = new TextButton(this, 32, this.height - 96, this.width - 64, 64, "Start game")
+            this.startGameButton = new TextButton(this, this.width / 2 - 160, this.height - 96, 320, 64, "Start game")
+            this.startGameButton.borderColor = "#303030"
+            this.startGameButton.fillColor = "#D8CA84"
+            this.startGameButton.pressedFillColor = "#AF9A3B"
+            this.startGameButton.font = "32px sans-serif"
             this.startGameButton.onclick = () => {
                 this.startGameButton.enabled = false
                 this.generateMap()
@@ -137,11 +152,29 @@ class Game {
                     }))
             }
 
-            this.resetGameButton = new TextButton(this, 32, this.height - 96, this.width - 64, 64, "Back to menu")
+            this.resetGameButton = new TextButton(this, this.width / 2 - 160, this.height - 96, 320, 64, "Back to menu")
+            this.resetGameButton.fillColor = "#400000"
+            this.resetGameButton.pressedFillColor = "#602020"
+            this.resetGameButton.borderColor = "#A08080"
+            this.resetGameButton.textColor = "#FFE0E0"
+            this.resetGameButton.font = "32px sans-serif"
             this.resetGameButton.onclick = () => {
-                this.screen = GameScreen.Intro
                 this.startGameButton.enabled = true
+                this.projectiles.clear()
+                this.particles.clear()
+                this.enemies.clear()
+                this.hoveredTilePos = null
+                this.selectedTile = null
+                this.mouseButton = null
+                this.arcaneTowerCount = 0
+                this.wavePlanner = new EnemyWavePlanner(this)
+                this.hoveredElement = null
+                this.paused = false
+                this.mana = 200
+                this.lives = 20
+                this.screen = GameScreen.Intro
             }
+
             resolve()
         })
     }
@@ -403,7 +436,7 @@ class Game {
     private step(): void {
         let time = new Date().getTime()
         let timeDiff = (time - this.prevTime) / 1000
-        this.performanceMeter.add(1 / timeDiff)
+        // this.performanceMeter.add(1 / timeDiff)
         this.guiPanels[0].step(timeDiff)
         switch (this.screen) {
             case GameScreen.Intro:
@@ -432,6 +465,18 @@ class Game {
                     this.particles.step(timeDiff)
                     this.projectiles.step(timeDiff)
                     this.rangeMarkerRotation += timeDiff * Angle.deg60
+                    if (this.selectedTile && this.selectedTile.turret) {
+                        let info = this.selectedTile.turret.getCurrentInfo()
+                        if (info !== undefined) {
+                            this.sellButton.enabled = true
+                            this.sellButton.text = `Sell tower for ${this.selectedTile.turret.getType().count * 50}`
+                        } else {
+                            this.sellButton.enabled = false
+                        }
+                    } else {
+                        this.sellButton.enabled = false
+                    }
+                    this.sellButton.visible = this.sellButton.enabled
                 }
                 break
             case GameScreen.End:
@@ -484,6 +529,9 @@ class Game {
                     this.hoveredTilePos = null
                 }
                 break
+            case GameScreen.End:
+                this.resetGameButton.onMouseMove()
+                break
         }
     }
 
@@ -501,6 +549,9 @@ class Game {
                     this.mouseButton = e.button
                 }
                 break
+            case GameScreen.End:
+                this.resetGameButton.onMouseDown(e.button)
+                break
         }
     }
 
@@ -517,14 +568,12 @@ class Game {
                     for (const b of this.upgradeButtons) {
                         b.targetTile = this.selectedTile
                     }
-                    this.selectedTile?.onClick(
-                        this.mouseButton as MouseButton,
-                        this.mousePosition.x % 64,
-                        this.mousePosition.y % 64
-                    )
                     this.hoveredTilePos = null
                 }
                 this.mouseButton = null
+                break
+            case GameScreen.End:
+                this.resetGameButton.onMouseUp(e.button)
                 break
         }
     }
@@ -587,8 +636,7 @@ class Game {
                     ctx.lineWidth = i
                     ctx.strokeText("Towers of Akria", this.width / 2, this.height / 4)
                 }
-                ctx.fillText("Towers of Akria", this.width / 2, this.height / 4)
-                ctx.fillStyle = "#D8CA8440"
+                ctx.fillStyle = "#C3B15F"
                 ctx.fillText("Towers of Akria", this.width / 2, this.height / 4)
                 this.startGameButton.render(ctx)
                 break
@@ -620,6 +668,24 @@ class Game {
                 this.map[x][y].render(ctx, false)
             }
         }
+        if (this.selectedTile && this.selectedTile.turret) {
+            let info = this.selectedTile.turret.getCurrentInfo()
+            if (info !== undefined) {
+                ctx.fillStyle = "#606060"
+                let p = this.guiPanels[1]
+                ctx.fillRect(p.x + 4, p.y + 224, p.w - 6, p.h - 228)
+                ctx.fillStyle = "#C0C0C0"
+                ctx.fillRect(p.x + 6, p.y + 226, p.w - 10, p.h - 232)
+                ctx.fillStyle = "#000000"
+                ctx.textAlign = "left"
+                ctx.textBaseline = "top"
+                ctx.font = "bold 14px serif"
+                ctx.fillText(info.name, p.x + 12, p.y + 232)
+                ctx.font = "12px monospace"
+                ctx.fillText(`Range:   ${info.range}`, p.x + 12, p.y + 254)
+                ctx.fillText(`Max DPS: ${info.dps}`, p.x + 12, p.y + 272)
+            }
+        }
         this.guiPanels[0].render(ctx)
         this.enemies.render(ctx)
         ctx.drawImage(this.castleImage, this.guiPanels[1].x, this.guiPanels[1].bottom)
@@ -643,15 +709,15 @@ class Game {
             }
         }
 
-        let fps = this.performanceMeter.getFps()
+        // let fps = this.performanceMeter.getFps()
         ctx.fillStyle = "#000000"
-        ctx.textAlign = "right"
-        ctx.textBaseline = "top"
-        ctx.font = "bold 10px monospace"
-        if (!isNaN(fps)) {
-            ctx.fillText(`FPS: ${Math.floor(fps)}`, this.guiPanels[1].x + this.guiPanels[1].w - 40, this.guiPanels[1].y + 6)
-        }
         ctx.textAlign = "left"
+        // ctx.textBaseline = "bottom"
+        // ctx.font = "bold 10px monospace"
+        // if (!isNaN(fps)) {
+        //     ctx.fillText(`FPS: ${Math.floor(fps)}`, this.guiPanels[1].x + 6, this.guiPanels[1].y + this.guiPanels[1].h - 6)
+        // }
+        ctx.textBaseline = "top"
         ctx.font = "bold 24px monospace"
         ctx.fillText(`WAVE:  ${this.wavePlanner.waveNumber}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 8)
         ctx.fillText(`MANA:  ${this.mana}`, this.guiPanels[1].x + 8, this.guiPanels[1].y + 36)
@@ -714,7 +780,17 @@ class Game {
     }
 
     addCurrency(enemyWave: number) {
-        this.mana += 4 + Math.floor(enemyWave * 0.25)
+        if (enemyWave < 25) {
+            this.mana += 4 + Math.floor(enemyWave * 0.25)
+        } else if (enemyWave < 50) {
+            this.mana += 10 + Math.floor((enemyWave - 24) * 0.2)
+        } else {
+            this.mana += 15 + Math.floor((enemyWave - 49) * 0.1)
+        }
+    }
+
+    getUpgradeCost(upgradeCostMultiplier: number): number {
+        return 100 * upgradeCostMultiplier
     }
 
     playerCanAffordUpgrade(upgradeCostMultiplier: number): boolean {

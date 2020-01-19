@@ -13,7 +13,7 @@ class ShieldingEnemy extends Enemy {
 
     step(time: number): void {
         super.step(time)
-        if (this.shield > -4) {
+        if (this.shield > -5) {
             this.shield -= time
         }
     }
@@ -82,7 +82,7 @@ class ShieldingEnemy extends Enemy {
     dealDamage(ammount: number, ignoreArmor: boolean = false): void {
         if (this.shield <= 0) {
             super.dealDamage(ammount, ignoreArmor)
-            if (this.shield <= -4) {
+            if (this.shield <= -5) {
                 this.shield = 1
             }
         }

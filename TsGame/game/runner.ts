@@ -4,7 +4,8 @@
     Game.initializeAndRun(
         new Promise<void>(resolve => {
             container.appendChild(img)
-            img.alt = "competition screen"
+            img.style.width = "1152px"
+            img.style.height = "704px"
             img.addEventListener("load", () => resolve())
             img.src = "itnetwork_winter_2019_1.jpg"
         }),

@@ -4,7 +4,7 @@ class LightningTurret extends Turret {
 
     private static image: CanvasImageSource
     private static turretName = "Lightning Tower"
-    private static turretDescription = "Creates electric arcs that can jump between multiple enemies"
+    private static turretDescription = "Creates electric arcs that can jump between multiple enemies, ignores armor"
     
     private angle: number
     private animationTimer: number

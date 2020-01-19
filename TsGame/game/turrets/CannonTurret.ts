@@ -110,7 +110,7 @@ class CannonTurret extends Turret {
         )
     }
 
-    getCurrentInfo(): TurretInfo | undefined { return FireTurret.getInfo(this.type) }
+    getCurrentInfo(): TurretInfo | undefined { return CannonTurret.getInfo(this.type) }
 
     getInfoAfterUpgrade(type: TurretElement): TurretInfo | undefined {
         if (this.type.count >= 4) {
