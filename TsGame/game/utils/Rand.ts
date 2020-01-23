@@ -38,7 +38,7 @@
     static i(max: number): number
 
     /**
-     * returns random float value between min and max
+     * returns random integer value between min and max
      * @param min min value (inclusive)
      * @param max max value (exclusive)
      */
