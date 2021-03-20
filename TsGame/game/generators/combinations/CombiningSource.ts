@@ -5,7 +5,7 @@ abstract class CombiningSource extends ColorSource {
     protected color1: ColorSource
     protected color2: ColorSource
 
-    constructor(
+    protected constructor(
         width: number, height: number,
         color1: ColorSourceSource,
         color2: ColorSourceSource

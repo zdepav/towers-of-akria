@@ -4,23 +4,23 @@ class PreRenderedImage {
     ctx: CanvasRenderingContext2D
 
     constructor(width: number, height: number) {
-        let canvas = document.createElement("canvas")
+        let canvas = document.createElement('canvas')
         canvas.width = width
         canvas.height = height
-        this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D
+        this.ctx = <CanvasRenderingContext2D>canvas.getContext('2d')
         this.image = canvas
     }
 
     saveImage(fileName: string): void {
-        let a = document.createElement("a")
-        a.setAttribute("download", fileName + ".png")
+        let a = document.createElement('a')
+        a.setAttribute('download', fileName + '.png')
         a.setAttribute(
-            "href",
+            'href',
             (this.image as HTMLCanvasElement)
-                .toDataURL("image/png")
-                .replace("image/png", "image/octet-stream")
+                .toDataURL('image/png')
+                .replace('image/png', 'image/octet-stream')
         )
-        a.setAttribute("target", "_blank")
+        a.setAttribute('target', '_blank')
         a.click()
     }
 
@@ -28,8 +28,11 @@ class PreRenderedImage {
         if (Game.saveImages) {
             this.saveImage(id)
             let element = document.createElement('a')
-            element.setAttribute('download', id + ".txt")
-            element.setAttribute('href', 'data:text/octet-stream;charset=utf-8,' + encodeURIComponent(this.toBase64()))
+            element.setAttribute('download', id + '.txt')
+            element.setAttribute(
+                'href',
+                'data:text/octet-stream;charset=utf-8,' + encodeURIComponent(this.toBase64())
+            )
             element.click()
         }
         localStorage.setItem(id, this.toBase64())
@@ -37,7 +40,7 @@ class PreRenderedImage {
 
     toBase64(): string {
         return (this.image as HTMLCanvasElement)
-            .toDataURL("image/png")
-            .replace(/^data:image\/png;base64,/, "")
+            .toDataURL('image/png')
+            .replace(/^data:image\/png;base64,/, '')
     }
 }

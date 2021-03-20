@@ -4,8 +4,8 @@ class AcidTurret extends Turret {
 
     private static images: CanvasImageSource
     private static frameCount = 50
-    private static turretName = "Acid Tower"
-    private static turretDescription = "Covers enemies in armor dissolving acid"
+    private static turretName = 'Acid Tower'
+    private static turretDescription = 'Covers enemies in armor dissolving acid'
 
     private frame: number
 
@@ -50,7 +50,18 @@ class AcidTurret extends Turret {
                 }
             }
             if (enemy) {
-                this.game.spawnProjectile(new AcidProjectile(this.game, this.center, enemy, this.type.count, this.range))
+                this.game.spawnProjectile(
+                    new AcidProjectile(
+                        this.game,
+                        this.center,
+                        enemy,
+                        this.type.count,
+                        this.range,
+                        3 + this.type.earth,
+                        1 + this.type.water
+                    )
+                )
+                this.game.playSound('water')
                 this.cooldown = 1 / this.type.count
             }
         }
@@ -58,11 +69,24 @@ class AcidTurret extends Turret {
 
     render(ctx: CanvasRenderingContext2D): void {
         super.render(ctx)
-        ctx.drawImage(AcidTurret.images, Math.floor(this.frame) * 48, (this.type.water + this.type.earth - 2) * 48, 48, 48, this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48)
+        ctx.drawImage(
+            AcidTurret.images,
+            Math.floor(this.frame) * 48,
+            (this.type.water + this.type.earth - 2) * 48, 48, 48,
+            this.tile.pos.x + 8, this.tile.pos.y + 8, 48, 48
+        )
     }
 
-    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
-        ctx.drawImage(AcidTurret.images, 0, (type.water + type.earth - 2) * 48, 48, 48, x + 8, y + 8, 48, 48)
+    static renderPreview(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretType
+    ): void {
+        ctx.drawImage(
+            AcidTurret.images,
+            0, (type.water + type.earth - 2) * 48, 48, 48,
+            x + 8, y + 8, 48, 48
+        )
     }
 
     addType(type: TurretElement): void {
@@ -88,7 +112,8 @@ class AcidTurret extends Turret {
             AcidTurret.turretName,
             AcidTurret.turretDescription,
             80 + type.count * 16,
-            `${type.count * 4} + acid`
+            (type.count * (3 + type.earth)).toString(),
+            'acid(' + type.count + ') for ' + (1 + type.water) + ' seconds'
         )
     }
 
@@ -99,14 +124,24 @@ class AcidTurret extends Turret {
             return undefined
         }
         switch (type) {
-            case TurretElement.Air: return MoonTurret.getInfo(this.type.with(type))
-            case TurretElement.Earth: return AcidTurret.getInfo(this.type.with(type))
-            case TurretElement.Fire: return EarthquakeTurret.getInfo(this.type.with(type))
-            case TurretElement.Water: return AcidTurret.getInfo(this.type.with(type))
+            case TurretElement.Air:
+                return MoonTurret.getInfo(this.type.with(type))
+            case TurretElement.Earth:
+                return AcidTurret.getInfo(this.type.with(type))
+                    ?.withUpgradeNote('significantly improves damage')
+            case TurretElement.Fire:
+                return EarthquakeTurret.getInfo(this.type.with(type))
+            case TurretElement.Water:
+                return AcidTurret.getInfo(this.type.with(type))
+                    ?.withUpgradeNote('significantly improves acid duration')
         }
     }
 
-    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+    renderPreviewAfterUpgrade(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretElement
+    ): void {
         if (this.type.count >= 4) {
             return
         }
@@ -127,20 +162,29 @@ class AcidTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_aEfW_acid_strip" + AcidTurret.frameCount).then(tex => { AcidTurret.images = tex }, () => new Promise<void>(resolve => {
-            let acidTex = new CellularTextureGenerator(32, 32, 9, "#E0FF00", "#5B7F00", CellularTextureType.Balls).generateImage()
-            let c = new PreRenderedImage(48 * AcidTurret.frameCount, 144)
-            for (let i = 0; i < AcidTurret.frameCount; ++i) {
-                AcidTurret.preRenderFrame(acidTex, c.ctx, i)
-            }
-            c.cacheImage("td_tower_aEfW_acid_strip" + AcidTurret.frameCount)
-            AcidTurret.images = c.image
-            resolve()
-        }))
+        return Utils.getImageFromCache('td_tower_aEfW_acid_strip' + AcidTurret.frameCount).then(
+            tex => { AcidTurret.images = tex },
+            () => new Promise<void>(resolve => {
+                let acidTex = new CellularTextureGenerator(
+                    32, 32, 9, "#E0FF00", '#5B7F00', CellularTextureType.Balls
+                ).generateImage()
+                let c = new PreRenderedImage(48 * AcidTurret.frameCount, 144)
+                for (let i = 0; i < AcidTurret.frameCount; ++i) {
+                    AcidTurret.preRenderFrame(acidTex, c.ctx, i)
+                }
+                c.cacheImage('td_tower_aEfW_acid_strip' + AcidTurret.frameCount)
+                AcidTurret.images = c.image
+                resolve()
+            })
+        )
     }
 
-    private static preRenderFrame(texture: CanvasImageSource, targetCtx: CanvasRenderingContext2D, frame: number): void {
-        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg") as SVGSVGElement
+    private static preRenderFrame(
+        texture: CanvasImageSource,
+        targetCtx: CanvasRenderingContext2D,
+        frame: number
+    ): void {
+        let svg = <SVGSVGElement>document.createElementNS('http://www.w3.org/2000/svg', 'svg')
         let offset = frame / AcidTurret.frameCount * 32
         let c0 = new PreRenderedImage(48, 48)
         let c1 = new PreRenderedImage(48, 48)
@@ -154,9 +198,9 @@ class AcidTurret extends Turret {
         ctx.arcTo(12, 36, 12, 30, 6)
         ctx.arcTo(12, 12, 18, 12, 6)
         ctx.closePath()
-        ctx.fillStyle = "#B0B0B0"
+        ctx.fillStyle = '#B0B0B0'
         ctx.fill()
-        ctx.strokeStyle = "#D0D0D0"
+        ctx.strokeStyle = '#D0D0D0'
         ctx.lineWidth = 2
         ctx.stroke()
         c1.ctx.drawImage(c0.image, 0, 0)
@@ -165,12 +209,12 @@ class AcidTurret extends Turret {
             let w = 8 + 2 * i
             let ca = new PreRenderedImage(w, w)
             ctx = ca.ctx
-            ctx.fillStyle = "#D0D0D060"
+            ctx.fillStyle = '#D0D0D060'
             ctx.fillRect(0, 0, w, w)
-            ctx.fillStyle = "#D0D0D0"
+            ctx.fillStyle = '#D0D0D0'
             ctx.fillRect(0, 1, w, w - 2)
             ctx.fillRect(1, 0, w - 2, w)
-            let pattern = ctx.createPattern(texture, "repeat") as CanvasPattern
+            let pattern = <CanvasPattern>ctx.createPattern(texture, 'repeat')
             pattern.setTransform(svg.createSVGMatrix().translate(-offset, 0))
             ctx.fillStyle = pattern
             ctx.fillRect(1, 1, w - 2, w - 2)
@@ -184,16 +228,19 @@ class AcidTurret extends Turret {
             ctx.rotate(Angle.deg90)
             ctx.drawImage(ca.image, 12, -4 - i)
             ctx.resetTransform()
-            ctx.fillStyle = ctx.createPattern(texture, "repeat") as CanvasPattern
+            ctx.fillStyle = <CanvasPattern>ctx.createPattern(texture, 'repeat')
             ctx.beginPath()
             ctx.arc(24, 24, 6 + i, 0, Angle.deg360)
             ctx.closePath()
             ctx.fill()
             ctx.fillStyle = "#60606080"
             ctx.fill()
-            let grad = ctx.createLinearGradient(17 - i / 2, 17 - i / 2, 30 + i / 2, 30 + i / 2)
-            grad.addColorStop(0, "#808080")
-            grad.addColorStop(1, "#404040")
+            let grad = ctx.createLinearGradient(
+                17 - i / 2, 17 - i / 2,
+                30 + i / 2, 30 + i / 2
+            )
+            grad.addColorStop(0, '#808080')
+            grad.addColorStop(1, '#404040')
             ctx.strokeStyle = grad
             ctx.lineWidth = 2 + i
             ctx.stroke()

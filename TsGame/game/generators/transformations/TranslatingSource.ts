@@ -2,8 +2,8 @@
 
 class TranslatingSource extends TransformingSource {
 
-    private xd: number
-    private yd: number
+    private readonly xd: number
+    private readonly yd: number
 
     constructor(width: number, height: number, source: ColorSource, xd: number, yd: number) {
         super(width, height, source)

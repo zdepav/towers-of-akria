@@ -61,7 +61,7 @@ class RegeneratingEnemy extends Enemy {
             ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss()
             this.renderHeart(ctx, points, 8.5 + Utils.clamp(this.armor / 25, 0, 7))
         }
-        ctx.fillStyle = "#000000"
+        ctx.fillStyle ='#000000'
         this.renderHeart(ctx, points, 8.5)
         if (this._hp < this.startHp) {
             ctx.fillStyle = this.effects.colorize(this.baseColor).toCss()

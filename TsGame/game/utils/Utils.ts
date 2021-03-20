@@ -1,12 +1,13 @@
 class Utils {
 
-    static hex = "0123456789abcdef"
+    static hex = '0123456789abcdef'
 
     static sign(value: number): number {
         return value < 0 ? -1 : value > 0 ? 1 : 0
     }
 
     /**
+     * @param value value to clamp
      * @param min min value (inclusive)
      * @param max max value (inclusive)
      */
@@ -15,6 +16,7 @@ class Utils {
     }
 
     /**
+     * @param value value to wrap
      * @param min min value (inclusive)
      * @param max max value (exclusive)
      */
@@ -62,6 +64,7 @@ class Utils {
     }
 
     /**
+     * @param value number to round to nearest value
      * @param steps number of values between 0 and 1
      */
     static granulate(value: number, steps: number): number {
@@ -83,23 +86,29 @@ class Utils {
             if (data) {
                 let img = new Image()
                 img.onload = () => {
-                    console.log(`Restored ${id} from cache`)
+                    console.log('Restored ' + id + ' from cache')
                     resolve(img)
                 }
-                img.src = "data:image/png;base64," + data
+                img.src = 'data:image/png;base64,' + data
             } else reject()
         })
     }
 
-    static fillWrappedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
+    static fillWrappedText(
+        ctx: CanvasRenderingContext2D,
+        text: string,
+        x: number, y: number,
+        maxWidth: number,
+        lineHeight: number
+    ) {
         let words = text.split(/[ \t]+/)
         let lines: string[] = []
         let currentLine = words[0]
         for (let i = 1; i < words.length; i++) {
             let word = words[i]
-            let size = ctx.measureText(`${currentLine} ${word}`)
+            let size = ctx.measureText(currentLine + ' ' + word)
             if (size.width < maxWidth) {
-                currentLine += " " + word
+                currentLine += ' ' + word
             } else {
                 lines.push(currentLine)
                 currentLine = word

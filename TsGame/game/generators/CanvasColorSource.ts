@@ -2,12 +2,12 @@
 
 class CanvasColorSource extends ColorSource {
 
-    private ctx: CanvasRenderingContext2D
-    private data: RgbaColor[] | null
+    private readonly ctx: CanvasRenderingContext2D
+    private readonly data: RgbaColor[] | null
 
     constructor(canvas: HTMLCanvasElement, buffer: boolean = false) {
         super(canvas.width, canvas.height)
-        this.ctx = canvas.getContext("2d") as CanvasRenderingContext2D
+        this.ctx = <CanvasRenderingContext2D>canvas.getContext('2d')
         if (buffer) {
             let data = this.ctx.getImageData(0, 0, this.width, this.height).data
             this.data = []
@@ -26,7 +26,7 @@ class CanvasColorSource extends ColorSource {
         if (this.data) {
             return this.data[Utils.flatten(this.width, x, y)]
         } else {
-            var data = this.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data
+            const data = this.ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data
             return new RgbaColor(data[0], data[1], data[2], data[3])
         }
     }

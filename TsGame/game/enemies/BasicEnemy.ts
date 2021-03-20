@@ -18,7 +18,7 @@ class BasicEnemy extends Enemy {
             r = 7 + Utils.clamp(this.armor / 35, 0, 5)
             ctx.fillRect(this.x - r, this.y - r, r * 2, r * 2)
         }
-        ctx.fillStyle = "#000000"
+        ctx.fillStyle = '#000000'
         ctx.fillRect(this.x - 7, this.y - 7, 14, 14)
         if (this._hp < this.startHp) {
             ctx.fillStyle = this.effects.colorize(this.baseColor).toCss()

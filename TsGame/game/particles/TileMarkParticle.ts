@@ -2,9 +2,10 @@
 
 class TileMarkParticle extends Particle {
 
-    private startPosition: Vec2
+    private readonly startPosition: Vec2
+    private readonly speed: number
+
     private life: number
-    private speed: number
     private direction: Vec2
 
     get expired(): boolean { return this.life >= 1 }
@@ -26,7 +27,7 @@ class TileMarkParticle extends Particle {
             return
         }
         let pos = this.direction.mul(this.life * 28).add(this.startPosition)
-        ctx.fillStyle = "#ffffff" + Utils.byteToHex((1 - this.life) * 64)
+        ctx.fillStyle = '#ffffff' + Utils.byteToHex((1 - this.life) * 64)
         ctx.fillRect(pos.x, pos.y, 4, 4)
     }
 }

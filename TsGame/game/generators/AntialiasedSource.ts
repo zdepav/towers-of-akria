@@ -2,7 +2,7 @@
 
 class AntialiasedSource extends ColorSource {
 
-    private source: ColorSource
+    private readonly source: ColorSource
 
     constructor(width: number, height: number, source: ColorSource) {
         super(width, height)

@@ -2,9 +2,9 @@
 
 abstract class TransformingSource extends ColorSource {
 
-    protected source: ColorSource
+    protected readonly source: ColorSource
 
-    constructor(width: number, height: number, source: ColorSource) {
+    protected constructor(width: number, height: number, source: ColorSource) {
         super(width, height)
         this.source = source
     }

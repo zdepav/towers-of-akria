@@ -1,8 +1,8 @@
 class PerlinGradient {
 
-    private width: number
-    private height: number
-    private data: Vec2[]
+    private readonly width: number
+    private readonly height: number
+    private readonly data: Vec2[]
 
     constructor(width: number, height: number) {
         this.width = Math.ceil(width)

@@ -2,10 +2,11 @@
 
 class ExplosionParticle extends Particle {
 
-    private x: number
-    private y: number
+    private readonly x: number
+    private readonly y: number
+    private readonly rgb: string
+
     private life: number
-    private rgb: string
 
     get expired(): boolean { return this.life <= 0 }
 
@@ -14,7 +15,7 @@ class ExplosionParticle extends Particle {
         this.x = x
         this.y = y
         this.life = 1
-        this.rgb = `#ff${Utils.byteToHex(Rand.i(64, 224))}00`
+        this.rgb = '#ff' + Utils.byteToHex(Rand.i(64, 224)) + '00'
     }
 
     step(time: number): void {

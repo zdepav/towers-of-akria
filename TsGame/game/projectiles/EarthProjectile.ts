@@ -2,9 +2,9 @@
 
 class EarthProjectile extends ThrownProjectile {
 
-    private r1: number
-    private r2: number
-    private angle: number
+    private readonly r1: number
+    private readonly r2: number
+    private readonly angle: number
 
     constructor(game: Game, position: Vec2, target: Enemy, size: number) {
         super(
@@ -22,7 +22,7 @@ class EarthProjectile extends ThrownProjectile {
             let enemy = this.game.findEnemy(pos, 5)
             if (enemy) {
                 enemy.dealDamage(damage)
-                if (damage > 14 && Rand.chance((damage - 12.5) * 0.04)) {
+                if (Rand.chance((damage - 12.5) * 0.04)) {
                     enemy.addEffect(new StunEffect(0.5))
                 }
             } else {
@@ -37,11 +37,16 @@ class EarthProjectile extends ThrownProjectile {
         }
         super.step(time)
     }
-    
+
     render(ctx: CanvasRenderingContext2D): void {
         ctx.fillStyle = "#C0C0C0"
         ctx.beginPath()
-        ctx.ellipse(this.position.x, this.position.y, this.r1, this.r2, this.angle, 0, Angle.deg360)
+        ctx.ellipse(
+            this.position.x, this.position.y,
+            this.r1, this.r2,
+            this.angle,
+            0, Angle.deg360
+        )
         ctx.fill()
     }
 }

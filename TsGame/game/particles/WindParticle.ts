@@ -2,8 +2,9 @@
 
 class WindParticle extends Particle {
 
-    private x: number
-    private y: number
+    private readonly x: number
+    private readonly y: number
+
     private life: number
 
     get expired(): boolean { return this.life >= 1 }
@@ -24,10 +25,11 @@ class WindParticle extends Particle {
             return
         }
         let alpha = this.life > 0.5 ? 2 - this.life * 2 : this.life * 2
-        ctx.strokeStyle = "#ffffff" + Utils.byteToHex(255 * alpha)
+        ctx.strokeStyle = '#ffffff' + Utils.byteToHex(255 * alpha)
         ctx.beginPath()
-        ctx.moveTo(this.x - 2, this.y)
-        ctx.lineTo(this.x + 2, this.y)
+        let offset = this.life * 12 - 6
+        ctx.moveTo(this.x + offset - 2, this.y)
+        ctx.lineTo(this.x + offset + 2, this.y)
         ctx.stroke()
     }
 }

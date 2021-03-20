@@ -18,12 +18,19 @@ class EnemyWavePlanner {
     game: Game
     spawnTile: Tile | null
 
+    nextWave() { // TODO: remove
+        ++this._waveNumber
+        this.enemyArmor = Math.floor(this.enemyHp / 2)
+        this.enemyHp = this.enemyHp + Utils.clamp(Math.floor(this.enemyHp / 10), 1, 10)
+        this.updateWaveSize()
+    }
+
     get waveNumber(): number { return this._waveNumber }
 
     constructor(game: Game) {
         this.game = game
         this.spawnTile = null
-        this.timer = 1
+        this.timer = 5
         this.enemyHp = 10
         this.enemyArmor = 0
         this.wave = []
@@ -76,24 +83,56 @@ class EnemyWavePlanner {
         } else if (this._waveNumber < 7) {
             return Rand.chance(0.5) ? EnemyType.Basic : EnemyType.Fast
         } else if (this._waveNumber < 15) {
-            return Rand.item([EnemyType.Basic, EnemyType.Fast, EnemyType.Regenerating]) as EnemyType
+            return <EnemyType>Rand.item([EnemyType.Basic, EnemyType.Fast, EnemyType.Regenerating])
         } else {
-            return Rand.item([EnemyType.Basic, EnemyType.Fast, EnemyType.Regenerating, EnemyType.Shielding]) as EnemyType
+            return <EnemyType>Rand.item(
+                [EnemyType.Basic, EnemyType.Fast, EnemyType.Regenerating, EnemyType.Shielding]
+            )
         }
     }
 
     private createEnemy(type: EnemyType): Enemy {
         switch (type) {
             case EnemyType.Fast:
-                return new FastEnemy(this.game, this._waveNumber + 1, this.spawnTile as Tile, this.enemyHp, this.enemyArmor)
+                return new FastEnemy(
+                    this.game,
+                    this._waveNumber + 1,
+                    this.spawnTile as Tile,
+                    this.enemyHp,
+                    this.enemyArmor
+                )
             case EnemyType.Regenerating:
-                return new RegeneratingEnemy(this.game, this._waveNumber + 1, this.spawnTile as Tile, this.enemyHp, this.enemyArmor)
+                return new RegeneratingEnemy(
+                    this.game,
+                    this._waveNumber + 1,
+                    this.spawnTile as Tile,
+                    this.enemyHp,
+                    this.enemyArmor
+                )
             case EnemyType.Shielding:
-                return new ShieldingEnemy(this.game, this._waveNumber + 1, this.spawnTile as Tile, this.enemyHp, this.enemyArmor)
+                return new ShieldingEnemy(
+                    this.game,
+                    this._waveNumber + 1,
+                    this.spawnTile as Tile,
+                    this.enemyHp,
+                    this.enemyArmor
+                )
             case EnemyType.Big:
-                return new BigEnemy(this.game, this._waveNumber + 1, this.spawnTile as Tile, this.enemyHp, this.enemyArmor)
+                return new BigEnemy(
+                    this.game,
+                    this._waveNumber + 1,
+                    this.spawnTile as Tile,
+                    this.enemyHp,
+                    this.enemyArmor
+                )
             default:
-                return new BasicEnemy(this.game, this._waveNumber + 1, this.spawnTile as Tile, this.enemyHp, this.enemyArmor)
+                return new BasicEnemy(
+                    this.game,
+                    this._waveNumber + 1,
+                    this.spawnTile as Tile,
+                    this.enemyHp,
+                    this.enemyArmor
+                )
         }
     }
 }

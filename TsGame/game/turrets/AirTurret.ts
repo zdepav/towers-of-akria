@@ -3,8 +3,8 @@
 class AirTurret extends Turret {
 
     private static image: CanvasImageSource
-    private static turretName = "Air Tower"
-    private static turretDescription = "Constantly deals damage to all enemies in range"
+    private static turretName = 'Air Tower'
+    private static turretDescription = 'Constantly deals damage to all enemies in range'
 
     private angle: number
 
@@ -19,14 +19,21 @@ class AirTurret extends Turret {
         super.step(time)
         this.angle = (this.angle + Angle.deg360 - time * Angle.deg120) % Angle.deg360
         for (const enemy of this.game.findEnemiesInRange(this.center, this.range)) {
-            enemy.dealDamage((4 + this.type.air * 4) * time)
+            enemy.dealDamage((3 + this.type.air * 3) * time)
             if (Rand.chance(0.01 * this.type.air)) {
-                this.game.spawnParticle(new WindParticle(enemy.x + Rand.i(-6, 7), enemy.y + Rand.i(-6, 7)))
+                this.game.spawnParticle(
+                    new WindParticle(enemy.x + Rand.i(-6, 7), enemy.y + Rand.i(-6, 7))
+                )
             }
         }
     }
 
-    static _render(ctx: CanvasRenderingContext2D, centerX: number, centerY: number, type: TurretType, angle: number = 0): void {
+    static _render(
+        ctx: CanvasRenderingContext2D,
+        centerX: number, centerY: number,
+        type: TurretType,
+        angle: number = 0
+    ): void {
         ctx.translate(centerX, centerY)
         ctx.rotate(angle)
         ctx.drawImage(AirTurret.image, -24, -8)
@@ -62,7 +69,11 @@ class AirTurret extends Turret {
         AirTurret._render(ctx, this.center.x, this.center.y, this.type, this.angle)
     }
 
-    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+    static renderPreview(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretType
+    ): void {
         AirTurret._render(ctx, x + 32, y + 32, type)
     }
 
@@ -91,7 +102,7 @@ class AirTurret extends Turret {
             AirTurret.turretName,
             AirTurret.turretDescription,
             96 + type.air * 32,
-            `${4 + type.air * 4}`
+            (3 + type.air * 3).toString()
         )
     }
 
@@ -102,14 +113,22 @@ class AirTurret extends Turret {
             return undefined
         }
         switch (type) {
-            case TurretElement.Air: return AirTurret.getInfo(this.type.with(type))
-            case TurretElement.Earth: return ArcherTurret.getInfo(this.type.with(type))
-            case TurretElement.Fire: return LightningTurret.getInfo(this.type.with(type))
-            case TurretElement.Water: return IceTurret.getInfo(this.type.with(type))
+            case TurretElement.Air:
+                return AirTurret.getInfo(this.type.with(type))
+            case TurretElement.Earth:
+                return ArcherTurret.getInfo(this.type.with(type))
+            case TurretElement.Fire:
+                return LightningTurret.getInfo(this.type.with(type))
+            case TurretElement.Water:
+                return IceTurret.getInfo(this.type.with(type))
         }
     }
 
-    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+    renderPreviewAfterUpgrade(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretElement
+    ): void {
         if (this.type.count >= 4) {
             return
         }
@@ -130,31 +149,34 @@ class AirTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_Aefw_air").then(tex => { AirTurret.image = tex }, () => new Promise<void>(resolve => {
-            let c = new PreRenderedImage(48, 16)
-            let renderable = new RenderablePathSet()
-            let path = new Path2D()
-            path.ellipse(36, 8, 12, 8, 0, 0, Angle.deg180)
-            let grad = c.ctx.createLinearGradient(24, 8, 24, 16)
-            renderable.pushNew(path, grad)
-            path = new Path2D()
-            path.ellipse(12, 8, 12, 8, 0, Angle.deg180, 0)
-            grad = c.ctx.createLinearGradient(24, 8, 24, 0)
-            renderable.pushNew(path, grad)
-            path = new Path2D()
-            path.arc(24, 8, 8, 0, Angle.deg360)
-            grad = c.ctx.createRadialGradient(24, 8, 8, 24, 8, 4)
-            renderable.pushNew(path, grad)
-            for (const rp of renderable.paths) {
-                rp.path.closePath()
-                const gr = rp.fill as CanvasGradient
-                gr.addColorStop(0, "#B2A5FF")
-                gr.addColorStop(1, "#A0A0A0")
-            }
-            renderable.render(c.ctx)
-            c.cacheImage("td_tower_Aefw_air")
-            AirTurret.image = c.image
-            resolve()
-        }))
+        return Utils.getImageFromCache('td_tower_Aefw_air').then(
+            tex => { AirTurret.image = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(48, 16)
+                let renderable = new RenderablePathSet()
+                let path = new Path2D()
+                path.ellipse(36, 8, 12, 8, 0, 0, Angle.deg180)
+                let grad = c.ctx.createLinearGradient(24, 8, 24, 16)
+                renderable.pushNew(path, grad)
+                path = new Path2D()
+                path.ellipse(12, 8, 12, 8, 0, Angle.deg180, 0)
+                grad = c.ctx.createLinearGradient(24, 8, 24, 0)
+                renderable.pushNew(path, grad)
+                path = new Path2D()
+                path.arc(24, 8, 8, 0, Angle.deg360)
+                grad = c.ctx.createRadialGradient(24, 8, 8, 24, 8, 4)
+                renderable.pushNew(path, grad)
+                for (const rp of renderable.paths) {
+                    rp.path.closePath()
+                    const gr = rp.fill as CanvasGradient
+                    gr.addColorStop(0, '#B2A5FF')
+                    gr.addColorStop(1, '#A0A0A0')
+                }
+                renderable.render(c.ctx)
+                c.cacheImage('td_tower_Aefw_air')
+                AirTurret.image = c.image
+                resolve()
+            })
+        )
     }
 }

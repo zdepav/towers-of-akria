@@ -16,23 +16,28 @@ enum CellularTextureDistanceMetric {
 // based on https://blackpawn.com/texts/cellular/default.html
 class CellularTextureGenerator extends TextureGenerator {
 
-    private color2: ColorSource
-    private type: CellularTextureType
-    private density: number
-    private distances: number[]
-    private min: number
-    private range: number
-    private curve: (x: number) => number
+    private readonly color2: ColorSource
+    private readonly type: CellularTextureType
+    private readonly density: number
+    private readonly distances: number[]
+    private readonly min: number
+    private readonly range: number
+    private readonly curve: (x: number) => number
 
     /**
+     * @param width
+     * @param height
      * @param density n => 1 point per n pixels
+     * @param color1
+     * @param color2
+     * @param type
+     * @param metric
+     * @param curve
      */
     constructor(
-        width: number,
-        height: number,
+        width: number, height: number,
         density: number,
-        color1: ColorSourceSource,
-        color2: ColorSourceSource,
+        color1: ColorSourceSource, color2: ColorSourceSource,
         type: CellularTextureType = CellularTextureType.Cells,
         metric: CellularTextureDistanceMetric = CellularTextureDistanceMetric.Euclidean,
         curve?: (x: number) => number
@@ -70,7 +75,9 @@ class CellularTextureGenerator extends TextureGenerator {
         let max = 0, i: number, d: number
         for (let x = 0; x < this.width; ++x) {
             for (let y = 0; y < this.height; ++y) {
-                let { min1, min2 } = CellularTextureGenerator.distancesTo2Nearest(x, y, this.width, this.height, points, distance)
+                let { min1, min2 } = CellularTextureGenerator.distancesTo2Nearest(
+                    x, y, this.width, this.height, points, distance
+                )
                 switch (this.type) {
                     case CellularTextureType.Net:
                         d = min2 - min1

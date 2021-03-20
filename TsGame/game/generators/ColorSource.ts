@@ -2,10 +2,10 @@ type ColorSourceSource = ColorSource | RgbaColor | string | null
 
 abstract class ColorSource {
 
-    protected width: number
-    protected height: number
+    protected readonly width: number
+    protected readonly height: number
 
-    constructor(width: number, height: number) {
+    protected constructor(width: number, height: number) {
         this.width = Math.max(1, Math.floor(width))
         this.height = Math.max(1, Math.floor(height))
     }

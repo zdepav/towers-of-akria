@@ -5,7 +5,7 @@ abstract class ShapeSource extends ColorSource {
     protected color: ColorSource
     protected background: ColorSource
 
-    constructor(
+    protected constructor(
         width: number, height: number,
         color: ColorSourceSource,
         background: ColorSourceSource

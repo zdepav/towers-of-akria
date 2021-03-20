@@ -17,7 +17,11 @@ class RenderablePathSet {
         this.paths.push(new RenderablePath(path, fill))
     }
 
-    pushPolygon(points: number[], fill: string | CanvasPattern | CanvasGradient | null, originX: number = 0, originY: number = 0): void {
+    pushPolygon(
+        points: number[],
+        fill: string | CanvasPattern | CanvasGradient | null,
+        originX: number = 0, originY: number = 0
+    ): void {
         if (fill === null || points.length % 2 !== 0 || points.length < 6) {
             return
         }

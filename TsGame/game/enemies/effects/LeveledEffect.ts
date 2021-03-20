@@ -6,7 +6,7 @@ abstract class LeveledEffect extends Effect {
 
     get strength(): number { return this._strength }
 
-    constructor(duration: number, strength: number) {
+    protected constructor(duration: number, strength: number) {
         super(duration)
         this._strength = Utils.clamp(strength, 1, 4)
     }
@@ -16,13 +16,17 @@ abstract class LeveledEffect extends Effect {
     protected abstract get effectColor(): RgbaColor
 
     colorize(color: RgbaColor): RgbaColor {
-        return this.duration > 0 ? color.lerp(this.effectColor, this._strength / 20 + 0.15) : color
+        return this.duration > 0
+            ? color.lerp(this.effectColor, this._strength / 20 + 0.15)
+            : color
     }
 
     protected doMerge(effect: LeveledEffect): void {
         if (effect._strength > this._strength) {
             if (this._duration < effect._duration) {
-                this._duration = this._duration + (effect._duration - this._duration) * this._strength / effect._strength
+                this._duration =
+                    this._duration +
+                    (effect._duration - this._duration) * this._strength / effect._strength
             }
             this._strength = effect._strength
         } else if (effect._strength < this._strength) {

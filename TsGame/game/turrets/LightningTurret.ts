@@ -3,12 +3,14 @@
 class LightningTurret extends Turret {
 
     private static image: CanvasImageSource
-    private static turretName = "Lightning Tower"
-    private static turretDescription = "Creates electric arcs that can jump between multiple enemies, ignores armor"
-    
-    private angle: number
+    private static turretName = 'Lightning Tower'
+    private static turretDescription =
+        'Creates electric arcs that can jump between multiple enemies, ignores armor'
+
+    private readonly angle: number
+
     private animationTimer: number
-    
+
     get ready(): boolean { return this.animationTimer < 0.3 && this.cooldown <= 0 }
 
     get range(): number { return 96 + this.type.air * 24 + this.type.fire * 8 }
@@ -27,15 +29,21 @@ class LightningTurret extends Turret {
         let step = vlength / stepCount
         let n = v.normal()
         let d = v.mul(step).add(n.mul(Rand.r(-6, 6))).add(a)
-        this.game.spawnParticle(new LineParticle(a.x, a.y, d.x, d.y, baseLife, "#AFE8FF", 2))
+        this.game.spawnParticle(
+            new LineParticle(a.x, a.y, d.x, d.y, baseLife, '#AFE8FF', 2)
+        )
         baseLife += 0.02
-        for (var i = 2; i < stepCount; ++i) {
+        for (let i = 2; i < stepCount; ++i) {
             let nd = v.mul(step * i).add(n.mul(Rand.r(-6, 6))).add(a)
-            this.game.spawnParticle(new LineParticle(d.x, d.y, nd.x, nd.y, baseLife, "#AFE8FF", 2))
+            this.game.spawnParticle(
+                new LineParticle(d.x, d.y, nd.x, nd.y, baseLife, '#AFE8FF', 2)
+            )
             baseLife += 0.02
             d = nd
         }
-        this.game.spawnParticle(new LineParticle(d.x, d.y, b.x, b.y, baseLife, "#AFE8FF", 2))
+        this.game.spawnParticle(
+            new LineParticle(d.x, d.y, b.x, b.y, baseLife, '#AFE8FF', 2)
+        )
         return baseLife + 0.02
     }
 
@@ -67,6 +75,7 @@ class LightningTurret extends Turret {
                 maxDist *= 0.9
                 damage *= 0.9
             }
+            this.game.playSound('electric-spark')
             this.cooldown = 0.6
         }
     }
@@ -79,7 +88,11 @@ class LightningTurret extends Turret {
         ctx.resetTransform()
     }
 
-    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+    static renderPreview(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretType
+    ): void {
         ctx.drawImage(LightningTurret.image, x + 8, y + 8)
     }
 
@@ -106,7 +119,7 @@ class LightningTurret extends Turret {
             LightningTurret.turretName,
             LightningTurret.turretDescription,
             96 + type.air * 24 + type.fire * 8,
-            `${type.air * 6 + type.fire * 10}`
+            (type.air * 6 + type.fire * 10).toString()
         )
     }
 
@@ -124,7 +137,11 @@ class LightningTurret extends Turret {
         }
     }
 
-    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+    renderPreviewAfterUpgrade(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretElement
+    ): void {
         if (this.type.count >= 4) {
             return
         }
@@ -145,50 +162,51 @@ class LightningTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_AeFw_lightning")
-            .then(tex => { LightningTurret.image = tex },
-                () => new Promise<void>(resolve => {
-                    let c = new PreRenderedImage(48, 48)
-                    let ctx = c.ctx
-                    let grad = ctx.createRadialGradient(24, 24, 0, 24, 24, 18)
-                    grad.addColorStop(0, "#FFFFFF")
-                    grad.addColorStop(0.33, "#A97FFF")
-                    grad.addColorStop(1, "#D6BFFF")
-                    ctx.fillStyle = grad
-                    ctx.beginPath()
-                    ctx.moveTo(42, 24)
-                    for (let i = 1; i < 16; ++i) {
-                        let r = i % 2 == 0 ? 21 : 7
-                        let a = i * Angle.deg45 / 2
-                        ctx.lineTo(Vec2.ldx(r, a, 24), Vec2.ldy(r, a, 24))
+        return Utils.getImageFromCache('td_tower_AeFw_lightning').then(
+            tex => { LightningTurret.image = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(48, 48)
+                let ctx = c.ctx
+                let grad = ctx.createRadialGradient(24, 24, 0, 24, 24, 18)
+                grad.addColorStop(0, '#FFFFFF')
+                grad.addColorStop(0.33, '#A97FFF')
+                grad.addColorStop(1, '#D6BFFF')
+                ctx.fillStyle = grad
+                ctx.beginPath()
+                ctx.moveTo(42, 24)
+                for (let i = 1; i < 16; ++i) {
+                    let r = i % 2 == 0 ? 21 : 7
+                    let a = i * Angle.deg45 / 2
+                    ctx.lineTo(Vec2.ldx(r, a, 24), Vec2.ldy(r, a, 24))
+                }
+                ctx.closePath()
+                ctx.fill()
+                grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 3)
+                grad.addColorStop(0, '#F8F2FF')
+                grad.addColorStop(1, '#C199FF')
+                ctx.fillStyle = grad
+                let j = true
+                for (let i = 0; i < 8; ++i, j = !j) {
+                    let a = i * Angle.deg45
+                    ctx.translate(Vec2.ldx(18, a, 24), Vec2.ldy(18, a, 24))
+                    if (j) {
+                        ctx.rotate(Angle.deg45)
                     }
-                    ctx.closePath()
-                    ctx.fill()
-                    grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 3)
-                    grad.addColorStop(0, "#F8F2FF")
-                    grad.addColorStop(1, "#C199FF")
-                    ctx.fillStyle = grad
-                    let j = true
-                    for (let i = 0; i < 8; ++i, j = !j) {
-                        let a = i * Angle.deg45
-                        ctx.translate(Vec2.ldx(18, a, 24), Vec2.ldy(18, a, 24))
-                        if (j) {
-                            ctx.rotate(Angle.deg45)
-                        }
-                        ctx.fillRect(-3, -3, 6, 6)
-                        ctx.resetTransform()
-                    }
-                    grad = ctx.createRadialGradient(42, 24, 0, 42, 24, 8)
-                    grad.addColorStop(0, "#FFFFFFC0")
-                    grad.addColorStop(1, "#F8F2FF00")
-                    ctx.fillStyle = grad
-                    ctx.beginPath()
-                    ctx.arc(42, 24, 8, 0, Angle.deg360)
-                    ctx.closePath()
-                    ctx.fill()
-                    c.cacheImage("td_tower_AeFw_lightning")
-                    LightningTurret.image = c.image
-                    resolve()
-                }))
+                    ctx.fillRect(-3, -3, 6, 6)
+                    ctx.resetTransform()
+                }
+                grad = ctx.createRadialGradient(42, 24, 0, 42, 24, 8)
+                grad.addColorStop(0, '#FFFFFFC0')
+                grad.addColorStop(1, '#F8F2FF00')
+                ctx.fillStyle = grad
+                ctx.beginPath()
+                ctx.arc(42, 24, 8, 0, Angle.deg360)
+                ctx.closePath()
+                ctx.fill()
+                c.cacheImage('td_tower_AeFw_lightning')
+                LightningTurret.image = c.image
+                resolve()
+            })
+        )
     }
 }

@@ -2,7 +2,7 @@
 
 class RgbaColorSource extends ColorSource {
 
-    color: RgbaColor
+    private readonly color: RgbaColor
 
     constructor(color: RgbaColor, width: number = 1, height: number = 1) {
         super(width, height)

@@ -10,7 +10,7 @@ class CannonballProjectile extends ThrownProjectile {
         if (this._expired) {
             return
         }
-        ctx.fillStyle = "#000000"
+        ctx.fillStyle = '#000000'
         ctx.beginPath()
         ctx.arc(this.position.x, this.position.y, 3, 0, Angle.deg360)
         ctx.fill()

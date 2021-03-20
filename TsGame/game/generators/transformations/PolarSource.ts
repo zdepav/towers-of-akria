@@ -2,12 +2,15 @@
 
 class PolarSource extends TransformingSource {
 
-    private origin: Vec2
-    private coef: Vec2
+    private readonly origin: Vec2
+    private readonly coef: Vec2
 
-    constructor(width: number, height: number, source: ColorSource, sourceWidth?: number, sourceHeight?: number) {
+    constructor(
+        width: number, height: number,
+        source: ColorSource,
+        sourceWidth?: number, sourceHeight?: number
+    ) {
         super(width, height, source)
-        this.source = source
         this.origin = new Vec2(this.width / 2, this.height / 2)
         this.coef = new Vec2(
             (sourceWidth ?? this.width) / Angle.deg360,

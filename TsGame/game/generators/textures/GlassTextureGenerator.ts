@@ -2,8 +2,8 @@
 
 class GlassTextureGenerator extends PerlinTextureGenerator {
 
-    private turbulence: number
-    private gradients: PerlinGradient[]
+    private readonly turbulence: number
+    private readonly gradients: PerlinGradient[]
 
     constructor(
         width: number, height: number,
@@ -23,8 +23,16 @@ class GlassTextureGenerator extends PerlinTextureGenerator {
     }
 
     protected _getColor(x: number, y: number): RgbaColor {
-        let _x = Math.cos((this.perlin(this.gradients[1], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence)
-        let _y = Math.sin((this.perlin(this.gradients[2], x * this.scale, y * this.scale) * 128 + 128) * this.turbulence)
+        let _x = Math.cos(
+            (this.perlin(
+                this.gradients[1], x * this.scale, y * this.scale
+            ) * 128 + 128) * this.turbulence
+        )
+        let _y = Math.sin(
+            (this.perlin(
+                this.gradients[2], x * this.scale, y * this.scale
+            ) * 128 + 128) * this.turbulence
+        )
         return this.color.getColor(x, y).lerp(
             this.color2.getColor(x, y),
             this.curve(this.perlin(

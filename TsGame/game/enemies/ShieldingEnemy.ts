@@ -59,7 +59,7 @@ class ShieldingEnemy extends Enemy {
             ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss()
             this.renderShield(ctx, points, 8.5 + Utils.clamp(this.armor / 25, 0, 7))
         }
-        ctx.fillStyle = "#000000"
+        ctx.fillStyle = '#000000'
         this.renderShield(ctx, points, 8.5)
         if (this._hp < this.startHp) {
             ctx.fillStyle = this.effects.colorize(this.baseColor).toCss()
@@ -68,7 +68,7 @@ class ShieldingEnemy extends Enemy {
         ctx.fillStyle = this.effects.colorize(this.baseHpColor).toCss()
         this.renderShield(ctx, points, 7 * this._hp / this.startHp)
         if (this.shield > 0) {
-            ctx.fillStyle = "#FFFF0080"
+            ctx.fillStyle = '#FFFF0080'
             this.renderShield(ctx, points, 8 * this.shield)
         }
     }

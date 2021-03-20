@@ -8,7 +8,10 @@ class FastEnemy extends Enemy {
         super(game, wave, spawn, hp * 0.35, armor * 0.25)
     }
 
-    private renderTriangle(ctx: CanvasRenderingContext2D, a: Vec2, b: Vec2, c: Vec2, r: number): void {
+    private renderTriangle(
+        ctx: CanvasRenderingContext2D,
+        a: Vec2, b: Vec2, c: Vec2, r: number
+    ): void {
         ctx.beginPath()
         ctx.moveTo(this.x + a.x * r, this.y + a.y * r)
         ctx.lineTo(this.x + b.x * r, this.y + b.y * r)
@@ -29,7 +32,7 @@ class FastEnemy extends Enemy {
             ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss()
             this.renderTriangle(ctx, va, vb, vc, 8.5 + Utils.clamp(this.armor / 25, 0, 7))
         }
-        ctx.fillStyle = "#000000"
+        ctx.fillStyle = '#000000'
         this.renderTriangle(ctx, va, vb, vc, 8.5)
         if (this._hp < this.startHp) {
             ctx.fillStyle = this.effects.colorize(this.baseColor).toCss()

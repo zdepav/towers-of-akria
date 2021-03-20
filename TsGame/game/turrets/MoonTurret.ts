@@ -4,13 +4,14 @@ class MoonTurret extends Turret {
 
     private static images: CanvasImageSource
     private static frameCount = 50
-    private static turretName = "Moon Tower"
-    private static turretDescription = "Damages and slows down all enemies in range"
+    private static turretName = 'Moon Tower'
+    private static turretDescription = 'Damages and slows down all enemies in range'
+
+    private readonly rays: { target: Vec2, color: string }[]
 
     private frame: number
-    private rays: { target: Vec2, color: string }[]
 
-    get range(): number { return this.type.count * 64 - 32 }
+    get range(): number { return this.type.count * 32 + (this.type.air > 1 ? 96 : 64) }
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
@@ -24,9 +25,9 @@ class MoonTurret extends Turret {
         this.rays.splice(0, this.rays.length)
         for (const e of this.game.findEnemiesInRange(this.center, this.range)) {
             let d = 1 - (this.center.distanceTo(e.pos) - 32) / (this.range - 32)
-            e.dealDamage(time * (d * 20 + (this.type.count - 2) * 10))
-            this.rays.push({ target: e.pos, color: "#FFFFFF" + Utils.byteToHex(d * 255) })
-            e.addEffect(new FreezeEffect(0.2, 2))
+            e.dealDamage(time * (d * 20 + (this.type.count - (this.type.earth > 1 ? 1.5 : 2)) * 10))
+            this.rays.push({ target: e.pos, color: '#FFFFFF' + Utils.byteToHex(d * 255) })
+            e.addEffect(new FreezeEffect(0.2, this.type.water + 1))
         }
     }
 
@@ -41,12 +42,24 @@ class MoonTurret extends Turret {
             ctx.stroke()
         }
         let r = 28 + 4 * (this.type.count - 3)
-        ctx.drawImage(MoonTurret.images, Math.floor(this.frame) * 64, 0, 64, 64, this.center.x - r, this.center.y - r, r * 2, r * 2)
+        ctx.drawImage(
+            MoonTurret.images,
+            Math.floor(this.frame) * 64, 0, 64, 64,
+            this.center.x - r, this.center.y - r, r * 2, r * 2
+        )
     }
 
-    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+    static renderPreview(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretType
+    ): void {
         let r = 28 + 4 * (type.count - 3)
-        ctx.drawImage(MoonTurret.images, 0, 0, 64, 64, x + 32 - r, y + 32 - r, r * 2, r * 2)
+        ctx.drawImage(
+            MoonTurret.images,
+            0, 0, 64, 64,
+            x + 32 - r, y + 32 - r, r * 2, r * 2
+        )
     }
 
     addType(type: TurretElement): void {
@@ -69,8 +82,9 @@ class MoonTurret extends Turret {
         return new TurretInfo(
             MoonTurret.turretName,
             MoonTurret.turretDescription,
-            type.count * 64 - 32,
-            type.count === 4 ? "20-40" : "10-30"
+            type.count * 32 + (type.air > 1 ? 96 : 64),
+            type.earth > 1 ? '25-45' : type.count === 4 ? '20-40' : '10-30',
+            'freeze(' + (type.water + 1) + ')'
         )
     }
 
@@ -81,14 +95,25 @@ class MoonTurret extends Turret {
             return undefined
         }
         switch (type) {
-            case TurretElement.Air: return MoonTurret.getInfo(this.type.with(type))
-            case TurretElement.Earth: return MoonTurret.getInfo(this.type.with(type))
-            case TurretElement.Fire: return ArcaneTurret.getInfo(this.type.with(type))
-            case TurretElement.Water: return MoonTurret.getInfo(this.type.with(type))
+            case TurretElement.Air:
+                return MoonTurret.getInfo(this.type.with(type))
+                    ?.withUpgradeNote('significantly improves range')
+            case TurretElement.Earth:
+                return MoonTurret.getInfo(this.type.with(type))
+                    ?.withUpgradeNote('significantly improves damage')
+            case TurretElement.Fire:
+                return ArcaneTurret.getInfo(this.type.with(type))
+            case TurretElement.Water:
+                return MoonTurret.getInfo(this.type.with(type))
+                    ?.withUpgradeNote('significantly improves freeze strength')
         }
     }
 
-    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+    renderPreviewAfterUpgrade(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretElement
+    ): void {
         if (this.type.count >= 4) {
             return
         }
@@ -109,31 +134,38 @@ class MoonTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_AEfW_moon_strip" + MoonTurret.frameCount).then(tex => { MoonTurret.images = tex }, () => new Promise<void>(resolve => {
-            let c = new PreRenderedImage(MoonTurret.frameCount * 64, 64)
-            let colorA = ColorSource.get("#E0E0E0")
-            let colorB = ColorSource.get("#FFFFFF00")
-            let s: ColorSource = new CellularTextureGenerator(64, 32, 49, "#A0A0A0", colorA, CellularTextureType.Balls)
-            for (let i = 0; i < 3; ++i) {
-                s = new CellularTextureGenerator(64, 32, 49, s, colorA, CellularTextureType.Cells)
-            }
-            s = new BufferedColorSource(64, 32, s)
-            let p = new PerlinNoiseTextureGenerator(64, 64, "#FFFFFF00", "#FFFFFF80", 0.4)
-            for (let i = 0; i < MoonTurret.frameCount; ++i) {
-                let coef = i / MoonTurret.frameCount
-                let t1 = new TranslatingSource(64, 64, s, -64 * coef, 0)
-                let ns: ColorSource = new ScalingSource(64, 64, t1, 0.5, 32, 32)
-                let t2 = new TranslatingSource(64, 64, p, 64 * coef, 0)
-                let grad = new RadialGradientSource(64, 64, 32, 32, 16, 32)
-                grad.addColorStop(0, t2)
-                grad.addColorStop(1, colorB)
-                ns = new FisheyeSource(64, 64, ns, 0.5, 32, 32, 16)
-                ns = new CircleSource(64, 64, 32, 32, 16, ns, grad)
-                ns.generateInto(c.ctx, i * 64, 0)
-            }
-            c.cacheImage("td_tower_AEfW_moon_strip" + MoonTurret.frameCount)
-            MoonTurret.images = c.image
-            resolve()
-        }))
+        return Utils.getImageFromCache('td_tower_AEfW_moon_strip' + MoonTurret.frameCount).then(
+            tex => { MoonTurret.images = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(MoonTurret.frameCount * 64, 64)
+                let colorA = ColorSource.get('#E0E0E0')
+                let colorB = ColorSource.get('#FFFFFF00')
+                let s: ColorSource = new CellularTextureGenerator(
+                    64, 32, 49, '#A0A0A0', colorA, CellularTextureType.Balls
+                )
+                for (let i = 0; i < 3; ++i) {
+                    s = new CellularTextureGenerator(
+                        64, 32, 49, s, colorA, CellularTextureType.Cells
+                    )
+                }
+                s = new BufferedColorSource(64, 32, s)
+                let p = new PerlinNoiseTextureGenerator(64, 64, '#FFFFFF00', '#FFFFFF80', 0.4)
+                for (let i = 0; i < MoonTurret.frameCount; ++i) {
+                    let coef = i / MoonTurret.frameCount
+                    let t1 = new TranslatingSource(64, 64, s, -64 * coef, 0)
+                    let ns: ColorSource = new ScalingSource(64, 64, t1, 0.5, 32, 32)
+                    let t2 = new TranslatingSource(64, 64, p, 64 * coef, 0)
+                    let grad = new RadialGradientSource(64, 64, 32, 32, 16, 32)
+                    grad.addColorStop(0, t2)
+                    grad.addColorStop(1, colorB)
+                    ns = new FisheyeSource(64, 64, ns, 0.5, 32, 32, 16)
+                    ns = new CircleSource(64, 64, 32, 32, 16, ns, grad)
+                    ns.generateInto(c.ctx, i * 64, 0)
+                }
+                c.cacheImage('td_tower_AEfW_moon_strip' + MoonTurret.frameCount)
+                MoonTurret.images = c.image
+                resolve()
+            })
+        )
     }
 }

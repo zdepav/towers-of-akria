@@ -2,13 +2,14 @@
 
 class TrailParticle extends Particle {
 
-    private x: number
-    private y: number
-    private vx: number
-    private vy: number
+    private readonly x: number
+    private readonly y: number
+    private readonly vx: number
+    private readonly vy: number
+    private readonly color: string
+    private readonly size: number
+
     private life: number
-    private color: string
-    private size: number
 
     get expired(): boolean { return this.life >= 1 }
 
@@ -34,7 +35,13 @@ class TrailParticle extends Particle {
         }
         ctx.fillStyle = this.color + Utils.byteToHex(255 * (1 - this.life))
         ctx.beginPath()
-        ctx.arc(this.x + this.life * this.vx, this.y + this.life * this.vy, (1 - this.life) * this.size, 0, Angle.deg360)
+        ctx.arc(
+            this.x + this.life * this.vx,
+            this.y + this.life * this.vy,
+            (1 - this.life) * this.size,
+            0,
+            Angle.deg360
+        )
         ctx.fill()
     }
 }

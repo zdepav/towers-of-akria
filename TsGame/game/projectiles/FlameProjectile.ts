@@ -2,11 +2,12 @@
 
 class FlameProjectile extends Projectile {
 
-    private start: Vec2
+    private readonly start: Vec2
+    private readonly range: number
+    private readonly level: number
+
     private target: Vec2
-    private range: number
     private pos: number
-    private level: number
 
     get expired(): boolean { return this.pos >= 1 }
 

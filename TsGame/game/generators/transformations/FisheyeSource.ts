@@ -2,9 +2,9 @@
 
 class FisheyeSource extends TransformingSource {
 
-    private scale: number
-    private radius: number
-    private origin: Vec2
+    private readonly scale: number
+    private readonly radius: number
+    private readonly origin: Vec2
 
     constructor(
         width: number, height: number,

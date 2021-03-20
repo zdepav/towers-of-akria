@@ -2,10 +2,10 @@
 
 class BarkTextureGenerator extends PerlinTextureGenerator {
 
-    private scales: number[]
-    private coeficients: number[]
-    private gradients: PerlinGradient[]
-    private turbulence: number
+    private readonly scales: number[]
+    private readonly coeficients: number[]
+    private readonly gradients: PerlinGradient[]
+    private readonly turbulence: number
 
     constructor(
         width: number, height: number,
@@ -21,17 +21,24 @@ class BarkTextureGenerator extends PerlinTextureGenerator {
         this.turbulence = turbulence
         this.gradients = []
         for (let i = 0; i < 4; ++i) {
-            this.gradients.push(new PerlinGradient(this.width * this.scales[i], this.height * this.scales[i]))
+            this.gradients.push(
+                new PerlinGradient(this.width * this.scales[i], this.height * this.scales[i])
+            )
         }
     }
 
     protected _getColor(x: number, y: number): RgbaColor {
         let v = 0
         for (let i = 0; i < 3; ++i) {
-            v += this.perlin(this.gradients[i], x * this.scales[i], y * this.scales[i]) * this.coeficients[i] * this.turbulence
+            v += this.perlin(
+                this.gradients[i], x * this.scales[i], y * this.scales[i]
+            ) * this.coeficients[i] * this.turbulence
         }
         v = Utils.granulate(Math.sin(2 * x * this.scale * Math.PI + 8 * v), 2)
-        v += Utils.granulate(this.perlin(this.gradients[3], x * this.scales[3], y * this.scales[3]), 5)
+        v += Utils.granulate(
+            this.perlin(this.gradients[3], x * this.scales[3], y * this.scales[3]),
+            5
+        )
         return this.color.getColor(x, y).lerp(this.color2.getColor(x, y), this.curve(v / 4 + 0.5))
     }
 }

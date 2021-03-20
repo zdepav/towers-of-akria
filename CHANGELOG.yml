@@ -1,0 +1,11 @@
+1.0.0:
+  - fully playable competition version
+
+1.1.0:
+  - added sound support
+  - improved tower descriptions to include effect details
+  - added game speed buttons
+  - added FPS counter (activate/deactivate by pressing F)
+  - tweaked some towers
+  - fixed game being playable while paused
+  - improved code

@@ -2,10 +2,10 @@
 
 class LinearGradientSource extends GradientSource {
 
-    private a: number
-    private b: number
-    private c: number
-    private d: number
+    private readonly a: number
+    private readonly b: number
+    private readonly c: number
+    private readonly d: number
 
     constructor(width: number, height: number, x1: number, y1: number, x2: number, y2: number) {
         super(width, height)

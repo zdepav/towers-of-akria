@@ -2,9 +2,9 @@
 
 abstract class TextureGenerator extends ColorSource {
 
-    protected color: ColorSource
+    protected readonly color: ColorSource
 
-    constructor(width: number, height: number, color: ColorSourceSource) {
+    protected constructor(width: number, height: number, color: ColorSourceSource) {
         super(width, height)
         this.color = ColorSource.get(color ?? RgbaColor.black)
     }

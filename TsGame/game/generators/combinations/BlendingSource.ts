@@ -2,7 +2,10 @@
 
 class BlendingSource extends CombiningSource {
 
-    constructor(width: number, height: number, color1: ColorSourceSource, color2: ColorSourceSource) {
+    constructor(
+        width: number, height: number,
+        color1: ColorSourceSource, color2: ColorSourceSource
+    ) {
         super(width, height, color1, color2)
     }
 

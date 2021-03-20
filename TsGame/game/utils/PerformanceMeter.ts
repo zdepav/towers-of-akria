@@ -9,10 +9,12 @@ class PerformanceMeter {
     }
 
     add(fps: number): void {
-        this.queue.push(fps)
-        this.sum += fps
-        if (this.queue.length > 100) {
-            this.sum -= this.queue.shift() as number
+        if (isFinite(fps)) {
+            this.queue.push(fps)
+            this.sum += fps
+            if (this.queue.length > 100) {
+                this.sum -= this.queue.shift() as number
+            }
         }
     }
 

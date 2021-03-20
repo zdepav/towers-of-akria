@@ -3,15 +3,15 @@
 class WaterTurret extends Turret {
 
     private static images: CanvasImageSource
-    private static turretName = "Water Tower"
+    private static turretName = 'Water Tower'
     private static turretDescription = [
-        "Slows down enemies",
-        "Slows down enemies, can push them back"
+        'Slows down enemies',
+        'Slows down enemies, can push them back'
     ]
 
-    private angle: number
+    private readonly angle: number
 
-    get range(): number { return 128 + this.type.water * 16 }
+    get range(): number { return 112 + this.type.water * 16 }
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
@@ -24,7 +24,10 @@ class WaterTurret extends Turret {
             let enemy = Rand.item(this.game.findEnemiesInRange(this.center, this.range))
             if (enemy) {
                 let pos = Vec2.randUnit3d().mul(this.type.water * 2 + 8).add(this.center)
-                this.game.spawnProjectile(new WaterProjectile(this.game, pos, enemy, this.type.water, this.range))
+                this.game.spawnProjectile(
+                    new WaterProjectile(this.game, pos, enemy, this.type.water, this.range)
+                )
+                this.game.playSound('water')
                 this.cooldown = 0.5 / this.type.count
             }
         }
@@ -34,12 +37,24 @@ class WaterTurret extends Turret {
         super.render(ctx)
         ctx.translate(this.center.x, this.center.y)
         ctx.rotate(this.angle)
-        ctx.drawImage(WaterTurret.images, 0, (this.type.count - 1) * 48, 48, 48, -24, -24, 48, 48)
+        ctx.drawImage(
+            WaterTurret.images,
+            0, (this.type.count - 1) * 48, 48, 48,
+            -24, -24, 48, 48
+        )
         ctx.resetTransform()
     }
 
-    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
-        ctx.drawImage(WaterTurret.images, 0, (type.count - 1) * 48, 48, 48, x + 8, y + 8, 48, 48)
+    static renderPreview(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretType
+    ): void {
+        ctx.drawImage(
+            WaterTurret.images,
+            0, (type.count - 1) * 48, 48, 48,
+            x + 8, y + 8, 48, 48
+        )
     }
 
     addType(type: TurretElement): void {
@@ -67,7 +82,8 @@ class WaterTurret extends Turret {
             WaterTurret.turretName,
             WaterTurret.turretDescription[type.water > 1 ? 1 : 0],
             112 + type.water * 16,
-            `${type.water * 5}`
+            (type.water * 5).toString(),
+            'wet(' + type.water + ') for 2s'
         )
     }
 
@@ -85,7 +101,11 @@ class WaterTurret extends Turret {
         }
     }
 
-    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+    renderPreviewAfterUpgrade(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretElement
+    ): void {
         if (this.type.count >= 4) {
             return
         }
@@ -106,22 +126,34 @@ class WaterTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_aefW_water").then(tex => { WaterTurret.images = tex }, () => new Promise<void>(resolve => {
-            let sandTex = new NoiseTextureGenerator(48, 48, "#F2EBC1", 0.08, 0, 1).generateImage()
-            let groundTex = new NoiseTextureGenerator(48, 48, "#B9B5A0", 0.05, 0, 1).generateImage()
-            let c = new PreRenderedImage(48, 192)
-            c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), 1, 1, 46, 46)
-            c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -2, 46, 52, 52)
-            c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -5, 91, 58, 58)
-            c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -8, 136)
-            c.cacheImage("td_tower_aefW_water")
-            WaterTurret.images = c.image
-            resolve()
-        }))
+        return Utils.getImageFromCache('td_tower_aefW_water').then(
+            tex => { WaterTurret.images = tex },
+            () => new Promise<void>(resolve => {
+                let sandTex = new NoiseTextureGenerator(
+                    48, 48, '#F2EBC1', 0.08, 0, 1
+                ).generateImage()
+                let groundTex = new NoiseTextureGenerator(
+                    48, 48, '#B9B5A0', 0.05, 0, 1
+                ).generateImage()
+                let c = new PreRenderedImage(48, 192)
+                c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), 1, 1, 46, 46)
+                c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -2, 46, 52, 52)
+                c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -5, 91, 58, 58)
+                c.ctx.drawImage(WaterTurret.preRender(groundTex, sandTex), -8, 136)
+                c.cacheImage('td_tower_aefW_water')
+                WaterTurret.images = c.image
+                resolve()
+            })
+        )
     }
 
-    private static preRender(groundTex: CanvasImageSource, sandTex: CanvasImageSource): CanvasImageSource {
-        let waterTex = new CellularTextureGenerator(64, 64, Rand.i(16, 36), "#3584CE", "#3EB4EF", CellularTextureType.Balls).generateImage()
+    private static preRender(
+        groundTex: CanvasImageSource,
+        sandTex: CanvasImageSource
+    ): CanvasImageSource {
+        let waterTex = new CellularTextureGenerator(
+            64, 64, Rand.i(16, 36), '#3584CE', '#3EB4EF', CellularTextureType.Balls
+        ).generateImage()
         let textures = [groundTex, sandTex, waterTex]
         let pts: {
             pt_b: Vec2
@@ -159,7 +191,7 @@ class WaterTurret extends Turret {
                 let o1 = layer[(i + 1) % 8]
                 ctx.bezierCurveTo(o0.pt_a.x, o0.pt_a.y, o1.pt_b.x, o1.pt_b.y, o1.pt.x, o1.pt.y)
             }
-            ctx.fillStyle = ctx.createPattern(textures[j], "repeat") as CanvasPattern
+            ctx.fillStyle = <CanvasPattern>ctx.createPattern(textures[j], 'repeat')
             ctx.fill()
         }
         return c.image

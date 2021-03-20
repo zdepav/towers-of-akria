@@ -147,8 +147,10 @@ class Vec2 {
         return new Vec2(Vec2.ldx(r1, angle, center.x), Vec2.ldy(r2, angle, center.y))
     }
 
-    static init(): void {
+    static init(): Promise<void> {
+        return new Promise<void>(resolve => {
         Vec2.zero = new Vec2(0, 0)
+            resolve()
+        })
     }
 }
-Vec2.init()

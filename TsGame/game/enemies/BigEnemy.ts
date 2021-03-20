@@ -22,7 +22,7 @@ class BigEnemy extends Enemy {
             ctx.fillStyle = this.effects.colorize(this.baseArmorColor).toCss()
             this.renderCircle(ctx, 10 + Utils.clamp(this.armor / 30, 0, 6))
         }
-        ctx.fillStyle = "#000000"
+        ctx.fillStyle = '#000000'
         this.renderCircle(ctx, 10)
         if (this._hp < this.startHp) {
             ctx.fillStyle = this.effects.colorize(this.baseColor).toCss()

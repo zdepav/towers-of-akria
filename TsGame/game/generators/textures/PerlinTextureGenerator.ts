@@ -2,11 +2,11 @@
 
 abstract class PerlinTextureGenerator extends TextureGenerator {
 
-    protected color2: ColorSource
-    protected scale: number
-    protected curve: (x: number) => number
+    protected readonly color2: ColorSource
+    protected readonly scale: number
+    protected readonly curve: (x: number) => number
 
-    constructor(
+    protected constructor(
         width: number, height: number,
         color1: ColorSourceSource,
         color2: ColorSourceSource,
@@ -19,7 +19,11 @@ abstract class PerlinTextureGenerator extends TextureGenerator {
         this.curve = curve ?? Curve.linear
     }
 
-    protected dotGridGradient(gradient: PerlinGradient, ix: number, iy: number, x: number, y: number): number {
+    protected dotGridGradient(
+        gradient: PerlinGradient,
+        ix: number, iy: number,
+        x: number, y: number
+    ): number {
         return gradient.get(ix, iy).dotu(x - ix, y - iy)
     }
 

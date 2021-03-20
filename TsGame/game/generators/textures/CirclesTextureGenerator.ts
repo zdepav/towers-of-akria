@@ -2,14 +2,14 @@
 
 class CirclesTextureGenerator extends PerlinTextureGenerator {
 
-    private cx: number
-    private cy: number
-    private ringCount: number
-    private ringCountL: number
-    private turbulence: number
-    private background: ColorSource
-    private scale2: number
-    private gradients: PerlinGradient[]
+    private readonly cx: number
+    private readonly cy: number
+    private readonly ringCount: number
+    private readonly ringCountL: number
+    private readonly turbulence: number
+    private readonly background: ColorSource
+    private readonly scale2: number
+    private readonly gradients: PerlinGradient[]
 
     constructor(
         width: number, height: number,
@@ -29,15 +29,21 @@ class CirclesTextureGenerator extends PerlinTextureGenerator {
         this.gradients = []
         this.scale2 = this.scale * 2
         for (let i = 0; i < 2; ++i) {
-            this.gradients.push(new PerlinGradient(this.width * this.scale2, this.height * this.scale2))
+            this.gradients.push(
+                new PerlinGradient(this.width * this.scale2, this.height * this.scale2)
+            )
         }
         this.cx = this.width * this.scale / 2
         this.cy = this.height * this.scale / 2
     }
 
     protected _getColor(x: number, y: number): RgbaColor {
-        let _x = x * this.scale + this.perlin(this.gradients[0], x * this.scale2, y * this.scale2) * this.turbulence - this.cx
-        let _y = y * this.scale + this.perlin(this.gradients[1], x * this.scale2, y * this.scale2) * this.turbulence - this.cy
+        let _x = x * this.scale + this.perlin(
+            this.gradients[0], x * this.scale2, y * this.scale2
+        ) * this.turbulence - this.cx
+        let _y = y * this.scale + this.perlin(
+            this.gradients[1], x * this.scale2, y * this.scale2
+        ) * this.turbulence - this.cy
         let d = Math.sqrt(_x * _x + _y * _y)
         if (d > this.ringCount) {
             return this.background.getColor(x, y)

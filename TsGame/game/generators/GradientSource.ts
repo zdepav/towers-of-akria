@@ -2,9 +2,9 @@
 
 abstract class GradientSource extends ColorSource {
 
-    private colorStops: { pos: number, color: ColorSource }[]
+    private readonly colorStops: { pos: number, color: ColorSource }[]
 
-    constructor(width: number, height: number) {
+    protected constructor(width: number, height: number) {
         super(width, height)
         this.colorStops = []
     }
@@ -30,7 +30,8 @@ abstract class GradientSource extends ColorSource {
             }
             return this.colorStops[i - 1].color.getColor(x, y).lerp(
                 this.colorStops[i].color.getColor(x, y),
-                (position - this.colorStops[i - 1].pos) / (this.colorStops[i].pos - this.colorStops[i - 1].pos)
+                (position - this.colorStops[i - 1].pos) /
+                (this.colorStops[i].pos - this.colorStops[i - 1].pos)
             )
         }
     }

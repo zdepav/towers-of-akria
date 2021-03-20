@@ -2,7 +2,7 @@
 
 class PerlinNoiseTextureGenerator extends PerlinTextureGenerator {
 
-    private gradient: PerlinGradient
+    private readonly gradient: PerlinGradient
 
     constructor(
         width: number, height: number,

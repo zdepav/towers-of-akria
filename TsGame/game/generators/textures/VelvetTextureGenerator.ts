@@ -2,7 +2,7 @@
 
 class VelvetTextureGenerator extends PerlinTextureGenerator {
 
-    private gradients: PerlinGradient[]
+    private readonly gradients: PerlinGradient[]
 
     constructor(
         width: number, height: number,

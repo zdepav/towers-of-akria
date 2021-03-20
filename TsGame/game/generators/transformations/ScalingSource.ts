@@ -2,10 +2,15 @@
 
 class ScalingSource extends TransformingSource {
 
-    private inverseScale: Vec2
-    private origin: Vec2
+    private readonly inverseScale: Vec2
+    private readonly origin: Vec2
 
-    constructor(width: number, height: number, source: ColorSource, scale: number | Vec2, originX: number, originY: number) {
+    constructor(
+        width: number, height: number,
+        source: ColorSource,
+        scale: number | Vec2,
+        originX: number, originY: number
+    ) {
         super(width, height, source)
         if (scale instanceof Vec2) {
             this.inverseScale = new Vec2(1 / scale.x, 1 / scale.y)

@@ -2,7 +2,8 @@
 
 class PlasmaBeamParticle extends Particle {
 
-    private a: Vec2
+    private readonly a: Vec2
+
     private b: Vec2
     private c1: Vec2
     private c2: Vec2
@@ -34,7 +35,7 @@ class PlasmaBeamParticle extends Particle {
         ctx.moveTo(this.a.x, this.a.y)
         let n = this.n.mul(1 - this.life), c1 = this.c1.add(n), c2 = this.c2.sub(n)
         ctx.bezierCurveTo(c1.x, c1.y, c2.x, c2.y, this.b.x, this.b.y)
-        let rgb = `#${Utils.byteToHex(255 - 128 * this.life)}00ff`
+        let rgb = '#' + Utils.byteToHex(255 - 128 * this.life) + '00ff'
         ctx.strokeStyle = rgb + Utils.byteToHex(64 * this.life)
         ctx.lineWidth = 5
         ctx.stroke()

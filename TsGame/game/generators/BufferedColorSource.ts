@@ -2,7 +2,7 @@
 
 class BufferedColorSource extends ColorSource {
 
-    private data: RgbaColor[]
+    private readonly data: RgbaColor[]
 
     constructor(width: number, height: number, source: ColorSource, scale: number = 1) {
         super(width, height)

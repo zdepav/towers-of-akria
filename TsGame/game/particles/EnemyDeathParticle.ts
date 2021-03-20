@@ -2,15 +2,16 @@
 
 class EnemyDeathParticle extends Particle {
 
+    private readonly vx: number
+    private readonly vy: number
+    private readonly va: number
+    private readonly startLife: number
+    private readonly color: string
+
     private x: number
     private y: number
     private angle: number
-    private vx: number
-    private vy: number
-    private va: number
     private life: number
-    private startLife: number
-    private color: string
 
     get expired(): boolean { return this.life < 0 }
 

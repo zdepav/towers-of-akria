@@ -11,5 +11,4 @@ class Curve {
     static sqrt(x: number): number { return Math.sqrt(x) }
 
     static sin(x: number): number { return (1 - Math.cos(x * Math.PI)) * 0.5 }
-
 }

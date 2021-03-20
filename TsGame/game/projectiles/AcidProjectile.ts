@@ -2,11 +2,19 @@
 
 class AcidProjectile extends GuidedProjectile {
 
-    constructor(game: Game, position: Vec2, target: Enemy, strength: number, range: number) {
+    constructor(
+        game: Game,
+        position: Vec2,
+        target: Enemy,
+        strength: number,
+        range: number,
+        damage: number,
+        acidDuration: number
+    ) {
         super(game, position, target, 250, range)
         this.onhit = enemy => {
-            enemy.dealDamage(4)
-            enemy.addEffect(new AcidEffect(2, strength))
+            enemy.dealDamage(damage)
+            enemy.addEffect(new AcidEffect(acidDuration, strength))
         }
     }
 
@@ -15,8 +23,8 @@ class AcidProjectile extends GuidedProjectile {
             return
         }
         super.step(time)
-        this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#d0ff00"))
+        this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, '#d0ff00'))
     }
-    
+
     render(ctx: CanvasRenderingContext2D): void { }
 }

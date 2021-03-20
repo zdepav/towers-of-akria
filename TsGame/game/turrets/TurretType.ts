@@ -7,7 +7,7 @@ enum TurretElement {
 
 class TurretType {
 
-    private type: number[]
+    private readonly type: number[]
     private c: number
 
     get air(): number { return this.type[TurretElement.Air] }

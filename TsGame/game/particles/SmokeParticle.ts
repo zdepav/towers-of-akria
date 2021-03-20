@@ -2,11 +2,12 @@
 
 class SmokeParticle extends Particle {
 
-    private x: number
-    private y: number
+    private readonly x: number
+    private readonly y: number
+    private readonly rgb: string
+    private readonly startSize: number
+
     private life: number
-    private rgb: string
-    private startSize: number
 
     get expired(): boolean { return this.life >= 1 }
 
@@ -17,7 +18,7 @@ class SmokeParticle extends Particle {
         this.life = 0
         let lightness = Rand.i(112, 176)
         let h = Utils.byteToHex(lightness)
-        this.rgb = `#${h}${h}${h}`
+        this.rgb = '#' + h + h + h
         this.startSize = startSize
     }
 

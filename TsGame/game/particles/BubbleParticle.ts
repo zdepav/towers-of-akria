@@ -2,11 +2,12 @@
 
 class BubbleParticle extends Particle {
 
-    private x: number
-    private y: number
+    private readonly x: number
+    private readonly y: number
+    private readonly rgb: string
+    private readonly startSize: number
+
     private life: number
-    private rgb: string
-    private startSize: number
 
     get expired(): boolean { return this.life >= 1 }
 

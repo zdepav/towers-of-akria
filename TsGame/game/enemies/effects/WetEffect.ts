@@ -21,7 +21,7 @@ class WetEffect extends LeveledEffect {
                     new BubbleParticle(
                         this.affectedEnemy.x + v.x,
                         this.affectedEnemy.y + v.y,
-                        0, "#0080ff"
+                        0, '#0080ff'
                     )
                 )
             }

@@ -2,11 +2,12 @@
 
 class FlameParticle extends Particle {
 
+    private readonly speed: number
+    private readonly rgb: string
+
     private start: Vec2
     private target: Vec2
     private life: number
-    private speed: number
-    private rgb: string
 
     get expired(): boolean { return this.life >= 1 }
 
@@ -16,7 +17,7 @@ class FlameParticle extends Particle {
         this.target = Vec2.ld(range, direction).add(startPos)
         this.life = 0
         this.speed = Rand.r(1.6, 2.4)
-        this.rgb = `#ff${Utils.byteToHex(Rand.i(64, 224))}00`
+        this.rgb = '#ff' + Utils.byteToHex(Rand.i(64, 224)) + '00'
     }
 
     step(time: number): void {

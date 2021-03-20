@@ -1,10 +1,10 @@
 /// <reference path="ShapeSource.ts"/>
 
 class RoofTilesSource extends ShapeSource {
-    
-    private empty: ColorSource | null
-    private horizontalCount: number
-    private verticalCount: number
+
+    private readonly empty: ColorSource | null
+    private readonly horizontalCount: number
+    private readonly verticalCount: number
 
     constructor(
         width: number, height: number,

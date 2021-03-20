@@ -2,13 +2,14 @@
 
 class CannonSmokeParticle extends Particle {
 
+    private readonly vx: number
+    private readonly vy: number
+    private readonly rgb: string
+    private readonly size: number
+
     private x: number
     private y: number
-    private vx: number
-    private vy: number
     private life: number
-    private rgb: string
-    private size: number
 
     get expired(): boolean { return this.life >= 1 }
 
@@ -23,7 +24,7 @@ class CannonSmokeParticle extends Particle {
         this.life = 0
         let lightness = Rand.i(32, 112)
         let h = Utils.byteToHex(lightness)
-        this.rgb = `#${h}${h}${h}`
+        this.rgb = '#' + h + h + h
         this.size = Rand.r(1, 3)
     }
 

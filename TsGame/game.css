@@ -7,7 +7,5 @@ span {
 }
 
 #zptd-game-container {
-    margin: 0 auto;
-    width: 1152px;
-    height: 704px;
+    display: none;
 }

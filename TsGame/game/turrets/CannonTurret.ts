@@ -3,8 +3,8 @@
 class CannonTurret extends Turret {
 
     private static image: CanvasImageSource
-    private static turretName = "Cannon Tower"
-    private static turretDescription = "Fires explosives, possibly hitting multiple enemies at once"
+    private static turretName = 'Cannon Tower'
+    private static turretDescription = 'Fires explosives, possibly hitting multiple enemies at once'
 
     private angle: number
 
@@ -42,7 +42,8 @@ class CannonTurret extends Turret {
         let closestAngle = Infinity
         for (const e of enemies) {
             let a = this.center.angleTo(e.pos)
-            let diff = Angle.toDegrees(Angle.absDifference(this.angle, a)) + this.center.distanceTo(e.pos)
+            let diff = Angle.toDegrees(Angle.absDifference(this.angle, a)) +
+                this.center.distanceTo(e.pos)
             if (diff < closestAngle) {
                 enemy = e
                 closestAngle = diff
@@ -57,8 +58,9 @@ class CannonTurret extends Turret {
                 if (t.distanceTo(enemy.pos) < 16) {
                     let firingPos = this.center.addld(18 + this.type.count * 2, this.angle)
                     let cp = new CannonballProjectile(this.game, firingPos, t)
-                    cp.onhit = pos =>this.createExplosionAt(pos)
+                    cp.onhit = pos => this.createExplosionAt(pos)
                     this.game.spawnProjectile(cp)
+                    this.game.playSound('cannon')
                     for (let i = 0; i < 8; ++i) {
                         this.game.spawnParticle(new CannonSmokeParticle(firingPos, this.angle))
                     }
@@ -78,7 +80,11 @@ class CannonTurret extends Turret {
         ctx.resetTransform()
     }
 
-    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+    static renderPreview(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretType
+    ): void {
         let r = 12 + type.count
         ctx.drawImage(CannonTurret.image, x + 32 - r * 2, y + 32 - r, r * 4, r * 2)
     }
@@ -106,7 +112,10 @@ class CannonTurret extends Turret {
             CannonTurret.turretName,
             CannonTurret.turretDescription,
             96 + type.count * 16,
-            `${10 * type.earth + 5 * type.fire - 5}${type.fire > 1 ? " + burning" : ""}`
+            (10 * type.earth + 5 * type.fire - 5).toString(),
+            type.fire > 1
+                ? (type.fire * 25 - 25) + '% burning for ' + type.fire + 's'
+                : undefined
         )
     }
 
@@ -121,14 +130,20 @@ class CannonTurret extends Turret {
                 return SunTurret.getInfo(this.type.with(type))
             case TurretElement.Earth:
                 return CannonTurret.getInfo(this.type.with(type))
+                    ?.withUpgradeNote('significantly improves damage')
             case TurretElement.Fire:
                 return CannonTurret.getInfo(this.type.with(type))
+                    ?.withUpgradeNote('improves burning chance and duration')
             case TurretElement.Water:
                 return EarthquakeTurret.getInfo(this.type.with(type))
         }
     }
 
-    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+    renderPreviewAfterUpgrade(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretElement
+    ): void {
         if (this.type.count >= 4) {
             return
         }
@@ -149,21 +164,21 @@ class CannonTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_aEFw_cannon")
+        return Utils.getImageFromCache('td_tower_aEFw_cannon')
             .then(tex => { CannonTurret.image = tex },
                 () => new Promise<void>(resolve => {
                     let c = new PreRenderedImage(64, 32)
                     let ctx = c.ctx
                     let grad = ctx.createLinearGradient(20, 16, 40, 16)
-                    grad.addColorStop(0.000, "#543B2C")
-                    grad.addColorStop(0.125, "#664936")
-                    grad.addColorStop(0.250, "#6C4D38")
-                    grad.addColorStop(0.375, "#6F4F3A")
-                    grad.addColorStop(0.500, "#70503B")
-                    grad.addColorStop(0.625, "#6F4F3A")
-                    grad.addColorStop(0.750, "#6C4D38")
-                    grad.addColorStop(0.875, "#664936")
-                    grad.addColorStop(1.000, "#543B2C")
+                    grad.addColorStop(0.000, '#543B2C')
+                    grad.addColorStop(0.125, '#664936')
+                    grad.addColorStop(0.250, '#6C4D38')
+                    grad.addColorStop(0.375, '#6F4F3A')
+                    grad.addColorStop(0.500, '#70503B')
+                    grad.addColorStop(0.625, '#6F4F3A')
+                    grad.addColorStop(0.750, '#6C4D38')
+                    grad.addColorStop(0.875, '#664936')
+                    grad.addColorStop(1.000, '#543B2C')
                     ctx.fillStyle = grad
                     ctx.fillRect(20, 3, 20, 26)
                     ctx.beginPath()
@@ -174,17 +189,17 @@ class CannonTurret extends Turret {
                     ctx.arc(54, 20, 2, 0, Angle.deg180)
                     ctx.arcTo(45, 23, 38, 23, 50)
                     ctx.closePath()
-                    ctx.strokeStyle = "#101010"
+                    ctx.strokeStyle = '#101010'
                     ctx.lineWidth = 2
                     ctx.stroke()
-                    ctx.fillStyle = "#303030"
+                    ctx.fillStyle = '#303030'
                     ctx.fill()
                     ctx.beginPath()
                     ctx.moveTo(52, 12)
                     ctx.lineTo(52, 20)
                     ctx.lineWidth = 1
                     ctx.stroke()
-                    c.cacheImage("td_tower_aEFw_cannon")
+                    c.cacheImage('td_tower_aEFw_cannon')
                     CannonTurret.image = c.image
                     resolve()
                 }))

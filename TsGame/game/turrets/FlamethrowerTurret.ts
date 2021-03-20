@@ -3,16 +3,23 @@
 class FlamethrowerTurret extends Turret {
 
     private static image: CanvasImageSource
-    private static turretName = "Flamethrower Tower"
-    private static turretDescription = "Constantly sprays enemies with fire"
+    private static turretName = 'Flamethrower Tower'
+    private static turretDescription = 'Constantly sprays enemies with fire'
 
     private angle: number
+
+    private sound: Sound
 
     get range(): number { return 64 + this.type.count * 16 }
 
     constructor(tile: Tile, type: TurretType) {
         super(tile, type)
         this.angle = Angle.rand()
+        this.sound = this.game.createSound('flamethrower', true)
+    }
+
+    dispose(): void {
+        this.sound.stop()
     }
 
     step(time: number): void {
@@ -23,7 +30,8 @@ class FlamethrowerTurret extends Turret {
         for (const e of enemies) {
             let dist = this.center.distanceTo(e.pos)
             let a = this.center.angleTo(e.posAhead(dist * 0.5 / this.range))
-            let diff = Angle.toDegrees(Angle.absDifference(this.angle, a)) + this.center.distanceTo(e.pos)
+            let diff = Angle.toDegrees(Angle.absDifference(this.angle, a)) +
+                this.center.distanceTo(e.pos)
             if (diff < closestAngle) {
                 enemy = e
                 closestAngle = diff
@@ -45,8 +53,11 @@ class FlamethrowerTurret extends Turret {
                         firingPos, this.angle + Rand.r(spread) - spread / 2, r
                     ))
                 }
+                this.sound.resume()
+                return
             }
         }
+        this.sound.pause()
     }
 
     render(ctx: CanvasRenderingContext2D): void {
@@ -58,7 +69,11 @@ class FlamethrowerTurret extends Turret {
         ctx.resetTransform()
     }
 
-    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void {
+    static renderPreview(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretType
+    ): void {
         ctx.drawImage(FlamethrowerTurret.image, x + 8, y + 8)
     }
 
@@ -85,7 +100,8 @@ class FlamethrowerTurret extends Turret {
             FlamethrowerTurret.turretName,
             FlamethrowerTurret.turretDescription,
             64 + type.count * 16,
-            `${5 + 5 * type.count} + burning`
+            (5 + 5 * type.count).toString(),
+            'burning for 2s'
         )
     }
 
@@ -107,7 +123,11 @@ class FlamethrowerTurret extends Turret {
         }
     }
 
-    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+    renderPreviewAfterUpgrade(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretElement
+    ): void {
         if (this.type.count >= 4) {
             return
         }
@@ -128,67 +148,72 @@ class FlamethrowerTurret extends Turret {
     }
 
     static init(): Promise<void> {
-        return Utils.getImageFromCache("td_tower_aeFW_flamethrower").then(tex => { FlamethrowerTurret.image = tex }, () => new Promise<void>(resolve => {
-            let c = new PreRenderedImage(48, 48)
-            let tex = new GlassTextureGenerator(48, 48, "#7A912A", "#ACCC3B", 0.5).generateImage()
-            let ctx = c.ctx
+        return Utils.getImageFromCache('td_tower_aeFW_flamethrower').then(
+            tex => { FlamethrowerTurret.image = tex },
+            () => new Promise<void>(resolve => {
+                let c = new PreRenderedImage(48, 48)
+                let tex = new GlassTextureGenerator(
+                    48, 48, '#7A912A', '#ACCC3B', 0.5
+                ).generateImage()
+                let ctx = c.ctx
 
-            let grad = ctx.createLinearGradient(24, 22, 24, 26)
-            grad.addColorStop(0.0, "#A0A0A0")
-            grad.addColorStop(0.2, "#B0B0B0")
-            grad.addColorStop(0.5, "#C0C0C0")
-            grad.addColorStop(0.8, "#B0B0B0")
-            grad.addColorStop(1.0, "#A0A0A0")
-            ctx.fillStyle = grad
-            ctx.fillRect(24, 22, 24, 4)
+                let grad = ctx.createLinearGradient(24, 22, 24, 26)
+                grad.addColorStop(0.0, '#A0A0A0')
+                grad.addColorStop(0.2, '#B0B0B0')
+                grad.addColorStop(0.5, '#C0C0C0')
+                grad.addColorStop(0.8, '#B0B0B0')
+                grad.addColorStop(1.0, '#A0A0A0')
+                ctx.fillStyle = grad
+                ctx.fillRect(24, 22, 24, 4)
 
-            grad = ctx.createLinearGradient(24, 21, 24, 27)
-            grad.addColorStop(0.0, "#A0A0A0")
-            grad.addColorStop(0.2, "#B8B8B8")
-            grad.addColorStop(0.5, "#D0D0D0")
-            grad.addColorStop(0.8, "#B8B8B8")
-            grad.addColorStop(1.0, "#A0A0A0")
-            ctx.fillStyle = grad
-            ctx.fillRect(44, 21, 4, 6)
+                grad = ctx.createLinearGradient(24, 21, 24, 27)
+                grad.addColorStop(0.0, '#A0A0A0')
+                grad.addColorStop(0.2, '#B8B8B8')
+                grad.addColorStop(0.5, '#D0D0D0')
+                grad.addColorStop(0.8, '#B8B8B8')
+                grad.addColorStop(1.0, '#A0A0A0')
+                ctx.fillStyle = grad
+                ctx.fillRect(44, 21, 4, 6)
 
-            ctx.fillStyle = "#A0A0A0"
-            ctx.fillRect(16, 18, 16, 12)
+                ctx.fillStyle = '#A0A0A0'
+                ctx.fillRect(16, 18, 16, 12)
 
-            grad = ctx.createRadialGradient(24, 24, 2, 24, 24, 5)
-            grad.addColorStop(0, "#C0C0C0")
-            grad.addColorStop(1, "#A0A0A0")
-            ctx.fillStyle = grad
-            ctx.beginPath()
-            ctx.arc(24, 24, 5, 0, Angle.deg360)
-            ctx.fill()
+                grad = ctx.createRadialGradient(24, 24, 2, 24, 24, 5)
+                grad.addColorStop(0, '#C0C0C0')
+                grad.addColorStop(1, '#A0A0A0')
+                ctx.fillStyle = grad
+                ctx.beginPath()
+                ctx.arc(24, 24, 5, 0, Angle.deg360)
+                ctx.fill()
 
-            ctx.fillStyle = ctx.createPattern(tex, "repeat") as CanvasPattern
-            ctx.strokeStyle = "#C0C0C0"
-            ctx.lineWidth = 2
+                ctx.fillStyle = ctx.createPattern(tex, 'repeat') as CanvasPattern
+                ctx.strokeStyle = '#C0C0C0'
+                ctx.lineWidth = 2
 
-            ctx.beginPath()
-            ctx.moveTo(24, 18)
-            ctx.arcTo(12, 18, 12, 13, 4)
-            ctx.arcTo(12, 8, 24, 8, 4)
-            ctx.arcTo(36, 8, 36, 13, 4)
-            ctx.arcTo(36, 18, 24, 18, 4)
-            ctx.closePath()
-            ctx.fill()
-            ctx.stroke()
+                ctx.beginPath()
+                ctx.moveTo(24, 18)
+                ctx.arcTo(12, 18, 12, 13, 4)
+                ctx.arcTo(12, 8, 24, 8, 4)
+                ctx.arcTo(36, 8, 36, 13, 4)
+                ctx.arcTo(36, 18, 24, 18, 4)
+                ctx.closePath()
+                ctx.fill()
+                ctx.stroke()
 
-            ctx.beginPath()
-            ctx.moveTo(24, 30)
-            ctx.arcTo(12, 30, 12, 35, 4)
-            ctx.arcTo(12, 40, 24, 40, 4)
-            ctx.arcTo(36, 40, 36, 35, 4)
-            ctx.arcTo(36, 30, 24, 30, 4)
-            ctx.closePath()
-            ctx.fill()
-            ctx.stroke()
+                ctx.beginPath()
+                ctx.moveTo(24, 30)
+                ctx.arcTo(12, 30, 12, 35, 4)
+                ctx.arcTo(12, 40, 24, 40, 4)
+                ctx.arcTo(36, 40, 36, 35, 4)
+                ctx.arcTo(36, 30, 24, 30, 4)
+                ctx.closePath()
+                ctx.fill()
+                ctx.stroke()
 
-            c.cacheImage("td_tower_aeFW_flamethrower")
-            FlamethrowerTurret.image = c.image
-            resolve()
-        }))
+                c.cacheImage('td_tower_aeFW_flamethrower')
+                FlamethrowerTurret.image = c.image
+                resolve()
+            })
+        )
     }
 }

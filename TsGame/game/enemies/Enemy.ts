@@ -2,16 +2,18 @@
 
 abstract class Enemy extends Expirable {
 
+    private readonly wave: number
+
     private targetTile: Tile | null
-    protected currTilePos: Vec2
-    protected nextTilePos: Vec2
     private relPos: number
     private relDist: number
     private position: Vec2
     private speedMultiplier: number
     private prevSpeedMultiplier: number
     private pushTimeout: number
-    private wave: number
+
+    protected currTilePos: Vec2
+    protected nextTilePos: Vec2
 
     protected _hp: number
     protected startHp: number
@@ -33,7 +35,7 @@ abstract class Enemy extends Expirable {
 
     abstract get baseSpeed(): number
 
-    constructor(game: Game, wave: number, spawn: Tile, hp: number, armor: number) {
+    protected constructor(game: Game, wave: number, spawn: Tile, hp: number, armor: number) {
         super()
         this.targetTile = spawn.next
         this.currTilePos = spawn.pos.addu(0, Rand.i(16, 48))
@@ -50,9 +52,9 @@ abstract class Enemy extends Expirable {
         this.armor = armor
         this.effects = new EffectSet()
         this.game = game
-        this.baseColor = RgbaColor.fromHex("#303030")
-        this.baseHpColor = RgbaColor.fromHex("#C08080")
-        this.baseArmorColor = RgbaColor.fromHex("#8080C0")
+        this.baseColor = RgbaColor.fromHex('#303030')
+        this.baseHpColor = RgbaColor.fromHex('#C08080')
+        this.baseArmorColor = RgbaColor.fromHex('#8080C0')
     }
 
     step(time: number): void {
@@ -96,7 +98,10 @@ abstract class Enemy extends Expirable {
             if (ignoreArmor) {
                 this._hp = Math.max(this._hp - ammount * this.game.towerDamageMultiplier, 0)
             } else {
-                this._hp = Math.max(this._hp - ammount * this.game.towerDamageMultiplier / this.armorProtection, 0)
+                this._hp = Math.max(
+                    this._hp - ammount * this.game.towerDamageMultiplier / this.armorProtection,
+                    0
+                )
             }
             if (this._hp <= 0) {
                 this.death()

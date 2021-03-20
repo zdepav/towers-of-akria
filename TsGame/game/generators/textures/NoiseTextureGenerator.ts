@@ -2,10 +2,10 @@
 
 class NoiseTextureGenerator extends TextureGenerator {
 
-    private cache: RgbaColor[]
-    private intensity: number
-    private saturation: number
-    private coverage: number
+    private readonly cache: RgbaColor[]
+    private readonly intensity: number
+    private readonly saturation: number
+    private readonly coverage: number
 
     constructor(
         width: number, height: number,
@@ -24,7 +24,8 @@ class NoiseTextureGenerator extends TextureGenerator {
     protected _getColor(x: number, y: number): RgbaColor {
         let i = Utils.flatten(this.width, Math.floor(x), Math.floor(y))
         if (this.cache[i] === undefined) {
-            this.cache[i] = this.color.getColor(x, y).addNoise(this.intensity, this.saturation, this.coverage)
+            this.cache[i] = this.color.getColor(x, y)
+                                      .addNoise(this.intensity, this.saturation, this.coverage)
         }
         return this.cache[i]
     }

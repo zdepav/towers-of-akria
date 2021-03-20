@@ -23,7 +23,7 @@ class ArrowProjectile extends GuidedProjectile {
         let dv = this.target.sub(this.position).normalize()
         let a = dv.mul(-4).add(this.position)
         let b = dv.mul(4).add(this.position)
-        ctx.strokeStyle = "#542F00"
+        ctx.strokeStyle = '#542F00'
         ctx.lineWidth = 1
         ctx.beginPath()
         ctx.moveTo(a.x, a.y)

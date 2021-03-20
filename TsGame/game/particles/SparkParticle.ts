@@ -2,12 +2,13 @@
 
 class SparkParticle extends Particle {
 
+    private readonly vx: number
+    private readonly vy: number
+    private readonly color: string
+
     private x: number
     private y: number
-    private vx: number
-    private vy: number
     private life: number
-    private color: string
 
     get expired(): boolean { return this.life >= 1 }
 
@@ -19,7 +20,7 @@ class SparkParticle extends Particle {
         this.vx = 30 * v.x
         this.vy = 30 * v.y
         this.life = 0
-        this.color = color + "40"
+        this.color = color + '40'
     }
 
     step(time: number): void {

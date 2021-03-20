@@ -2,10 +2,15 @@
 
 class RotatingSource extends TransformingSource {
 
-    private angle: number
-    private origin: Vec2
+    private readonly angle: number
+    private readonly origin: Vec2
 
-    constructor(width: number, height: number, source: ColorSource, angle: number, originX: number, originY: number) {
+    constructor(
+        width: number, height: number,
+        source: ColorSource,
+        angle: number,
+        originX: number, originY: number
+    ) {
         super(width, height, source)
         this.angle = angle
         this.origin = new Vec2(originX, originY)

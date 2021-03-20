@@ -1,19 +1,19 @@
-/// <reference path="Button.ts"/>
-/// <reference path="IGuiItem.ts"/>
+/// <reference path='Button.ts'/>
+/// <reference path='IGuiItem.ts'/>
 
 class TurretUpgradeButton extends Button {
-    
+
     targetTile: Tile | null
     type: TurretElement
     game: Game
-    
+
     constructor(game: Game, x: number, y: number, w: number, h: number, type: TurretElement) {
         super(game, x, y, w, h)
         this.targetTile = null
         this.type = type
         let elementColor = RgbaColor.fromHex(TurretType.getColor(type))
-        this.fillColor = elementColor.lerp(RgbaColor.fromHex("#C0C0C0"), 0.5).toCss()
-        this.pressedFillColor = elementColor.lerp(RgbaColor.fromHex("#A0A0A0"), 0.5).toCss()
+        this.fillColor = elementColor.lerp(RgbaColor.fromHex('#C0C0C0'), 0.5).toCss()
+        this.pressedFillColor = elementColor.lerp(RgbaColor.fromHex('#A0A0A0'), 0.5).toCss()
         this.disabledFillColor = this.fillColor
     }
 
@@ -63,20 +63,31 @@ class TurretUpgradeButton extends Button {
         ctx.fillRect(this.x + 2, this.y + 2, this.w - 4, this.h - 4)
         Tile.drawTowerGround(ctx, this.x + 4, this.y + 4)
         turret.renderPreviewAfterUpgrade(ctx, this.x + 4, this.y + 4, this.type)
-        ctx.fillStyle = "#000000"
-        ctx.textAlign = "right"
-        ctx.textBaseline = "top"
-        ctx.font = "bold 14px serif"
-        ctx.fillText(`${cost} MP`, this.x + this.w - 8, this.y + 8)
-        ctx.textAlign = "left"
+        ctx.fillStyle = '#000000'
+        ctx.textAlign = 'right'
+        ctx.textBaseline = 'top'
+        ctx.font = 'bold 14px serif'
+        ctx.fillText(cost + ' MP', this.x + this.w - 8, this.y + 8)
+        ctx.textAlign = 'left'
         ctx.fillText(info.name, this.x + 74, this.y + 8)
-        ctx.font = "12px monospace"
-        ctx.fillText(`Range:   ${info.range}`, this.x + 74, this.y + 30)
-        ctx.fillText(`Max DPS: ${info.dps}`, this.x + 74, this.y + 48)
-        ctx.font = "13px serif"
-        Utils.fillWrappedText(ctx, info.description, this.x + 6, this.y + 74, this.w - 12, 14)
+        ctx.font = '12px monospace'
+        ctx.fillText('Range: ' + info.range, this.x + 74, this.y + 30)
+        ctx.fillText('Max DPS: ' + info.dps, this.x + 176, this.y + 30)
+        if (info.effect != null) {
+            ctx.fillText(info.effect, this.x + 74, this.y + 48)
+        }
+        ctx.font = '13px serif'
+        Utils.fillWrappedText(
+            ctx,
+            info.description,
+            this.x + 6, this.y + 74,
+            this.w - 12, 14
+        )
+        if (info.upgradeNote != null) {
+            ctx.fillText('  - ' + info.upgradeNote, this.x + 6, this.y + 115)
+        }
         if (!this.enabled) {
-            ctx.fillStyle = "#C0C0C080"
+            ctx.fillStyle = '#C0C0C080'
             ctx.fillRect(this.x, this.y, this.w, this.h)
         }
     }

@@ -3,7 +3,7 @@
 
 class Button extends Rect implements IGuiItem {
 
-protected  _pressed: boolean
+    protected _pressed: boolean
 
     enabled: boolean
     visible: boolean
@@ -17,7 +17,7 @@ protected  _pressed: boolean
     disabledFillColor: string
 
     get pressed(): boolean { return this._pressed && this.enabled }
-    
+
     constructor(game: Game, x: number, y: number, w: number, h: number) {
         super(x, y, w, h)
         this.onclick = null
@@ -25,10 +25,10 @@ protected  _pressed: boolean
         this.enabled = true
         this.visible = true
         this._pressed = false
-        this.borderColor = "#606060"
-        this.disabledBorderColor = "#808080"
-        this.fillColor = "#C0C0C0"
-        this.pressedFillColor = "#A0A0A0"
+        this.borderColor = '#606060'
+        this.disabledBorderColor = '#808080'
+        this.fillColor = '#C0C0C0'
+        this.pressedFillColor = '#A0A0A0'
         this.disabledFillColor = this.fillColor
     }
 

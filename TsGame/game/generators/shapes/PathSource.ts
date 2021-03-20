@@ -2,16 +2,16 @@
 
 class PathSource extends ShapeSource {
 
-    private path: Path2D
-    private fillRule: CanvasFillRule
-    private ctx: CanvasRenderingContext2D
+    private readonly ctx: CanvasRenderingContext2D
+    private readonly path: Path2D
+    private readonly fillRule: CanvasFillRule
 
     constructor(
         width: number, height: number,
         path: Path2D,
         color: ColorSourceSource,
         background: ColorSourceSource,
-        fillRule: CanvasFillRule = "nonzero"
+        fillRule: CanvasFillRule = 'nonzero'
     ) {
         super(width, height, color, background)
         this.path = path
@@ -20,6 +20,8 @@ class PathSource extends ShapeSource {
     }
 
     protected _getColor(x: number, y: number): RgbaColor {
-        return this.ctx.isPointInPath(this.path, x, y, this.fillRule) ? this.color.getColor(x, y) : this.background.getColor(x, y)
+        return this.ctx.isPointInPath(this.path, x, y, this.fillRule)
+            ? this.color.getColor(x, y)
+            : this.background.getColor(x, y)
     }
 }

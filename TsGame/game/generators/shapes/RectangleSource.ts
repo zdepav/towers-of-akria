@@ -2,10 +2,10 @@
 
 class RectangleSource extends ShapeSource {
 
-    private x: number
-    private y: number
-    private w: number
-    private h: number
+    private readonly x: number
+    private readonly y: number
+    private readonly w: number
+    private readonly h: number
 
     constructor(
         width: number, height: number,
@@ -23,6 +23,8 @@ class RectangleSource extends ShapeSource {
 
     protected _getColor(x: number, y: number): RgbaColor {
         let _x = x - this.x, _y = y - this.y
-        return (_x >= 0 && _x < this.w && _y >= 0 && _y < this.h) ? this.color.getColor(x, y) : this.background.getColor(x, y)
+        return (_x >= 0 && _x < this.w && _y >= 0 && _y < this.h)
+            ? this.color.getColor(x, y)
+            : this.background.getColor(x, y)
     }
 }

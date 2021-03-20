@@ -2,10 +2,10 @@
 
 class CircleSource extends ShapeSource {
 
-    private x: number
-    private y: number
-    private r1: number
-    private r2: number
+    private readonly x: number
+    private readonly y: number
+    private readonly r1: number
+    private readonly r2: number
 
     constructor(
         width: number, height: number,

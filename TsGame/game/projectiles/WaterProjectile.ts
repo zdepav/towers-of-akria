@@ -20,17 +20,21 @@ class WaterProjectile extends GuidedProjectile {
         super.step(time)
         let r = Rand.r()
         if (r < 0.25) {
-            this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#3584CE", 0.75))
+            this.game.spawnParticle(
+                new TrailParticle(this.position.x, this.position.y, '#3584CE', 0.75)
+            )
         } else if (r < 0.5) {
-            this.game.spawnParticle(new TrailParticle(this.position.x, this.position.y, "#399CDE", 0.75))
+            this.game.spawnParticle(
+                new TrailParticle(this.position.x, this.position.y, '#399CDE', 0.75)
+            )
         }
     }
-    
+
     render(ctx: CanvasRenderingContext2D): void {
         if (this._expired) {
             return
         }
-        ctx.fillStyle = "#3584CE"
+        ctx.fillStyle = '#3584CE'
         ctx.beginPath()
         ctx.arc(this.position.x, this.position.y, 3, 0, Angle.deg360)
         ctx.fill()

@@ -40,7 +40,7 @@ class RgbaColor {
                 parseInt(color.substr(5, 2), 16),
                 a
             )
-        } else throw new Error("Invalid color format")
+        } else throw new Error('Invalid color format')
     }
 
     private pr(): number { return this.r * this.a / 255 }
@@ -138,14 +138,14 @@ class RgbaColor {
     }
 
     toRgbCss(): string { // without alpha channel
-        return "#"
+        return '#'
             + Utils.byteToHex(this.r)
             + Utils.byteToHex(this.g)
             + Utils.byteToHex(this.b)
     }
 
     toCss(): string {
-        return "#"
+        return '#'
             + Utils.byteToHex(this.r)
             + Utils.byteToHex(this.g)
             + Utils.byteToHex(this.b)
@@ -153,7 +153,7 @@ class RgbaColor {
     }
 
     toString(): string {
-        return `rgba(${this.r},${this.g},${this.b},${this.a / 255})`
+        return 'rgba(' + this.r + ',' + this.g + ',' + this.b + ',' + (this.a / 255) + ')'
     }
 
     static init(): Promise<void> {

@@ -21,6 +21,8 @@ class Turret {
         this.cooldown = 0
     }
 
+    dispose(): void { }
+
     step(time: number): void {
         if (this.cooldown > 0) {
             this.cooldown = Math.max(0, this.cooldown - time)
@@ -28,8 +30,12 @@ class Turret {
     }
 
     render(ctx: CanvasRenderingContext2D): void { }
-    
-    static renderPreview(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretType): void { }
+
+    static renderPreview(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretType
+    ): void { }
 
     getType(): TurretType { return this.type.copy() }
 
@@ -77,7 +83,11 @@ class Turret {
         }
     }
 
-    renderPreviewAfterUpgrade(ctx: CanvasRenderingContext2D, x: number, y: number, type: TurretElement): void {
+    renderPreviewAfterUpgrade(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        type: TurretElement
+    ): void {
         switch (type) {
             case TurretElement.Air:
                 AirTurret.renderPreview(ctx, x, y, this.type.with(type))
